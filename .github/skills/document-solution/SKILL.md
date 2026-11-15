@@ -10,6 +10,21 @@ Apply the [shared execution contract](../../../.ai/contracts/execution-contract.
 plain Markdown exception for this workflow. Use the existing Developer role. Write new prose
 in English/STE under the [writing standard](../../../.ai/contracts/writing-standard.md).
 
+## Invocation contract
+
+Role: `developer`. Run this contract only as the `developer` custom agent, whose role guard applies.
+Arguments: `<solution topic and scope> [itemId=<ID>] [documentationPath=docs/solutions/<slug>/]`.
+Entry points: VS Code `/document-solution <arguments>` (thin alias `.github/prompts/document-solution.prompt.md`);
+Copilot CLI `copilot --agent developer` with `document-solution <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+VS Code narrows the tools for this entry point to: `read`, `search`, `edit`, `execute`, `vscode/askQuestions`, `ado-readonly/*`, `salesforce/review_org_identity`, `salesforce/review_installed_packages`, `salesforce/review_object_contract`, `salesforce/review_soql_query`. Copilot CLI applies the agent's own list.
+
+Apply the skill to the supplied
+topic and scope. Save or update only `overview.md`, `flows.md`, and `components.md` in the
+stable `docs/solutions/<slug>/` directory. Work Item and design context are optional.
+Describe available implementation sources, keep material unknowns explicit, and return the
+overview link with the local commit outcome. The skill owns discovery, content, and verification.
+
 ## Inputs and boundaries
 
 Require a recognizable solution topic and scope. Use named components, directories, existing

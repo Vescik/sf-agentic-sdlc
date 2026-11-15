@@ -2,12 +2,11 @@
 name: reviewer
 description: Challenge a design or implementation against the package constraints and house conventions. Read-only — no edit rights, no org mutations.
 argument-hint: "work item ID, file, or design to review"
-target: vscode
 tools:
   [
     "read",
     "search",
-    "execute/runInTerminal",
+    "execute",
     "vscode/askQuestions",
     "salesforce/review_org_identity",
     "salesforce/review_installed_packages",
@@ -19,7 +18,7 @@ hooks:
     - type: command
       command: python3 scripts/copilot_role_guard.py --role reviewer
       windows: python scripts/copilot_role_guard.py --role reviewer
-      timeout: 5
+      timeout: 10
 ---
 
 # Reviewer

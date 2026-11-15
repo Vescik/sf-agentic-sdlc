@@ -16,6 +16,26 @@ is in hand. Everything else about the role's boundaries is unchanged: edits stay
 `force-app/`, `manifest/`, and `tests/e2e/`; a real deploy follows the Developer's single-use chat
 confirmation rule.
 
+## Invocation contract
+
+Role: `developer`. Run this contract only as the `developer` custom agent, whose role guard applies.
+Arguments: `component=<Type:Name> [org=<alias>] plus the diagnosis or a pointer to it`.
+Entry points: VS Code `/adhoc-fix <arguments>` (thin alias `.github/prompts/adhoc-fix.prompt.md`);
+Copilot CLI `copilot --agent developer` with `adhoc-fix <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+VS Code narrows the tools for this entry point to: `read`, `search`, `edit`, `execute`, `vscode/askQuestions`, `salesforce/review_org_identity`, `salesforce/review_object_contract`, `salesforce/review_soql_query`. Copilot CLI applies the agent's own list.
+
+Require a named target component and a written diagnosis (ask once
+(VS Code: `vscode/askQuestions`; Copilot CLI: in the reply) if either is missing). This lane replaces the accepted-design entry
+gate only for a small bounded defect fix; retrieve the current org state first, make the smallest
+coherent edit in `force-app/`, and write the fix note under
+`output/documentation/adhoc-fixes/`.
+
+Report the fix note path, the before → after of the defective element, local verification, and the
+proposed deployment scope. If a real deploy is needed, ask with the target, scope, and explicit
+org-change warning, then run only the exact confirmed command and verify the result. If the fix
+stops being small and bounded, route through the normal design lane.
+
 ## Entry conditions
 
 - A written diagnosis exists: what is broken, in which component, expected vs. actual behavior,

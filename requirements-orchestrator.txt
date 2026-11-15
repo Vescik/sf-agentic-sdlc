@@ -1,0 +1,3 @@
+# Optional: the Copilot SDK host for scripts/sdlc_orchestrator.py (not needed by CI or tests).
+# Pinned exactly; it bundles Copilot CLI 1.0.112. Install: .venv/bin/pip install -r requirements-orchestrator.txt
+github-copilot-sdk==1.0.34

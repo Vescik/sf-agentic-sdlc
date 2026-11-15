@@ -5,14 +5,6 @@ argument-hint: "itemId=<ID> for ADO-backed work, or a written requirement"
 agent: designer
 ---
 
-Use the designer agent for the given input — an ADO work item ID (`itemId=<ID>`) or a written
-requirement. Follow the whole [solution-design skill](../skills/solution-design/SKILL.md), in
-its order: the skill's Stage 1 owns context resolution, item-type routing, the delivery
-container, and delivery-map membership before any discovery, and its stop/recovery returns are
-the ones to use. The result is `work-items/<id>-<slug>/design.md`. The active Designer
-commits the completed design through the shared [Git Workflow](../skills/git-workflow/SKILL.md),
-without a separate commit request or Git Agent handoff. Branch names do not gate design or Git.
-The commit records a draft; it does not approve or start implementation.
-
-For a written requirement without an ADO item, no `ado-context.md` exists or is fabricated, and
-the design identifies the requirement as human-provided.
+Thin VS Code alias with no logic of its own. As the `designer` agent, follow the
+[solution-design skill](../skills/solution-design/SKILL.md) for the supplied input, starting with its
+`Invocation contract`.

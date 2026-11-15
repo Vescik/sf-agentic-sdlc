@@ -2,12 +2,11 @@
 name: designer
 description: Design subscriber-owned extensions of the VendorPkg managed package — discovery through repository source and org tools first, then a written design in the work item.
 argument-hint: "work item ID or requested outcome"
-target: vscode
 tools:
   [
     "read",
-    "edit/editFiles",
-    "execute/runInTerminal",
+    "edit",
+    "execute",
     "vscode/askQuestions",
     "ado-readonly/*",
     "salesforce/review_org_identity",
@@ -44,7 +43,7 @@ hooks:
     - type: command
       command: python3 scripts/copilot_role_guard.py --role designer
       windows: python scripts/copilot_role_guard.py --role designer
-      timeout: 5
+      timeout: 10
 ---
 
 # Designer

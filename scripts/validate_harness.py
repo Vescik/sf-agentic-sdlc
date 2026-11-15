@@ -54,10 +54,10 @@ BUILT_IN_AGENTS = {"agent", "ask", "plan", "edit"}
 ALLOWED_TOOLS = {
     "read",
     "search",
-    "edit/editFiles",
-    "execute/runInTerminal",
+    "edit",
+    "execute",
     "sf-harness.salesforce-operations/salesforceOperation",
-    "web/fetch",
+    "web",
     "vscode/askQuestions",
     "agent",
     "ado-readonly/*",
@@ -95,6 +95,25 @@ FORBIDDEN_SOLUTION_DESIGN_GRANTS = {
     "solution-design/design_review_implementation",
 }
 LEGACY_TOOLS = {"readFile", "editFiles", "runInTerminal", "fetch", "codebase", "githubRepo"}
+# VS Code-qualified names that Copilot CLI ignores silently (an agent would load without its
+# editor or shell). The portable aliases edit/execute/web work on both hosts.
+VSCODE_ONLY_TOOL_NAMES = {"edit/editFiles", "execute/runInTerminal", "web/fetch"}
+PROMPT_ALIAS_MAX_WORDS = 45
+
+
+def invocation_contract(skill_text: str) -> str | None:
+    """Return a skill's `## Invocation contract` section, or None when it has none."""
+    match = re.search(r"(?ms)^## Invocation contract\n.*?(?=^## |\Z)", skill_text)
+    return match.group(0) if match else None
+CLI_MCP_SERVERS = {
+    "ado-readonly": ["${COPILOT_SESSION_CWD}/scripts/start_ado_mcp.mjs"],
+    "salesforce": [
+        "${COPILOT_SESSION_CWD}/scripts/start_salesforce_mcp.mjs",
+        "--mode",
+        "review",
+        "--org-from-config",
+    ],
+}
 REQUIRED_SETTINGS = (
     "github.copilot.chat.codeGeneration.useInstructionFiles",
     "chat.includeApplyingInstructions",
@@ -283,7 +302,8 @@ def check_salesforce_project(audit: Audit, root: Path = ROOT) -> None:
         "embedded SFDX project is missing force-app/main/default",
     )
     audit.require(
-        (salesforce_root / ".git").is_dir(),
+        # A linked git worktree has a .git file that points at the shared Git directory.
+        (salesforce_root / ".git").exists(),
         "the root SFDX project must use the repository's existing Git directory",
     )
 
@@ -330,7 +350,8 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
         data, _ = frontmatter(path, audit)
         name = data.get("name")
         audit.require(name == path.name.removesuffix(".agent.md"), f"{relative(path)}: name must match filename")
-        audit.require(data.get("target") == "vscode", f"{relative(path)}: target must be vscode")
+        # Copilot CLI skips agents with target: vscode; an unset target loads on both hosts.
+        audit.require("target" not in data, f"{relative(path)}: target must be unset so Copilot CLI and VS Code both load the agent")
         audit.require(bool(data.get("description")), f"{relative(path)}: description is required")
         audit.require(bool(data.get("argument-hint")), f"{relative(path)}: argument-hint is required")
         tools = data.get("tools")
@@ -345,15 +366,15 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
             )
         if tools_ok:
             unknown = sorted(set(tools) - ALLOWED_TOOLS)
-            legacy = sorted(set(tools) & LEGACY_TOOLS)
+            legacy = sorted(set(tools) & (LEGACY_TOOLS | VSCODE_ONLY_TOOL_NAMES))
             audit.require(not unknown, f"{relative(path)}: unknown tools: {unknown}")
             audit.require(not legacy, f"{relative(path)}: legacy tools: {legacy}")
-            audit.require("execute/runInTerminal" in tools,
+            audit.require("execute" in tools,
                           f"{relative(path)}: shared GitHub reads require the guarded terminal")
             audit.require(f"--role {name}" in json.dumps(data.get("hooks", {}), default=str),
                           f"{relative(path)}: terminal access requires its own role guard")
             if name == "git-agent":
-                audit.require("edit/editFiles" in tools,
+                audit.require("edit" in tools,
                               "git-agent needs the editor for its exact PR-body transport path")
             audit.require(
                 ("sf-harness.salesforce-operations/salesforceOperation" in tools) == (name == "developer"),
@@ -387,7 +408,7 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
         for tool in (agents.get("reviewer", {}).get("tools") or [])
         if isinstance(tool, str)
     }
-    audit.require("edit/editFiles" not in reviewer_tools, "reviewer must not edit")
+    audit.require("edit" not in reviewer_tools, "reviewer must not edit")
     audit.require("salesforce-development/*" not in reviewer_tools, "reviewer must not mutate Salesforce")
     reviewer_hooks = agents.get("reviewer", {}).get("hooks", {})
     audit.require("--role reviewer" in json.dumps(reviewer_hooks, default=str), "reviewer role guard is required")
@@ -405,7 +426,7 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
     # which is how the prompt-level override went unnoticed.
     for tool, reason in (
         ("search", "the review reads a diff and repository files, not single known paths"),
-        ("execute/runInTerminal", "the review runs repository checks and guarded Git reads"),
+        ("execute", "the review runs repository checks and guarded Git reads"),
         ("salesforce/review_soql_query", "the review reconciles design claims against org records"),
         ("salesforce/review_object_contract", "package-namespace claims need the object contract"),
         ("salesforce/review_org_identity", "evidence must name the org it came from"),
@@ -441,17 +462,17 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
                 )
         if prompt_agent in agents:
             effective_tools = data.get("tools", agents[prompt_agent].get("tools")) or []
-            audit.require("execute/runInTerminal" in effective_tools,
+            audit.require("execute" in effective_tools,
                           f"{relative(path)}: prompt must retain the role's guarded terminal for GitHub reads")
         if name == "publish-wiki":
             audit.require(prompt_agent == "developer", "publish-wiki belongs only to Developer")
-            publication_tools = {"read", "search", "edit/editFiles", "execute/runInTerminal", "vscode/askQuestions", "ado-readonly/*"}
+            publication_tools = {"read", "search", "edit", "execute", "vscode/askQuestions", "ado-readonly/*"}
             selected_tools = data.get("tools", agents.get(prompt_agent, {}).get("tools"))
             selected = set(selected_tools) if isinstance(selected_tools, list) and all(isinstance(tool, str) for tool in selected_tools) else set()
             audit.require(selected == publication_tools, "publish-wiki needs the bounded publication tools without Salesforce, Knowledge, or delegated execution")
         if name == "document-solution":
             audit.require(prompt_agent == "developer", "document-solution must use the Developer role guard")
-            required_tools = {"read", "search", "edit/editFiles", "execute/runInTerminal"}
+            required_tools = {"read", "search", "edit", "execute"}
             documentation_tools = required_tools | {
                 "vscode/askQuestions", "ado-readonly/*",
                 "salesforce/review_org_identity", "salesforce/review_installed_packages",
@@ -466,6 +487,25 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
             audit.require(selected.issubset(documentation_tools),
                           "document-solution tools must stay within documentation and read-only sources")
         audit.require("skill](" in body.lower(), f"{relative(path)}: prompt must link its skill")
+        # Copilot CLI does not read prompt files (2026-11-15 migration). A prompt stays a thin
+        # VS Code alias; its routing, arguments and stops live in the linked skill's
+        # `## Invocation contract`, which both hosts load.
+        skill_links = re.findall(r"\]\(\.\./skills/([a-z0-9-]+)/SKILL\.md\)", body)
+        audit.require(len(set(skill_links)) == 1, f"{relative(path)}: a thin alias links exactly one skill")
+        audit.require(len(body.split()) <= PROMPT_ALIAS_MAX_WORDS,
+                      f"{relative(path)}: prompt body must stay a thin alias; move logic to the skill's Invocation contract")
+        audit.require("#tool:" not in body, f"{relative(path)}: host tool references belong in the skill's Invocation contract")
+        if len(set(skill_links)) == 1:
+            contract_skill = root / ".github/skills" / skill_links[0] / "SKILL.md"
+            contract = invocation_contract(contract_skill.read_text(encoding="utf-8")) if contract_skill.is_file() else None
+            audit.require(contract is not None, f"{relative(path)}: linked skill needs a `## Invocation contract` section")
+            if contract is not None:
+                audit.require(f"Role: `{prompt_agent}`." in contract,
+                              f"{relative(path)}: Invocation contract role must be `{prompt_agent}`")
+                audit.require(f"Arguments: `{data.get('argument-hint')}`." in contract,
+                              f"{relative(path)}: Invocation contract arguments must match argument-hint")
+                audit.require(f"`/{name} <arguments>`" in contract,
+                              f"{relative(path)}: Invocation contract must name its VS Code entry point")
         if isinstance(name, str):
             prompt_names.append(name)
 
@@ -477,6 +517,8 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
         description = data.get("description")
         audit.require(isinstance(description, str) and 1 <= len(description) <= 1024, f"{relative(path)}: description must be 1..1024 characters")
         audit.require(data.get("user-invocable") is False, f"{relative(path)}: internal skill must set user-invocable: false")
+        # Skills load on VS Code and Copilot CLI; VS Code-only tool syntax would not resolve on the CLI.
+        audit.require("#tool:" not in body, f"{relative(path)}: use host-neutral wording instead of `#tool:` references")
         if data.get("user-invocable") is not False and isinstance(data.get("name"), str):
             public_skill_names.append(data["name"])
 
@@ -632,6 +674,10 @@ def check_settings_and_mcp(audit: Audit) -> None:
         audit.require(server.get("command") == "node", f"{name}: wrapper must run with node")
         audit.require(server.get("cwd") == "${workspaceFolder}", f"{name}: wrapper must start in the direct-folder-safe root SFDX workspace")
         audit.require("scripts/start_salesforce_mcp.mjs" in server.get("args", []), f"{name}: guarded wrapper is required")
+        audit.require(
+            server.get("args") == ["scripts/start_salesforce_mcp.mjs", "--mode", "review", "--org-from-config"],
+            f"{name}: the review server must start with the configured agent org (--org-from-config)",
+        )
         args = server.get("args", [])
         audit.require(
             "--mode" in args and args[args.index("--mode") + 1] == "review",
@@ -652,13 +698,25 @@ def check_settings_and_mcp(audit: Audit) -> None:
 
     cli_mcp = load_json(ROOT / ".github/mcp.json", audit)
     cli_servers = cli_mcp.get("mcpServers", {}) if isinstance(cli_mcp, dict) else {}
-    # Until the Copilot CLI port, .github/mcp.json carries no server: the Knowledge server
-    # was removed and org-bound servers stay in .vscode/mcp.json where inputs exist.
+    # Copilot CLI port (2026-11-15): the CLI reads .github/mcp.json. It carries the same two
+    # read-only launchers as .vscode/mcp.json. Both read the one agent org from
+    # salesforce.agentOrg in the ignored local policy; no host prompts for an alias.
     audit.require(
-        isinstance(cli_mcp, dict) and cli_servers == {},
-        ".github/mcp.json (Copilot CLI) must carry no MCP server until the CLI port",
+        isinstance(cli_mcp, dict) and set(cli_servers) == set(CLI_MCP_SERVERS),
+        ".github/mcp.json (Copilot CLI) must register exactly ado-readonly and salesforce",
     )
+    for name, expected_args in CLI_MCP_SERVERS.items():
+        server = cli_servers.get(name, {}) if isinstance(cli_servers, dict) else {}
+        audit.require(server.get("type") == "local", f".github/mcp.json {name}: must be a local stdio server")
+        audit.require(server.get("command") == "node", f".github/mcp.json {name}: must launch the repository launcher with node")
+        audit.require(server.get("args") == expected_args, f".github/mcp.json {name}: launcher arguments differ")
+        audit.require(not server.get("env"), f".github/mcp.json {name}: must not add a second environment configuration source")
+    cli_serialized = json.dumps(cli_mcp).lower()
+    for forbidden in ("${input:", "${workspacefolder", "@latest", "allow_all_orgs", "default_target_org", "login.salesforce.com", "npx", "salesforce-development", "knowledge"):
+        audit.require(forbidden not in cli_serialized, f".github/mcp.json contains forbidden token {forbidden!r}")
     serialized = json.dumps(mcp).lower()
+    audit.require("${input:" not in serialized and not mcp.get("inputs"),
+                  ".vscode/mcp.json must not prompt for an org; salesforce.agentOrg is the one source")
     audit.require(
         "${workspacefolder:" not in serialized,
         "MCP configuration must not use a named workspaceFolder variable; direct folder opens cannot resolve it",
@@ -699,9 +757,20 @@ def check_settings_and_mcp(audit: Audit) -> None:
         )
     hooks = load_json(ROOT / ".github/hooks/safety.json", audit)
     pre = hooks.get("hooks", {}).get("PreToolUse", []) if isinstance(hooks, dict) else []
+    audit.require(isinstance(hooks, dict) and hooks.get("version") == 1, ".github/hooks/safety.json must declare version 1 (Copilot CLI hook format)")
     audit.require(len(pre) == 1, "exactly one global PreToolUse hook is required")
+    # PascalCase keeps the VS Code-compatible snake_case payload on both hosts; a camelCase
+    # preToolUse entry would make the CLI run the hook a second time with another payload.
+    audit.require(
+        isinstance(hooks, dict) and "preToolUse" not in hooks.get("hooks", {}),
+        "register the safety hook once, under PascalCase PreToolUse",
+    )
     if pre:
         audit.require(pre[0].get("command") == "python3 scripts/copilot_safety_hook.py", "global safety hook command differs")
+        audit.require(
+            pre[0].get("powershell") == pre[0].get("windows") == "python scripts/copilot_safety_hook.py",
+            "Windows hook command must be set for VS Code (windows) and Copilot CLI (powershell)",
+        )
         audit.require("timeout" in pre[0] and "timeoutSec" not in pre[0], "hook must use the current timeout property")
         audit.require(pre[0].get("timeout", 0) >= 10, "global hook timeout must accommodate guarded command parsing")
 
@@ -734,11 +803,11 @@ def check_settings_and_mcp(audit: Audit) -> None:
         audit.require(marker in py_facade, f"Python review facade is missing runtime gate: {marker}")
 
     development_frontmatter, _ = frontmatter(ROOT / ".github/agents/developer.agent.md", audit)
-    audit.require("execute/runInTerminal" in (development_frontmatter.get("tools") or []), "developer needs guarded terminal execution")
+    audit.require("execute" in (development_frontmatter.get("tools") or []), "developer needs guarded terminal execution")
     audit.require("--role developer" in json.dumps(development_frontmatter.get("hooks", {}), default=str), "developer role guard is required")
     doc_prompt, _ = frontmatter(ROOT / ".github/prompts/document-metadata-change.prompt.md", audit)
     audit.require("salesforce-development/*" not in doc_prompt.get("tools", []), "Documentation prompt must not inherit Salesforce write tools")
-    audit.require("execute/runInTerminal" in doc_prompt.get("tools", []), "Documentation prompt needs guarded terminal execution (read-only orientation)")
+    audit.require("execute" in doc_prompt.get("tools", []), "Documentation prompt needs guarded terminal execution (read-only orientation)")
     role_guard = required_text(ROOT / "scripts/copilot_role_guard.py", audit)
     audit.require(role_guard.count('".cache/ado-items/"') >= 3, "ADO cache must be writable by its three consuming roles")
     audit.require('".cache/test-cases/"' not in role_guard, "the Test Case cache write permission retired with the QA sync lane and must not return")

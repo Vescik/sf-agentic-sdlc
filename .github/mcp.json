@@ -1,3 +1,16 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "ado-readonly": {
+      "type": "local",
+      "command": "node",
+      "args": ["${COPILOT_SESSION_CWD}/scripts/start_ado_mcp.mjs"],
+      "tools": ["*"]
+    },
+    "salesforce": {
+      "type": "local",
+      "command": "node",
+      "args": ["${COPILOT_SESSION_CWD}/scripts/start_salesforce_mcp.mjs", "--mode", "review", "--org-from-config"],
+      "tools": ["*"]
+    }
+  }
 }

@@ -2,12 +2,11 @@
 name: developer
 description: Implement a designed work item in force-app — VendorPkg extension points, tests, and an append-only record of every deviation from the design.
 argument-hint: "work item ID"
-target: vscode
 tools:
   [
     "read",
-    "edit/editFiles",
-    "execute/runInTerminal",
+    "edit",
+    "execute",
     "sf-harness.salesforce-operations/salesforceOperation",
     "vscode/askQuestions",
     "ado-readonly/*",
@@ -21,7 +20,7 @@ hooks:
     - type: command
       command: python3 scripts/copilot_role_guard.py --role developer
       windows: python scripts/copilot_role_guard.py --role developer
-      timeout: 5
+      timeout: 10
 ---
 
 # Developer
@@ -93,9 +92,12 @@ after an unambiguous user confirmation. When using the native operation tool, it
 modal is the execution confirmation; do not manufacture an approval field or treat an earlier chat
 answer as that modal response. Confirmation is single-use: every new deploy, quick
 deploy, or redeploy requires a fresh question. If the target comes from the project default,
-say that explicitly. Dry runs, retrieve, report/status, resume, cancel, and data mutations do not
+say that explicitly. In an orchestrated run with a host autonomy grant for the configured agent
+org, SAFE-DEPLOY-AUTONOMY-001 replaces the question for deploys that name exactly that org.
+Dry runs, retrieve, report/status, resume, cancel, and data mutations do not
 require this deploy-specific confirmation. Use the native tool for supported latest selectors and
-unconfigured environments; do not retry them through a terminal wrapper. Never claim a deploy occurred until the CLI result
+unconfigured environments; do not retry them through a terminal wrapper. Outside VS Code the
+native tool does not exist (SAFE-HOST-NATIVE-001): stop and report such a step. Never claim a deploy occurred until the CLI result
 proves it, and report the target, scope, job ID, status, tests, and remaining verification.
 
 After every qualifying Salesforce mutation returns a result, follow the Development skill's

@@ -2,14 +2,13 @@
 name: config-investigator
 description: Read-only evidence collector for allowlisted Salesforce components and package surfaces; writes sanitized observations and investigation reports without self-verifying them.
 argument-hint: "unknown object, field, record, relation, or package behavior"
-target: vscode
-tools: ['read', 'edit/editFiles', 'execute/runInTerminal', 'web/fetch', 'salesforce/review_org_identity', 'salesforce/review_installed_packages', 'salesforce/review_object_contract', 'salesforce/review_configured_orgs', 'salesforce/review_soql_query', 'salesforce/explain_query', 'salesforce/org_limits']
+tools: ['read', 'edit', 'execute', 'web', 'salesforce/review_org_identity', 'salesforce/review_installed_packages', 'salesforce/review_object_contract', 'salesforce/review_configured_orgs', 'salesforce/review_soql_query', 'salesforce/explain_query', 'salesforce/org_limits']
 hooks:
   PreToolUse:
     - type: command
       command: python3 scripts/copilot_role_guard.py --role config-investigator
       windows: python scripts/copilot_role_guard.py --role config-investigator
-      timeout: 5
+      timeout: 10
 ---
 
 # Config Investigator

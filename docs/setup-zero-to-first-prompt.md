@@ -239,7 +239,8 @@ To diagnose one Salesforce org by hand:
 
 1. VS Code may prompt *"The MCP servers … Start them now?"* — start **`salesforce`**
    and **`ado-readonly`** (the only configured servers; both are read-only).
-2. When prompted for the `sf_review_org` input, enter your sandbox alias (e.g. `my_review_sbx`).
+2. The `salesforce` server starts with `salesforce.agentOrg` from `config/harness.local.json`
+   (e.g. `my_review_sbx`); no alias prompt appears.
 3. Reduce approval clicks: Command Palette → **Chat: Manage Tool Approval** → trust all tools
    under `salesforce` and `ado-readonly` at **workspace** scope. Never enable global
    auto-approve (`/yolo`).

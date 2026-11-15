@@ -66,6 +66,24 @@ class HostClassificationTests(unittest.TestCase):
 
 
 class ConfigWritingTests(unittest.TestCase):
+    def test_single_non_production_org_becomes_the_agent_org_once(self) -> None:
+        cfg = {"salesforce": {"orgs": [], "review": {"enabled": False}}}
+        dev = {"environment": "dev", "alias": "dev_sbx", "host": "x--dev.sandbox.my.salesforce.com",
+               "orgId": "00D000000000001AAA", "environmentType": "sandbox"}
+        prod = {**dev, "environment": "prod", "alias": "prod_org", "host": "x.my.salesforce.com",
+                "orgId": "00D000000000002AAA", "environmentType": "production"}
+        with tempfile.TemporaryDirectory() as name:
+            path = Path(name) / "harness.local.json"
+            path.write_text(json.dumps(cfg), encoding="utf-8")
+            with patch.object(first_launch, "CONFIG_PATH", path):
+                first_launch.apply_config({"org.prod_org": prod})
+                self.assertNotIn("agentOrg", json.loads(path.read_text(encoding="utf-8"))["salesforce"])
+                first_launch.apply_config({"org.dev_sbx": dev})
+                self.assertEqual("dev_sbx", json.loads(path.read_text(encoding="utf-8"))["salesforce"]["agentOrg"])
+                # An existing choice is never replaced by onboarding.
+                first_launch.apply_config({"org.other": {**dev, "alias": "other", "orgId": "00D000000000003AAA"}})
+                self.assertEqual("dev_sbx", json.loads(path.read_text(encoding="utf-8"))["salesforce"]["agentOrg"])
+
     def test_ado_org_change_replaces_old_scope_and_preserves_non_ado_origins(self) -> None:
         cfg = {"ado": {
             "organization": "old-org", "project": "Existing project",

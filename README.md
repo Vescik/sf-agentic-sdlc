@@ -44,6 +44,9 @@ Follow [SETUP.md](SETUP.md) — or, if you are setting up a machine from scratch
 zero-assumptions walkthrough in
 [docs/setup-zero-to-first-prompt.md](docs/setup-zero-to-first-prompt.md). Clone this repository
 once, then open `sf-harness.code-workspace`.
+The same agents, skills, hooks and MCP servers also load in GitHub Copilot CLI
+([Copilot CLI port](docs/copilot-cli-port.md)). For one-prompt delivery from a requirement to a
+reviewed packet, use the [SDK orchestrator](docs/orchestrator.md).
 Once the workspace is installed, use the [Ways of Working guide](docs/ways-of-working.md) to
 choose the right path for a feature, defect, managed-package dependency, or configuration-only
 change.
@@ -67,7 +70,8 @@ npm run lint
 
 `validate_harness.py` validates static repository integrity; `first_launch.py` validates
 installation and local-config shape. External capabilities are proven at the point of use: the
-Salesforce review MCP proves the selected org's live identity live at startup, and ADO
+Both Salesforce review MCP entries start with `salesforce.agentOrg` from
+`config/harness.local.json`. The review MCP proves that org's live identity at startup, and ADO
 scope is checked on every tool call. `python scripts/verify_salesforce_org.py --org <alias>` is
 an optional human diagnostic for one org.
 

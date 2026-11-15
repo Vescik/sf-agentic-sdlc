@@ -55,6 +55,11 @@
         "review"
       ],
       "properties": {
+        "agentOrg": {
+          "description": "The one org the agents work against (owner decision 2026-11-15): both Salesforce review MCP entries (.vscode/mcp.json, .github/mcp.json) start with it, and an orchestrated run may deploy, validate and retrieve there without a fresh confirmation. It must name a salesforce.orgs entry. A prod classification never gains the autonomous path. The facade still proves host, Org ID and IsSandbox before tools; the alias alone grants nothing.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+        },
         "orgs": {
           "type": "array",
           "minItems": 0,

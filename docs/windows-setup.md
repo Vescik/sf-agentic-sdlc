@@ -132,8 +132,8 @@ sf org display --target-org mpsa_dev_sbx --json
 ## Step 7 — Start the MCP servers
 
 When VS Code prompts *"The MCP servers … may have new tools … Start them now?"*, start
-**`salesforce`** and **`ado-readonly`** (the only configured servers). When prompted for
-the `sf_review_org` input, enter your explicitly selected alias (e.g. `mpsa_dev_sbx`).
+**`salesforce`** and **`ado-readonly`** (the only configured servers). The `salesforce`
+server starts with `salesforce.agentOrg` from `config/harness.local.json` (e.g. `mpsa_dev_sbx`).
 
 ## Step 8 — Pre-approve tools (fewer clicks)
 

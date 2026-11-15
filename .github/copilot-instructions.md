@@ -91,7 +91,8 @@ unconfigured targets and mutable latest selectors. The Developer uses the native
 selection or supported latest-job operation. Pass only `arguments: string[]`, without the
 executable. The installed extension owns dialogs, rechecks and dispatch; a chat answer or an
 agent-written environment/approval flag is never authority. Nothing persists as classification
-or consent. Cancellation means no execution. See `docs/native-salesforce-operations.md` for
+or consent. Cancellation means no execution. On Copilot CLI and in orchestrated SDK runs this
+tool does not exist (SAFE-HOST-NATIVE-001): stop and report instead. See `docs/native-salesforce-operations.md` for
 installation, the private-runtime boundary and remaining host/live acceptance.
 
 Test Strategist retains its prohibition on all production targets, including the existing

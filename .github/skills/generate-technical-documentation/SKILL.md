@@ -8,6 +8,36 @@ user-invocable: false
 
 Apply the [shared execution contract](../../../.ai/contracts/execution-contract.md).
 
+## Invocation contract
+
+Role: `developer`. Run this contract only as the `developer` custom agent, whose role guard applies.
+Arguments: `itemId=<ID> [manifestPath=<path>]`.
+Entry points: VS Code `/document-metadata-change <arguments>` (thin alias `.github/prompts/document-metadata-change.prompt.md`);
+Copilot CLI `copilot --agent developer` with `document-metadata-change <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+VS Code narrows the tools for this entry point to: `read`, `search`, `edit`, `execute`, `vscode/askQuestions`, `ado-readonly/*`, `salesforce/review_org_identity`, `salesforce/review_installed_packages`, `salesforce/review_object_contract`. Copilot CLI applies the agent's own list.
+
+Require a positive integer work item ID. Resolve its stable folder by ID using the skill:
+reuse one match; stop without writes on duplicates; with no match, establish identity from
+the already-required current ADO fetch and create only the documentation file. When the item
+has a design (`work-items/<itemId>-<slug>/design.md` — the approved-scope surface), confirm the
+documented change matches it; without one this
+is standalone documentation of existing state, a valid lane named as such. Resolve the
+workspace root (labeled `brain-core` in VS Code — a workspace label, not the repository
+name) as the one repository/SFDX root; validate the manifest and show detected scope before
+generation. Ask for missing manual deployment steps (VS Code: `vscode/askQuestions`; Copilot CLI: in the reply) and
+record an explicit `None` when the human confirms there are none.
+
+Save the draft as `work-items/<itemId>-<slug>/technical-documentation.md`, in English/STE
+with source quotations preserved. Validate the resolved path, retain human notes on updates,
+and keep document review status separate from implementation and test results. Include the
+fetched ADO link, relative repository links, rule/entry references, verification, and gaps.
+Complete the permitted local stage/commit through the [Git Workflow](../git-workflow/SKILL.md)
+as the active Developer, then return the actual path and commit outcome. Publish only when the
+request includes wiki publication, using the [publish-wiki skill](../publish-wiki/SKILL.md).
+That request also covers the existing delivery Story link without another confirmation.
+PR publication/merge require an explicit instruction for those operations.
+
 ## Inputs and gate
 
 - Positive integer `itemId`. When the work item has a design (`work-items/<itemId>-<slug>/design.md`

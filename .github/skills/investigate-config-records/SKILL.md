@@ -18,7 +18,7 @@ configuration-bearing values of one human-allowlisted object; everything that sk
 forbids (Ids, URLs, audit fields, free text, unscoped business data) stays forbidden here.
 The outcome is a snapshot REPORT under `output/` (owner decision D-A, 2026-08-03, v1
 retirement): reference-data snapshots are documentation with a recorded digest and observation
-time, not citable Knowledge; record data drifts without any repository signal, so a snapshot
+time, not verified fact; record data drifts without any repository signal, so a snapshot
 must be re-observed, never re-read from an old report.
 
 ## Input
@@ -37,14 +37,8 @@ effective windows, who maintains them — not from how many there are.
 
 ## Procedure
 
-1. Read the `knowledge_context` tool (identity `CustomObject:<ns|c>:<Object>`) for the
-   object's source-declared shape — fields, record types, validation rules — as
-   orientation. A row with `hydrated: false` failed re-reading — re-read it from its entry
-   file (an index-stale re-read is a rebuild-and-retry, not a finding) before treating it
-   as part of the declared shape. No citation machinery here: this report is not citable
-   Knowledge, so no citable ref is needed
-   ([search-knowledge](../search-knowledge/SKILL.md) has the envelope-reading rules if the
-   pack raises questions).
+1. Read the object's source-declared shape — fields, record types, validation rules — from
+   `force-app/main/default/objects/<Object>/` as orientation.
 2. Call `review_org_identity` first. Stop unless it is `VERIFIED` for the exact selected org within the active role's limits. Production MCP reads are allowed where the role permits them; `nonProduction: true` is not a general read prerequisite.
 3. Call `review_object_contract` for the object's accessible field contract. Choose the snapshot
    fields from that contract only: the natural key (`Name`, a `DeveloperName`-like field, or an
@@ -102,9 +96,7 @@ effective windows, who maintains them — not from how many there are.
 - Never persist credentials, usernames, record Ids, URLs, `attributes` payloads, owner/audit
   values, or free-text business content; snapshot values are limited to the configuration-bearing
   fields the human scoped via the allowlist.
-- Never call a snapshot `confirmed` or `verified`, and never present the report as citable
-  Knowledge — later work cites approved entries (drift and org-usage age travel as visible
-  caveats), or re-observes.
+- Never call a snapshot `confirmed` or `verified`; later work re-observes.
 
 ## Return
 

@@ -9,7 +9,6 @@ tools:
     "search",
     "execute/runInTerminal",
     "vscode/askQuestions",
-    "knowledge/*",
     "salesforce/review_org_identity",
     "salesforce/review_installed_packages",
     "salesforce/review_object_contract",
@@ -47,7 +46,7 @@ details, and apply the skill's file-lifecycle rules without requiring empty task
 
 Verify claims, don't trust them: a design that asserts an extension point or an object
 contract gets checked against the org through the review tools and against
-`knowledge_context` for the artifacts involved. A package-touching change without its own
+the repository source of the artifacts involved. A package-touching change without its own
 evidence-backed section (MP-DESIGN-001) is an automatic finding.
 
 When an implementation is being handed to QA and the work item carries a
@@ -60,7 +59,7 @@ When Salesforce mutation is claimed or visible, read the canonical `org-changes.
 check-against-principles procedure. Treat missing, duplicated, inconsistent, or unsanitized
 post-action traceability as a finding and recheck material current state where possible. The log
 is an agent-authored claim, never deploy consent, independent proof, release approval, QA
-evidence, Knowledge, or a reason to issue `SAFE`.
+evidence, or a reason to issue `SAFE`.
 
 Report findings as a list ordered by severity, each with the rule it violates and the
 concrete failure it invites. What you could not verify, say so explicitly — an unchecked

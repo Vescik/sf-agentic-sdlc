@@ -25,7 +25,6 @@
   "evidenceRefs": [
     "KEVD-EXAMPLE-COMPONENT-CONTRACT"
   ],
-  "knowledgeSnapshotAt": "2026-07-10T11:55:00Z",
   "reconciliation": {
     "status": "matched",
     "mismatches": [],
@@ -44,14 +43,5 @@
   "verification": [
     "Validated the output envelope and compared the accepted record hashes with the persisted record."
   ],
-  "artifactPath": "output/documentation/1201.md",
-  "entryRefs": [
-    {
-      "entryId": "Flow:c:DemoRouting",
-      "reviewedContentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-      "factsDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-      "sourceTreeDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
-      "profile": "salesforce.flow@1"
-    }
-  ]
+  "artifactPath": "output/documentation/1201.md"
 }

@@ -12,7 +12,6 @@
     "SAFE-EVID-001"
   ],
   "evidenceRefs": [],
-  "knowledgeSnapshotAt": null,
   "reconciliation": {
     "status": "incomplete",
     "mismatches": [],

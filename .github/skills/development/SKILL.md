@@ -232,7 +232,7 @@ field; write `unavailable`, `not applicable`, or `None` truthfully instead of gu
 # Salesforce org changes
 
 Append-only agent-reported operational history. This is not deployment consent, release approval,
-QA evidence, Knowledge, or independent proof. Re-establish current scope, target, and required
+QA evidence, or independent proof. Re-establish current scope, target, and required
 confirmation before reusing a command. Never store secrets or sensitive business payloads.
 
 ## <UTC timestamp> — Metadata deployment
@@ -279,7 +279,7 @@ business data, raw input-file content, raw CLI JSON, access/refresh tokens, auth
 credentials. When unsure, omit the value and describe its category.
 
 The log is an agent-authored claim about an observed command result. It is not deployment consent,
-Knowledge, independent evidence, a release or approval ledger, QA execution evidence, or proof of
+independent evidence, a release or approval ledger, QA execution evidence, or proof of
 current org state. A Reviewer rechecks material current state and job status through scoped tools.
 If the log cannot be written after a qualifying mutation, report delivery as incomplete and repair
 the artifact as soon as possible; do not pretend the missing entry means the org mutation did not

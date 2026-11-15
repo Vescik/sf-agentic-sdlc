@@ -8,7 +8,7 @@ The canonical trigger, placement precedence, required content, redaction, asynch
 and verification procedure is `.github/skills/development/SKILL.md`. Do not copy Work Item or
 Feature entries here and do not use this directory as a second ledger.
 
-These files are agent-authored operational reports. They are not deploy consent, Knowledge,
+These files are agent-authored operational reports. They are not deploy consent,
 independent evidence, release approval, QA execution results, or proof of current org state.
 Never store credentials, authentication material, raw CLI JSON, record values, selectors, SOQL
 literals, record IDs, usernames, inline Apex, business data, or raw input-file content.

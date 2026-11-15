@@ -529,7 +529,7 @@ feature/5000-<slug> → final PR to main: AB#5000 + included AB#5001, AB#5002, A
 All eight roles can use all Git/gh commands. Active authors commit coherent durable results
 after verification; the hook validates only commit-message syntax and matching IDs. Branch,
 path, staging, working-directory, repository, and PR conventions are not technical gates.
-A review request remains a review. Source editor permissions and the Knowledge lifecycle
+A review request remains a review. Source editor permissions
 are unchanged. Git Agent is optional assistance.
 
 Push, PR publication/update, merge, and destructive Git actions require an explicit human

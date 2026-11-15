@@ -21,13 +21,12 @@ Resolve exactly one `work-items/<id>-*/` folder. Zero matches: stop and return t
 The one tracked write this command may perform is creating or refreshing
 `work-items/<id>-<slug>/qa-test-plan.md`. Never edit `ado-context.md`, `design.md`, `tasks.md`,
 or `decisions.md`; never write execution results (PASS/FAIL, testers, dates, screenshots, Test
-Run IDs) anywhere; never mutate ADO, Salesforce, or Knowledge.
+Run IDs) anywhere; never mutate ADO or Salesforce.
 
 Return the skill's report: path and created/updated/unchanged; one verdict (`READY FOR QA`,
 `DRAFT — IMPLEMENTATION NOT COMPLETE`, `GAPS — ACTION REQUIRED`, or
 `INCOMPLETE — NEEDS HUMAN`); the evidence route (custom / managed-package / mixed); AC
-coverage; Test Cases by origin; unresolved questions; any reusable-Knowledge recommendation;
-and the exact next action.
+coverage; Test Cases by origin; unresolved questions; and the exact next action.
 
 After a coherent permitted QA-plan result and verification, perform the scoped local
 stage/commit through the [Git Workflow](../skills/git-workflow/SKILL.md) yourself and report

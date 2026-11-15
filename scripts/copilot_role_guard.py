@@ -40,18 +40,11 @@ from typing import Any, Iterable
 
 
 ALLOWED_PREFIXES = {
+    # Read-only evidence collector: writes only its sanitized reports (the Knowledge draft
+    # and org-usage lanes were removed 2026-11-15).
     "config-investigator": (
-        ".cache/knowledge-proposals/",
-        # Agent-authored org-usage probes-files only (contract §6.6). Receipts in the same
-        # tree are written exclusively by the entry-org-attach executor; nothing here is
-        # Knowledge authority — canonical orgUsage flows only through the governed command.
-        ".cache/org-usage/",
-    ),
-    # Repo-source Knowledge maintenance: fills draft sentinels and runs the governed knowledge
-    # commands. Org surface is the read-only review_soql_query facade MCP tool only (owner
-    # decision 2026-08-04); org terminal commands stay denied.
-    "knowledge-curator": (
-        ".cache/knowledge-proposals/",
+        "output/investigations/",
+        "output/reference-data/",
     ),
     "test-strategist": (
         "output/feature-health/",
@@ -108,135 +101,6 @@ def native_operation_input_error(tool_input: Any) -> str | None:
     return None
 
 
-# Knowledge maintenance does not require the org-facing investigator surface.
-KNOWLEDGE_MUTATION_ROLES = frozenset({"config-investigator", "knowledge-curator"})
-# Roles allowed to run force_app_knowledge.py at all (extraction/drafting authority).
-FORCE_APP_KNOWLEDGE_ROLES = frozenset({"config-investigator", "knowledge-curator"})
-FORCE_APP_COMMAND_FLAGS = {
-    "inventory": frozenset(),
-    "entry-readiness": frozenset(),
-    "entry-edge-health": frozenset(),
-    # Read-only path/name -> component mapping for the selected-files lane; --write only saves
-    # the derived view under the ignored .cache/knowledge-proposals/ workspace.
-    "resolve": frozenset({"--path", "--name", "--write"}),
-}
-
-# One-file Knowledge Entry executor (docs/knowledge-one-file-contract.md v1.1). Reads are
-# available to every role; mutations require the knowledge mutation roles, all writes flow
-# through the executor (the artifacts path itself is governed), and the safety hook answers
-# `ask` for the four approval/revocation commands — its pattern is
-# `(?:entry|feature)-(?:approve|revoke)`, one alternation over both record kinds, because a
-# Feature approval is the same act as an entry approval. The other four commands in
-# KNOWLEDGE_STORE_MUTATION_COMMANDS (entry-draft, entry-describe, feature-open,
-# feature-record) write no approval record and are gated by the mutation role alone.
-# tests/test_guard_parser_contract.py diffs these flags against knowledge_store.build_parser.
-# entry-review only renders a review artifact under output/; it mutates no Knowledge, so it
-# stays outside the mutation set while still being a curator/investigator-shaped action.
-KNOWLEDGE_STORE_MUTATION_COMMANDS = frozenset(
-    {"entry-draft", "entry-describe", "entry-approve", "entry-revoke",
-     # feature-review / feature-status / feature-check are reads, matching entry-review.
-     "feature-open", "feature-record", "feature-approve", "feature-revoke",
-     # Org-usage attach/detach (contract §6.6): mutations that deliberately spend NO chat
-     # click (owner D-3 2026-08-03, schema-as-instrument) — the verb-partition test asserts
-     # they sit in the authoring bucket. Role-narrowed further by ORG_ATTACH_ROLES below.
-     "entry-org-attach", "entry-org-detach"}
-)
-# Narrower than KNOWLEDGE_MUTATION_ROLES: only the org-facing investigator may attach org
-# observations; the curator never gains org authority (contract §6.6).
-ORG_ATTACH_COMMANDS = frozenset({"entry-org-attach", "entry-org-detach"})
-ORG_ATTACH_ROLES = frozenset({"config-investigator"})
-KNOWLEDGE_STORE_COMMAND_FLAGS = {
-    "entry-draft": frozenset(
-        {
-            "--metadata-type",
-            "--full-name",
-            "--namespace",
-            "--purpose-file",
-            "--source-api-version",
-            "--candidate-keyword",
-        }
-    ),
-    "entry-approve": frozenset({"--entry"}),
-    "entry-review": frozenset({"--identity"}),
-    "entry-describe": frozenset(
-        {"--identity", "--purpose-file", "--purpose", "--limitation", "--clear-limitations"}
-    ),
-    "entry-context": frozenset({"--identity", "--max-source-chars"}),
-    "entry-revoke": frozenset({"--identity", "--rationale"}),
-    "entry-status": frozenset({"--identity"}),
-    # Read-only report; --review-cycle-days only widens or narrows the maintenance window it
-    # summarises and can write nothing (owner decision D5, 2026-08-11). --analyze-facts adds the
-    # structural facts comparison, which re-derives facts in memory and compares digests: it
-    # writes no entry, ledger, source pin or approval artifact either (phase 2 D1), so it stays
-    # inside the same read-only grant rather than needing a mutation role.
-    "entry-coverage": frozenset({"--review-cycle-days", "--analyze-facts"}),
-    "entry-check": frozenset({"--changed-since"}),
-    # Read-only citation verdicts (entryRefs); the entry-side successor of the registry's
-    # verify-citations, relocated in v1-retirement P0. Reads stay universal.
-    "entry-verify-citations": frozenset({"--envelope", "--entry-ref"}),
-    "entry-org-attach": frozenset({"--identity", "--org", "--probes-file"}),
-    "entry-org-detach": frozenset({"--identity", "--org", "--rationale"}),
-    # Feature Knowledge v2 (contract §13). Interactive authoring writes through open/record,
-    # so both are mutations; review/status/check are reads, mirroring the entry-review
-    # precedent. The operations file is ignored proposal input, never Knowledge.
-    "feature-open": frozenset({"--slug", "--name"}),
-    "feature-record": frozenset({"--slug", "--expected-version", "--operations-file", "--validate-only"}),
-    "feature-status": frozenset({"--slug"}),
-    "feature-review": frozenset({"--slug"}),
-    "feature-approve": frozenset({"--feature"}),
-    "feature-revoke": frozenset({"--slug", "--rationale"}),
-    "feature-verify-citations": frozenset({"--slug", "--claim", "--envelope"}),
-    "feature-search": frozenset({"--text", "--artifact-id", "--layer", "--role", "--claim-type", "--top"}),
-    "feature-context": frozenset({"--slug"}),
-    "feature-check": frozenset(),
-}
-
-
-# Knowledge Entry search (docs/knowledge-one-file-contract.md, T08b). Every role may read;
-# `build` writes only the git-ignored generated cache under .cache/knowledge-search/, which
-# is never Knowledge authority, so it needs no mutation role. Flags mirror the parser and are
-# pinned by tests/test_guard_parser_contract.py.
-KNOWLEDGE_SEARCH_COMMAND_FLAGS = {
-    "build": frozenset({"--check", "--full"}),
-    "search": frozenset(
-        {
-            "--text",
-            "--identity",
-            "--metadata-type",
-            "--namespace",
-            "--state",
-            "--facet",
-            "--relation-anchor",
-            "--relation-kind",
-            "--direction",
-            "--include-heuristic",
-            "--mode",
-            "--top",
-        }
-    ),
-    "explain": frozenset({"--identity", "--state", "--top", "--include-heuristic"}),
-    "impact": frozenset(
-        {"--identity", "--depth", "--direction", "--state", "--top", "--include-heuristic"}
-    ),
-    "context": frozenset(
-        {"--identity", "--state", "--top", "--include-heuristic", "--direction"}
-    ),
-    "edge-health": frozenset(),
-    "capabilities": frozenset({"--metadata-type"}),
-}
-# Boolean flags take no value, so the parser must not skip the token after them. A flag missing
-# from these sets is a fail-open, not a cosmetic slip: the guard skips the next token unvalidated,
-# so `build --full --rm` was allowed outright. tests/test_guard_parser_contract.py derives these
-# from argparse (`nargs == 0`) so a future store_true cannot be forgotten.
-KNOWLEDGE_SEARCH_VALUELESS_FLAGS = frozenset({"--check", "--full", "--include-heuristic"})
-# Empty because no knowledge_store subcommand declares a boolean yet. The constant and its
-# branch in knowledge_store_command_allowed exist so the first one cannot fail open the way
-# `--full` did on the search side; the arity-derived contract test is what will require it here.
-KNOWLEDGE_STORE_VALUELESS_FLAGS: frozenset[str] = frozenset(
-    {"--replace", "--clear-limitations", "--validate-only"}
-)
-
-
 # Legacy check-only deploy validation remains available during migration, but it is no longer
 # the Developer's exclusive Salesforce execution path.
 VALIDATE_DEPLOY_ROLES = frozenset({"developer"})
@@ -268,61 +132,11 @@ def validate_deploy_command_allowed(parts: list[str], role: str) -> bool:
     return True
 
 
-def knowledge_search_command_allowed(parts: list[str], role: str) -> bool:
-    if not parts or parts[0] not in KNOWLEDGE_SEARCH_COMMAND_FLAGS:
-        return False
-    allowed_flags = KNOWLEDGE_SEARCH_COMMAND_FLAGS[parts[0]]
-    index = 1
-    while index < len(parts):
-        token = parts[index]
-        if not token.startswith("--"):
-            return False
-        if "=" in token:
-            flag = token.split("=", 1)[0]
-            index += 1
-        elif token in KNOWLEDGE_SEARCH_VALUELESS_FLAGS:
-            flag = token
-            index += 1
-        else:
-            flag = token
-            index += 2
-        if flag not in allowed_flags:
-            return False
-    return True
-
-
-def knowledge_store_command_allowed(parts: list[str], role: str) -> bool:
-    if not parts or parts[0] not in KNOWLEDGE_STORE_COMMAND_FLAGS:
-        return False
-    command = parts[0]
-    if command in ORG_ATTACH_COMMANDS and role not in ORG_ATTACH_ROLES:
-        return False
-    if command in KNOWLEDGE_STORE_MUTATION_COMMANDS and role not in KNOWLEDGE_MUTATION_ROLES:
-        return False
-    allowed_flags = KNOWLEDGE_STORE_COMMAND_FLAGS[command]
-    index = 1
-    while index < len(parts):
-        token = parts[index]
-        if not token.startswith("--"):
-            return False
-        if "=" in token:
-            flag = token.split("=", 1)[0]
-            index += 1
-        elif token in KNOWLEDGE_STORE_VALUELESS_FLAGS:
-            flag = token
-            index += 1
-        else:
-            flag = token
-            index += 2
-        if flag not in allowed_flags:
-            return False
-    return True
-
 # Workspace control plane (plan 2026-08-11). The maintainer role owns bounded workspace
 # maintenance with a three-way edit decision: standard control-plane paths allow, the
 # root-of-trust set (files that define permissions or external capability) returns `ask` so a
-# human confirms every such edit, and everything else — delivery source, work items, governed
-# Knowledge, local config, caches — stays deny. All matching is casefolded so an NTFS/macOS
+# human confirms every such edit, and everything else — delivery source, work items, memory,
+# local config, caches — stays deny. All matching is casefolded so an NTFS/macOS
 # case variant cannot turn an `ask` surface into a silent allow; the deny and ask sets are
 # checked before the allow sets, so the strictest classification always wins.
 MAINTAINER_ROLE = "workspace-maintainer"
@@ -363,7 +177,6 @@ MAINTAINER_DENIED_PREFIXES = (
     "manifest/",
     "tests/e2e/",
     "work-items/",
-    ".ai/knowledge/",
     ".ai/memory/",
     ".cache/",
     "output/",
@@ -410,8 +223,6 @@ MAINTAINER_ALLOWED_EXACT = frozenset(
 def maintainer_edit_decision(relative_path: str) -> str:
     """Three-way decision for one normalized repo-relative path: allow | ask | deny."""
     if relative_path.startswith("OUTSIDE::"):
-        return "deny"
-    if is_governed_record_path(relative_path):
         return "deny"
     lowered = relative_path.casefold()
     if lowered in MAINTAINER_DENIED_EXACT:
@@ -596,50 +407,6 @@ def handover_draft_path_allowed(raw: str, root: Path) -> bool:
     return bool(relative.parts) and candidate.suffix.lower() == ".md"
 
 
-def force_app_knowledge_command_allowed(parts: list[str], role: str) -> bool:
-    if not parts or parts[0] not in FORCE_APP_COMMAND_FLAGS:
-        return False
-    if role not in FORCE_APP_KNOWLEDGE_ROLES:
-        return False
-    if parts == ["inventory"]:
-        return True
-    if parts[0] == "resolve":
-        # Read-only lexical mapping of paths/names onto inventory components; it never opens
-        # the input paths, so validation is argument hygiene, not filesystem authority. The
-        # resolver deliberately accepts absolute macOS/Windows paths and keeps everything from
-        # the force-app segment down (pinned files arrive as absolute paths on the Windows
-        # team's machines), so the guard requires that segment rather than repo-relativity.
-        # Names carry spaces and colons legitimately (Layout fullNames, component ids).
-        index = 1
-        seen_input = False
-        while index < len(parts):
-            token = parts[index]
-            if token == "--write":
-                index += 1
-                continue
-            if "=" in token:
-                flag, value = token.split("=", 1)
-                index += 1
-            else:
-                flag, value = token, parts[index + 1] if index + 1 < len(parts) else ""
-                index += 2
-            if flag == "--path":
-                if not re.fullmatch(r"[A-Za-z0-9_.:\\/ \-]{1,300}", value):
-                    return False
-                normalized = value.replace("\\", "/")
-                if "force-app" not in normalized.casefold() or ".." in normalized.split("/"):
-                    return False
-                seen_input = True
-            elif flag == "--name":
-                if not re.fullmatch(r"[A-Za-z0-9_.: \-]{1,120}", value):
-                    return False
-                seen_input = True
-            else:
-                return False
-        return seen_input
-    return False
-
-
 # Read-only orientation commands available to every role. Rationale: a default-deny terminal
 # that blocks `git status`/`ls`/`grep` doesn't make the harness safer — it paralyzes the agent
 # into thrashing (documented incidents), while the genuinely dangerous operations (sf, deploys,
@@ -744,7 +511,6 @@ def allowed_role_command(command: str, root: Path, role: str) -> bool:
     if not script.is_absolute():
         script = root / script
     script = script.resolve(strict=False)
-    force_app_knowledge = (root / "scripts/force_app_knowledge.py").resolve()
     validate_harness = (root / "scripts/validate_harness.py").resolve()
     run_evals = (root / "scripts/run_evals.py").resolve()
     validate_handover_output = (root / "scripts/validate_handover_output.py").resolve()
@@ -753,12 +519,6 @@ def allowed_role_command(command: str, root: Path, role: str) -> bool:
     # work (2026-07-14 usability fix — these were denied and caused live flailing).
     if script in (validate_harness, run_evals):
         return not remainder
-    if script == (root / "scripts/knowledge_store.py").resolve():
-        return knowledge_store_command_allowed(remainder, role)
-    if script == (root / "scripts/knowledge_search.py").resolve():
-        return knowledge_search_command_allowed(remainder, role)
-    if script == force_app_knowledge:
-        return force_app_knowledge_command_allowed(remainder, role)
     if script == (root / "scripts/validate_salesforce_deploy.py").resolve():
         return validate_deploy_command_allowed(remainder, role)
     if script == validate_handover_output:
@@ -793,8 +553,6 @@ def development_edit_allowed(raw: str, resolution_root: Path, role: str = "devel
         return False
     if any(brain_relative.startswith(prefix) for prefix in METADATA_EDIT_PREFIXES):
         return True
-    if is_governed_record_path(brain_relative):
-        return False
     if STANDALONE_ORG_CHANGE_LOG_PATTERN.fullmatch(brain_relative):
         return role == "developer"
     return allowed(brain_relative, ALLOWED_PREFIXES[role])
@@ -869,8 +627,6 @@ def normalize_path(raw: str, resolution_root: Path, policy_root: Path) -> str | 
 def allowed(relative_path: str, prefixes: tuple[str, ...]) -> bool:
     if relative_path.startswith("OUTSIDE::"):
         return False
-    if is_governed_record_path(relative_path):
-        return False
     return any(
         relative_path.startswith(prefix)
         if prefix.endswith("/")
@@ -891,22 +647,6 @@ def role_path_allowed(relative_path: str, role: str) -> bool:
     if role in QA_TEST_PLAN_ROLES and QA_TEST_PLAN_PATTERN.fullmatch(relative_path):
         return True
     return allowed(relative_path, ALLOWED_PREFIXES[role])
-
-
-def is_governed_record_path(relative_path: str) -> bool:
-    # The one-file entry patterns match case-folded so NTFS case variants (Foo.MD, .AI/...)
-    # cannot slip past the governed boundary (contract §3, review R1-10).
-    # Knowledge is the only governed boundary: every path below is a Knowledge surface.
-    lowered = relative_path.casefold()
-    return bool(
-        re.fullmatch(r"\.ai/knowledge/artifacts/.+\.md", lowered)
-        or lowered == ".ai/knowledge/artifacts-ledger.jsonl"
-        # Feature Entries and their ledger. The FILE needs its own arm, not just the ledger:
-        # without it an agent could rewrite an approved boundary rule through the ordinary
-        # write path and the digest pin would never see it.
-        or re.fullmatch(r"\.ai/knowledge/features/[^/]+\.md", lowered)
-        or lowered == ".ai/knowledge/features-ledger.jsonl"
-    )
 
 
 def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True) -> dict[str, Any]:
@@ -968,7 +708,6 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
                         f"{role}: this exact command is outside the terminal allowlist. "
                         "Allowed families: guarded harness scripts ("
                         "scripts/validate_harness.py, run_evals.py, "
-                        "force_app_knowledge.py, "
                         "validate_handover_output.py), "
                         "Git/gh (message format only), file reads "
                         "(ls/cat/grep/type/Get-Content), and tool --version checks — all plain, "

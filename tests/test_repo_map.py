@@ -143,45 +143,5 @@ class RepoMapRenderTests(unittest.TestCase):
         self.assertLessEqual(result["words"], render_repo_map.WORD_BUDGET)
 
 
-class KnowledgeConsumerSetTests(unittest.TestCase):
-    """§7 Set A — membership now lives in validate_harness.SET_A_SURFACES (owner decision
-    2026-08-10: the gate no longer parses the historical master plan; the tuple in the
-    validator is the single source of truth and its git diff is the review trail).
-    These two tests keep the gate honest: the live tree passes, and a surface silently
-    dropping the step-1 lookup fails BY NAME — the failure mode the original design was
-    built against (a green gate measuring the wrong list)."""
-
-    def audit_root(self, root: Path) -> list[str]:
-        audit = validate_harness.Audit()
-        validate_harness.check_knowledge_consumer_sets(audit, root)
-        return audit.errors
-
-    def test_live_tree_carries_both_tokens_on_every_set_a_surface(self) -> None:
-        self.assertEqual([], self.audit_root(ROOT))
-        for name in validate_harness.SET_A_SURFACES:
-            text = validate_harness.consumer_surface_path(ROOT, name).read_text(encoding="utf-8")
-            self.assertIn(validate_harness.SET_A_CALL, text, name)
-            self.assertIn(validate_harness.SET_A_HYDRATION_RULE, text, name)
-
-    def test_set_a_surface_dropping_the_entry_lookup_fails_by_name(self) -> None:
-        for name in validate_harness.SET_A_SURFACES:
-            with self.subTest(surface=name), tempfile.TemporaryDirectory() as tmp:
-                root = Path(tmp)
-                shutil.copytree(ROOT / ".github", root / ".github")
-                path = validate_harness.consumer_surface_path(root, name)
-                path.write_text(
-                    path.read_text(encoding="utf-8").replace(
-                        validate_harness.SET_A_CALL, "RETIRED-LOOKUP"
-                    ),
-                    encoding="utf-8",
-                )
-                errors = self.audit_root(root)
-                self.assertTrue(errors, f"reverting {name} went unnoticed")
-                self.assertTrue(
-                    any("Set A" in m and name.removesuffix(".agent.md") in m for m in errors),
-                    errors,
-                )
-
-
 if __name__ == "__main__":
     unittest.main()

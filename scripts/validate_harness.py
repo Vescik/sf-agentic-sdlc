@@ -33,11 +33,6 @@ except ModuleNotFoundError:  # imported as scripts.validate_harness by unit test
     from scripts.schema_format import FORMAT_CHECKER
 
 try:
-    from knowledge_digest import canonical_digest
-except ModuleNotFoundError:  # imported as scripts.validate_harness by unit tests
-    from scripts.knowledge_digest import canonical_digest
-
-try:
     from validate_handover_output import template_fixed_texts
 except ModuleNotFoundError:  # imported as scripts.validate_harness by unit tests
     from scripts.validate_handover_output import template_fixed_texts
@@ -70,7 +65,6 @@ ALLOWED_TOOLS = {
     "web/fetch",
     "vscode/askQuestions",
     "agent",
-    "knowledge/*",
     "ado-readonly/*",
     "salesforce/review_org_identity",
     "salesforce/review_installed_packages",
@@ -217,7 +211,6 @@ def check_required_files(audit: Audit) -> None:
         ".vscode/settings.json",
         ".vscode/mcp.json",
         ".github/mcp.json",
-        "scripts/knowledge_mcp_server.mjs",
         "scripts/start_ado_mcp.mjs",
         "scripts/ado_config.py",
         "scripts/ado_tool_policy.py",
@@ -232,7 +225,6 @@ def check_required_files(audit: Audit) -> None:
         "requirements-dev.lock",
         "scripts/verify_salesforce_org.py",
         "scripts/salesforce_review_server.py",
-        "scripts/force_app_knowledge.py",
         "scripts/render_repo_map.py",
         "config/repo-map-seed.json",
         ".ai/repo-map.md",
@@ -244,16 +236,8 @@ def check_required_files(audit: Audit) -> None:
         ".ai/contracts/writing-standard.md",
         ".ai/third-party/asd-ste100/README.md",
         ".ai/third-party/asd-ste100/LICENSE",
-        "schemas/force-app-knowledge-inventory.schema.json",
-        "schemas/force-app-knowledge-resolve.schema.json",
-        "schemas/knowledge-entry.schema.json",
-        "schemas/knowledge-feature.schema.json",
-        "scripts/knowledge_store.py",
-        "scripts/knowledge_search.py",
         "scripts/validate_handover_output.py",
-        "docs/knowledge-one-file-contract.md",
         "schemas/salesforce-org-review-evidence.schema.json",
-        "config/knowledge-policy.json",
         "config/salesforce-review-policy.json",
         "docs/grounding-architecture.md",
         "sfdx-project.json",
@@ -414,31 +398,20 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
     reviewer_hooks = agents.get("reviewer", {}).get("hooks", {})
     audit.require("--role reviewer" in json.dumps(reviewer_hooks, default=str), "reviewer role guard is required")
     # Owner decision 2026-08-11: reviewer.agent.md is the single source of the review lane's
-    # tool grants. A prompt-level `tools` key overrides the agent's list, and the override had
-    # silently removed `knowledge/*` while the skill (and §7 Set A) require `knowledge_context`.
-    # The prompt must inherit, so a future grant is reviewed in exactly one place.
+    # tool grants. A prompt-level `tools` key overrides the agent's list, so the prompt must
+    # inherit and a future grant is reviewed in exactly one place.
     review_prompt, _ = frontmatter(ROOT / ".github/prompts/check-against-principles.prompt.md", audit)
     audit.require(
         "tools" not in review_prompt,
         ".github/prompts/check-against-principles.prompt.md must not declare `tools`: the review "
         "lane inherits reviewer.agent.md, which is the single source of its grants",
     )
-    audit.require(
-        "knowledge/*" in reviewer_tools,
-        "reviewer needs `knowledge/*`: the check-against-principles skill runs `knowledge_context` "
-        "as its step-1 lookup (§7 Set A)",
-    )
     # Every grant the review procedure actually spends, pinned against the procedure. A skill
     # step whose tool is missing does not fail loudly — it degrades into the agent guessing,
-    # which is how the prompt-level override went unnoticed. `execute/runInTerminal` is the
-    # sharpest of these: step 7 must run `entry-verify-citations --envelope` BEFORE the verdict,
-    # so without the terminal the citation gate is skipped and `SAFE` is issued unverified.
+    # which is how the prompt-level override went unnoticed.
     for tool, reason in (
         ("search", "the review reads a diff and repository files, not single known paths"),
-        (
-            "execute/runInTerminal",
-            "step 7 runs `knowledge_store.py entry-verify-citations --envelope` before the verdict",
-        ),
+        ("execute/runInTerminal", "the review runs repository checks and guarded Git reads"),
         ("salesforce/review_soql_query", "the review reconciles design claims against org records"),
         ("salesforce/review_object_contract", "package-namespace claims need the object contract"),
         ("salesforce/review_org_identity", "evidence must name the org it came from"),
@@ -486,7 +459,7 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
             audit.require(prompt_agent == "developer", "document-solution must use the Developer role guard")
             required_tools = {"read", "search", "edit/editFiles", "execute/runInTerminal"}
             documentation_tools = required_tools | {
-                "vscode/askQuestions", "ado-readonly/*", "knowledge/*",
+                "vscode/askQuestions", "ado-readonly/*",
                 "salesforce/review_org_identity", "salesforce/review_installed_packages",
                 "salesforce/review_object_contract", "salesforce/review_soql_query",
             }
@@ -630,7 +603,7 @@ def check_settings_and_mcp(audit: Audit) -> None:
     mcp = load_json(ROOT / ".vscode/mcp.json", audit)
     servers = mcp.get("servers", {}) if isinstance(mcp, dict) else {}
     audit.require(
-        set(servers) == {"ado-readonly", "salesforce", "knowledge"},
+        set(servers) == {"ado-readonly", "salesforce"},
         "MCP server set is unexpected",
     )
     ado = servers.get("ado-readonly", {})
@@ -674,15 +647,8 @@ def check_settings_and_mcp(audit: Audit) -> None:
         "salesforce-development" not in servers,
         "MCP is read-only by the 2026-07-14 decision; the development/write server must not return",
     )
-    # Knowledge MCP (owner decision 2026-08-04: MCP is the only named read surface for
-    # agents). The server binds no org and takes no inputs; both host configs must point
-    # at the same guarded wrapper.
-    knowledge = servers.get("knowledge", {})
-    audit.require(knowledge.get("command") == "node", "knowledge: wrapper must run with node")
-    audit.require(
-        knowledge.get("args") == ["scripts/knowledge_mcp_server.mjs"],
-        "knowledge: exactly the guarded wrapper, no extra args — it binds no org and takes no secrets",
-    )
+    # The Knowledge subsystem and its MCP server were removed (sf-agentic-sdlc, 2026-11-15).
+    audit.require("knowledge" not in servers, ".vscode/mcp.json must not register the removed knowledge server")
     # No design MCP server exists; registering one would reintroduce a process surface that
     # writes design state outside the reviewed work-items/ files.
     audit.require(
@@ -692,17 +658,11 @@ def check_settings_and_mcp(audit: Audit) -> None:
 
     cli_mcp = load_json(ROOT / ".github/mcp.json", audit)
     cli_servers = cli_mcp.get("mcpServers", {}) if isinstance(cli_mcp, dict) else {}
+    # Until the Copilot CLI port, .github/mcp.json carries no server: the Knowledge server
+    # was removed and org-bound servers stay in .vscode/mcp.json where inputs exist.
     audit.require(
-        set(cli_servers) == {"knowledge"},
-        ".github/mcp.json (Copilot CLI) carries exactly the knowledge server — org-bound "
-        "servers stay in .vscode/mcp.json where inputs exist",
-    )
-    cli_knowledge = cli_servers.get("knowledge", {})
-    audit.require(cli_knowledge.get("type") == "local", ".github/mcp.json knowledge: type must be local")
-    audit.require(cli_knowledge.get("command") == "node", ".github/mcp.json knowledge: wrapper must run with node")
-    audit.require(
-        cli_knowledge.get("args") == knowledge.get("args"),
-        "the CLI and VS Code knowledge servers must launch the same wrapper",
+        isinstance(cli_mcp, dict) and cli_servers == {},
+        ".github/mcp.json (Copilot CLI) must carry no MCP server until the CLI port",
     )
     serialized = json.dumps(mcp).lower()
     audit.require(
@@ -797,7 +757,7 @@ def check_settings_and_mcp(audit: Audit) -> None:
         "Test Strategist must not gain the broad work-items/ prefix; the QA plan write is the "
         "exact-path QA_TEST_PLAN_PATTERN rule only (D18)",
     )
-    audit.require('".cache/org-usage/"' in role_guard, "Config Investigator must be able to author org-usage probes-files (contract §6.6)")
+    audit.require('".cache/org-usage/"' not in role_guard, "the org-usage lane retired with the Knowledge subsystem and must not return")
     # Documentation wording is not pinned here: the read-only MCP model, the retrieve
     # confirmation, and credential isolation are enforced by the machine checks above and the
     # hook/facade test suites; docs are covered by the link check and AGENTS.md size bound.
@@ -827,7 +787,6 @@ def check_ci(audit: Audit) -> None:
     audit.require("/salesforce/" not in codeowners, "CODEOWNERS retains the legacy nested Salesforce path")
     for canary in (
         "config/harness.local.json",
-        ".cache/knowledge-proposals/example.yaml",
         "output/documentation/example.md",
         ".env",
         "force-app/main/default/lwc/jsconfig.json",
@@ -884,68 +843,6 @@ def check_secret_signatures(audit: Audit) -> None:
             audit.require(pattern.search(text) is None, f"{name}: high-confidence secret signature detected")
 
 
-# §7 Set A: the surfaces whose step-1 SOURCE lookup must run through the entry index.
-# The membership is declared HERE, explicitly — this list is the single source of truth
-# (decoupled from the retired knowledge master plan on the owner's 2026-08-10 decision:
-# parsing a frozen planning document coupled runtime validation to it;
-# moving a surface now means editing this tuple in the same commit that edits
-# the surface, and the git diff is the review trail).
-# 2026-08-04 (owner decision, MCP-only definitions): the step-1 surface is the MCP tool,
-# not the CLI literal. The CLI menu survives only in search-knowledge as the operator
-# fallback, which is deliberately NOT a Set A surface — the gate this design replaced
-# counted a list that included the menu owner and was green while measuring the wrong
-# thing.
-SET_A_SURFACES = (
-    "solution-design",
-    "check-against-principles",
-    "check-feature-coverage",
-    "adhoc-fix",
-    "investigate-config-records",
-    "generate-technical-documentation",
-    "investigate-object",
-    "developer.agent.md",
-    "test-strategist.agent.md",
-)
-SET_A_CALL = "knowledge_context"
-# The second half of a correct step-1 lookup. A context lookup without the re-read rule lets
-# an agent cite a row carrying `hydrated: false`, which contract §14.2 rules uncitable — the
-# retrieval defect P0–P4 made visible, re-introduced at the last hop. Wave 2 claimed the rule was
-# present in all eight Set A surfaces when it was present in two, so §7 asserts both tokens.
-SET_A_HYDRATION_RULE = "hydrated"
-
-
-def consumer_surface_path(root: Path, name: str) -> Path:
-    """A §7 surface name resolved to its file — agents by filename, skills by directory."""
-
-    if name.endswith(".agent.md"):
-        return root / ".github/agents" / name
-    return root / ".github/skills" / name / "SKILL.md"
-
-
-def check_knowledge_consumer_sets(audit: Audit, root: Path = ROOT) -> None:
-    """§7 Set A: every declared surface runs the step-1 source lookup AND its re-read rule.
-
-    Set B (the preserved layer-2 registry call) retired with the claim registry
-    (v1 retirement P2b, owner D-C 2026-08-03). Membership lives in SET_A_SURFACES above.
-    """
-
-    for name in SET_A_SURFACES:
-        path = consumer_surface_path(root, name)
-        text = path.read_text(encoding="utf-8") if path.is_file() else ""
-        audit.require(
-            SET_A_CALL in text,
-            f"§7 Set A ({len(SET_A_SURFACES)} surfaces): {relative(path)} no longer runs "
-            f"`{SET_A_CALL}` as its step-1 source lookup — remove it from SET_A_SURFACES "
-            f"only together with the design change that retires the surface",
-        )
-        audit.require(
-            SET_A_HYDRATION_RULE in text,
-            f"§7 Set A ({len(SET_A_SURFACES)} surfaces): {relative(path)} names the step-1 "
-            f"command but not the `{SET_A_HYDRATION_RULE}` re-read rule — an agent may then "
-            f"cite a row contract §14.2 rules uncitable",
-        )
-
-
 def check_skill_commands(audit: Audit) -> None:
     """Guarded-command instructions in skills must be role-guard-valid and cross-OS.
 
@@ -955,7 +852,7 @@ def check_skill_commands(audit: Audit) -> None:
     first command. Fail closed here so the skill text and the guard can never drift apart again.
     """
 
-    guarded = "force_app_knowledge|validate_handover_output"
+    guarded = "validate_handover_output"
     bare = re.compile(r"`\s*scripts/(?:" + guarded + r")\.py(?:\s|`)")
     backslash = re.compile(r"`[^`]*(?:scripts\\|\.venv\\)")
     for skill in sorted((ROOT / ".github/skills").glob("*/SKILL.md")):
@@ -1144,8 +1041,6 @@ def check_grounding_contracts(audit: Audit) -> None:
     audit.require(bool(source_ids), "Principle sources must declare at least one rule ID")
 
     for data_name, schema_name in (
-        ("config/knowledge-policy.json", "knowledge-policy.schema.json"),
-        ("config/knowledge-extraction.json", "knowledge-extraction.schema.json"),
         ("config/salesforce-review-policy.json", "salesforce-review-policy.schema.json"),
     ):
         data = load_json(ROOT / data_name, audit)
@@ -1166,10 +1061,6 @@ def check_grounding_contracts(audit: Audit) -> None:
             Draft202012Validator.check_schema(schema)
         except Exception as exc:
             audit.require(False, f"{relative(schema_path)}: invalid JSON Schema: {exc}")
-
-    # Knowledge entry-check and feature-check are domain gates owned by CI (explicit,
-    # attributable steps in harness-ci.yml) and by the VS Code Test task locally; the static
-    # validator no longer re-runs them as subprocesses.
 
     runtime_roots = (ROOT / ".github", ROOT / ".ai", ROOT / "config", ROOT / "schemas", ROOT / "scripts")
     for base in runtime_roots:
@@ -1204,13 +1095,6 @@ def check_grounding_contracts(audit: Audit) -> None:
     audit.require(example_review.get("allowedObjectApiNames") == [], "disabled example object allowlist must be empty")
     workflow = required_text(ROOT / ".github/workflows/harness-ci.yml", audit)
     audit.require("npm ci --ignore-scripts" in workflow, "CI must install the pinned Salesforce review runtime without lifecycle scripts")
-    # The static validator does not run the Knowledge domain gates itself; CI must own them
-    # as explicit, attributable steps.
-    for gate in ("entry-check", "feature-check"):
-        audit.require(
-            f"python scripts/knowledge_store.py {gate}" in workflow,
-            f"CI must keep the explicit knowledge {gate} gate",
-        )
 
 
 def check_repo_map(audit: Audit) -> None:
@@ -1513,94 +1397,6 @@ def check_contracts_match_mcp(audit: Audit) -> None:
             )
 
 
-def check_org_usage(audit: Audit, root: Path = ROOT) -> None:
-    """Org-usage hard integrity gate (contract §6.6): the entry-check disclosure is advisory,
-    THIS is where tamper fails the build. Three rules: the org ledger is append-only and
-    monotonic; every org-bearing entry's sectionDigest recomputes AND is the latest org-ledger
-    record for its identity; and org-bearing entries may exist only where origin containment
-    passes (gate 1, owner D-1 2026-08-03) — a failing `git remote` is a refusal, never a pass.
-    All checks are lazy: an org-free workspace (this public origin) pays one exists() call."""
-    ledger_path = root / ".ai/knowledge/artifacts-org-ledger.jsonl"
-    records: list[dict] = []
-    if ledger_path.exists():
-        for index, line in enumerate(ledger_path.read_text(encoding="utf-8").splitlines(), 1):
-            if not line.strip():
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                audit.require(False, f"org ledger line {index} is not JSON")
-                continue
-            audit.require(
-                record.get("sequence") == index,
-                f"org ledger sequence break at line {index} (append-only violated)",
-            )
-            records.append(record)
-    latest: dict[str, dict] = {}
-    for record in records:
-        if isinstance(record.get("identity"), str):
-            latest[record["identity"]] = record
-    artifacts = root / ".ai/knowledge/artifacts"
-    org_bearing = 0
-    if artifacts.is_dir():
-        for path in sorted(artifacts.rglob("*.md")):
-            text = path.read_text(encoding="utf-8")
-            if "orgUsage" not in text:
-                continue
-            try:
-                frontmatter_block = yaml.safe_load(text.split("---", 2)[1])
-            except (IndexError, yaml.YAMLError):
-                continue  # unparseable entries are compute_lane/entry-check territory
-            section = (frontmatter_block or {}).get("orgUsage")
-            if not isinstance(section, dict):
-                continue
-            org_bearing += 1
-            subject = frontmatter_block.get("subject") or {}
-            identity = (
-                f"{subject.get('metadataType')}:{subject.get('namespace') or 'c'}:{subject.get('fullName')}"
-            )
-            recomputed = canonical_digest(section.get("orgs") or {})
-            audit.require(
-                section.get("sectionDigest") == recomputed,
-                f"{relative(path)}: orgUsage.sectionDigest does not recompute (tamper or crash; "
-                "recover forward with entry-org-attach or entry-org-detach)",
-            )
-            record = latest.get(identity)
-            audit.require(
-                record is not None and record.get("orgUsageDigest") == recomputed,
-                f"{relative(path)}: orgUsage is not the latest org-ledger record for {identity}",
-            )
-    if org_bearing:
-        policy = load_json(root / "config/knowledge-policy.json", audit)
-        allowlist = (policy.get("orgUsage") or {}).get("allowedOriginRemotes") or []
-        contained = bool(allowlist)
-        if contained:
-            import subprocess
-
-            try:
-                completed = subprocess.run(
-                    ["git", "-C", str(root), "remote", "-v"],
-                    text=True, capture_output=True, timeout=30, check=False,
-                )
-            except (OSError, subprocess.SubprocessError):
-                contained = False
-            else:
-                if completed.returncode != 0:
-                    contained = False
-                else:
-                    urls = {
-                        parts[1]
-                        for parts in (line.split() for line in completed.stdout.splitlines())
-                        if len(parts) >= 2
-                    }
-                    contained = all(url in allowlist for url in urls)
-        audit.require(
-            contained,
-            f"{org_bearing} org-bearing entr{'y' if org_bearing == 1 else 'ies'} present but origin "
-            "containment fails (gate 1: allowlist empty, off-list remote, or git unavailable)",
-        )
-
-
 def run_checks(audit: Audit, checks: Iterable[Callable[[Audit], None]]) -> None:
     """Run every check; an uncaught exception becomes a named audit error, not a lost report.
 
@@ -1642,8 +1438,6 @@ def main() -> int:
             check_python_yaml_safety,
             check_skill_commands,
             check_release_handover_contract,
-            check_knowledge_consumer_sets,
-            check_org_usage,
             check_retired_surfaces,
             check_dependency_admissions,
         ),

@@ -3,9 +3,8 @@
 This owner-content backlog originated in phase 2 of the context-first plan from 2026-08-07
 (archived under `docs-history-2026-08-11`). `docs/package-concept.md` and
 `docs/package-constraints.md` are absent. `docs/design-guides.md` exists with limited recorded
-conventions; preserve it rather than recreating it. The governed vocabulary remains in
-`.ai/knowledge/keyword-taxonomy.md`; the older proposed domain document below is owner follow-up,
-not an instruction to move or rewrite governed Knowledge.
+conventions; preserve it rather than recreating it. The older proposed domain document below is
+owner follow-up.
 
 Missing domain documentation does not stop a useful design draft or prove that the package has
 no constraints. Use applicable instructions and permitted evidence. Name each material unknown
@@ -93,9 +92,7 @@ rozwiązujące realne dwuznaczności Waszego języka, po jednej linii:
 - „faktura za projekt" → `VendorNS__Invoice__c` per assignment, NIE per project
 ```
 
-The existing `.ai/knowledge/keyword-taxonomy.md` remains governed Knowledge. Read it through
-the applicable workflow; this backlog does not authorize moving its contents or creating a
-second authoritative taxonomy. Any separate domain glossary remains an owner-content decision.
+Any domain glossary remains an owner-content decision.
 
 ---
 

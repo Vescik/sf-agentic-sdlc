@@ -12,7 +12,7 @@ document exists — without it, "more control" reads as "better product".
 ## 1. The goal
 
 > Given a concrete ADO work item or a written description, the agent delivers a design grounded
-> in the available Knowledge and org evidence. It specifies enough behavior for another agent
+> in the available repository and org evidence. It specifies enough behavior for another agent
 > to implement without inventing material choices, and checks the design against applicable
 > constraints, recorded limitations, and organization principles before handing it over.
 
@@ -35,7 +35,7 @@ Three obligations sit inside that sentence, and all three are load-bearing:
    a useful draft even when some evidence or choices remain unavailable. Keep those gaps visible;
    a draft is not a claim that all dependent work is executable. Preserve the skill's entry routing.
 2. **Ground it in what exists.** Reuse before creation, and both stated against measured reality —
-   Knowledge entries, the object contract, installed package facts — not against recollection.
+   repository source, the object contract, installed package facts — not against recollection.
 3. **Check its own work.** Perform the solution-design skill's one bounded final self-check against
    the proposed behavior, managed-package constraints, recorded limitations and applicable rules.
    Correct what can be resolved in the same turn and expose the remaining material choices.
@@ -108,8 +108,8 @@ These hold regardless of any plan:
 - acceptance and authorization come from the human, never a model's own verdict or a commit.
   Apply the [shared handoff contract](../.ai/contracts/execution-contract.md#handoff-and-continuation):
   an explicit request to implement an identified persisted design authorizes that bounded work;
-  acceptance alone does not start implementation. PR review, publication, deployment confirmation,
-  and Knowledge approval keep their separate rules;
+  acceptance alone does not start implementation. PR review, publication, and deployment confirmation
+  keep their separate rules;
 - model prose is not evidence, and an unsupported human assertion does not establish package
   behaviour, schema, deployed state or absence;
 - an assumption never establishes package behavior or closes a material evidence gap; namespace

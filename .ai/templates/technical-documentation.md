@@ -55,7 +55,7 @@ on what it is for.
 
 <!--
 Reference [managed-package instructions](../../.github/instructions/managed-package.instructions.md) and
-approved Knowledge Entries (relation edges) where applicable. If no impact: say so explicitly.
+the repository source (references between components) where applicable. If no impact: say so explicitly.
 -->
 
 ## 6. Verification approach
@@ -77,7 +77,7 @@ If the answer is "none", this section keeps an explicit "None" — it never disa
 
 ## 8. Known limitations / open questions
 
-<!-- Include any relevant limitations recorded on the approved Knowledge Entries. -->
+<!-- Include any relevant known limitations of the touched components. -->
 
 ## 9. Verification Contract
 

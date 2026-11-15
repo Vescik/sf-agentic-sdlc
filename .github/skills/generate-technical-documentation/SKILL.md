@@ -1,6 +1,6 @@
 ---
 name: generate-technical-documentation
-description: Generate or update durable technical documentation for one Salesforce work item, with or without a design, using the repository-root SFDX project, manifest, source components, current ADO context, Knowledge, tests, and human manual steps.
+description: Generate or update durable technical documentation for one Salesforce work item, with or without a design, using the repository-root SFDX project, manifest, source components, current ADO context, tests, and human manual steps.
 user-invocable: false
 ---
 
@@ -49,28 +49,11 @@ large or heterogeneous. Do not infer which manifest members belong to the work i
    ID/link, retrieval time and completeness without ADO revision metadata. A noticed difference
    from persisted source/design may be optional information; it does not block documentation
    or silently change the requested scope. Do not add a second fetch for this comparison.
-4. Query Knowledge for every touched component through the
-   [search-knowledge skill](../search-knowledge/SKILL.md), both layers:
-   - the `knowledge_context` tool — what the source
-     declares, what the artifact is made of, what depends on it, and who grants access, in one
-     call. This is the step-1 lookup for the entry-homed types. Document from `parts`,
-     `permissions` and `incoming`, the effective approved buckets; rows from non-effective lanes
-     opened with `--state` arrive in the `partsNonCurrent` / `permissionsNonCurrent` /
-     `incomingNonCurrent` siblings and are documented as gaps, not as facts. A row carrying
-     `hydrated: false` failed re-reading; document it as a gap, never as a fact. Lane semantics
-     and bucket rules are defined once in
-     [search-knowledge](../search-knowledge/SKILL.md).
-   - the `knowledge_search` tool with a `relationAnchor` and `direction: incoming`
-     for dependents beyond the context pack's depth-1 view, for the impact section.
-     The generic-bucket types named in [search-knowledge](../search-knowledge/SKILL.md) still
-     have no entry and no governed dependency lookup — list any that appear as an uncovered
-     class, never silently.
-   Cite what the executor gives you, not what the view shows: obtain a citable ref with
-   the `knowledge_entry_status` tool for entries and the
-   orgKey + observedAt for org-usage numbers (with any expired premise named). A search result and
-   a generated view are never themselves citable. An empty result from either layer is a recorded
-   gap and is never proof that nothing depends on the component. Use Config Investigator only for
-   a material unknown; Knowledge writes are a separate approval.
+4. Read every touched component in the repository-root `force-app/` source: what it is made
+   of, what depends on it (search the source for references), and who grants access. List any
+   metadata type you could not check as an uncovered class, never silently. An empty result is
+   a recorded gap and is never proof that nothing depends on the component. Use Config
+   Investigator only for a material unknown.
 5. Project the verification plan from `work-items/<itemId>-<slug>/design.md`, reconciled
    with recorded deviations in `decisions.md`, and render it into section 9 together with
    the ADO Test Cases it formally references. Do not call a deviation approved unless
@@ -102,22 +85,6 @@ large or heterogeneous. Do not infer which manifest members belong to the work i
    change. Update that same file when the user requests its update; otherwise obtain confirmation
    before replacing accepted/reviewed content. Do not carry old acceptance onto new content or
    create an automatic `final-v2` alternative. Leave historical `output/` drafts in place.
-
-## Knowledge grounding: two layers
-
-Query both layers through the knowledge tools and read their envelopes by the
-[search-knowledge](../search-knowledge/SKILL.md) rules — authorities, lane handling and
-citation mechanics live there, once; do not re-derive them here. In short: approved
-entries ground intended repository-source facts, cited as `entryRef` via the
-`knowledge_entry_status` tool (a search result, a `context` pack and a generated view are
-never themselves citable); org usage grounds usage numbers cited with orgKey, observedAt
-and their age; runtime behavior, business meaning and vendor guarantees have no governed
-Knowledge surface — mark them `UNVERIFIED` with their source. A missing hit is never
-proof of absence. An approved entry can still refuse to ground a fact: contract §8.1
-grounds only `source-exact`, fully covered sections — check the entry's
-`extractionCoverage` and `assurance` (heuristic-derived facts, common across the Apex
-layer, are refused). Take the refusal as the answer: report the fact as inferred and name
-what would make it groundable — never retry with a different ref shape.
 
 ## Return
 

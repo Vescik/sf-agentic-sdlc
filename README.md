@@ -2,8 +2,8 @@
 
 A private, team-versioned GitHub Copilot harness for Salesforce development around any configured
 managed-package environment. It combines a minimal always-on safety/grounding kernel, seven SDLC agents,
-twenty public prompt commands, twenty-four internal skills, governed but initially unseeded
-Knowledge/Memory/QA layers, reconciled read-only org review, durable per-work-item design files,
+fourteen public prompt commands, eighteen internal skills, governed but initially unseeded
+Memory/QA layers, reconciled read-only org review, durable per-work-item design files,
 and repeatable validation. No object, namespace, package behavior, or business meaning is built in.
 
 ## Current authority
@@ -13,10 +13,8 @@ and repeatable validation. No object, namespace, package behavior, or business m
 3. [docs/compatibility.md](docs/compatibility.md) — runtime/version contract.
 4. [.ai/contracts/execution-contract.md](.ai/contracts/execution-contract.md) — common skill
    execution, cache, output, and failure behavior.
-5. [docs/grounding-architecture.md](docs/grounding-architecture.md) — Principles, Knowledge
-   grounding, repository/org reconciliation, and the work-item boundary.
-6. [docs/knowledge-one-file-contract.md](docs/knowledge-one-file-contract.md) — the normative
-   one-file Knowledge entry contract.
+5. [docs/grounding-architecture.md](docs/grounding-architecture.md) — Principles,
+   repository/org reconciliation, and the work-item boundary.
 
 The original design history (`HARNESS_BLUEPRINT.md`, `BUILD_REPORT.md`, `HARNESS_DIAGRAMS.md`,
 and both `HANDOFF_FOR_FABLE*.md` reviews) was removed from the working tree on 2026-07-16; it
@@ -33,7 +31,7 @@ the working tree on 2026-08-11; they remain in git history under the tag `docs-h
 | Orchestration | `.github/agents/` | Design, investigation, development, QA strategy, independent review |
 | Public commands | `.github/prompts/` | Deterministic slash-command entry points (count pinned by `validate_harness.py`) |
 | Internal capabilities | `.github/skills/` | Progressively loaded procedures hidden from the slash menu |
-| Knowledge and contracts | `.ai/knowledge/`, `.ai/contracts/` | Schema-governed one-file Knowledge entries, human approvals, source authority |
+| Contracts | `.ai/contracts/` | Execution, writing, workflow and source-authority contracts |
 | Work state and QA | `work-items/`, `.ai/memory/` | Per-item ADO context/design/tasks/decisions/QA test plan, optional Feature delivery map, and durable decisions |
 | Salesforce project | `sfdx-project.json`, `force-app/`, `manifest/`, `tests/e2e/` | Root SFDX project, source, manifests, and Salesforce tests |
 | Runtime | `.vscode/mcp.json`, `.github/hooks/`, `scripts/` | Reconciled MCP/hidden-CLI review, guarded Salesforce channels, deterministic checks |
@@ -95,7 +93,7 @@ Story link. See [Wiki publication](docs/wiki-publication.md) for production scop
 
 The workflows that need `config/harness.local.json` intentionally fail closed until it contains
 real, human-owned environment/process values and the package/component review scope.
-Empty Knowledge produces explicit unknowns, not fabricated package facts.
+Missing evidence produces explicit unknowns, not fabricated package facts.
 
 `manifest/package.xml` is a generic starter manifest, not automatic deployment scope. Before an
 org-facing retrieve, validation, or deployment, bind the scope to the components named by the
@@ -104,4 +102,4 @@ approved design (`work-items/<id>-<slug>/design.md`); wildcard presence is never
 
 For Developer operations requiring a one-use environment answer or supported latest-job selection,
 install the [native Salesforce operation tool](docs/native-salesforce-operations.md). Existing MCP
-and Knowledge contracts stay unchanged; host/live acceptance is recorded separately.
+contracts stay unchanged; host/live acceptance is recorded separately.

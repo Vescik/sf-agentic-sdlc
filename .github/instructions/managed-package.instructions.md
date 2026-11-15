@@ -46,7 +46,7 @@ change that conflicts with them is wrong even if it works.
   query, or test was inspected or run without its actual successful result. An
   unavailable tool is a stated limitation, not permission to answer from imagination.
 - **SAFE-HUMAN-001 — approval comes from a named human.** Agents cannot approve their
-  own work. Knowledge entry approval and work approval follow their recorded human
+  own work. Work approval follows its recorded human
   mechanisms; nothing an agent writes is approved by writing it.
 - **SAFE-CRED-001 — agents never handle credentials.** Authentication uses
   human-established Salesforce CLI or OAuth authorization. Never request, print, cache,

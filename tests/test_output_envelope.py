@@ -52,7 +52,6 @@ class OutputEnvelopeTests(unittest.TestCase):
     def test_invalid_fixtures_are_rejected(self) -> None:
         for name in (
             "output.grounded-success.invalid-null-record.json",
-            "output.grounded-success.invalid-empty-grounding.json",
             "output.grounded-accepted.invalid-no-handoff.json",
         ):
             with self.subTest(name=name):
@@ -77,11 +76,6 @@ class OutputEnvelopeTests(unittest.TestCase):
             instance[field] = []
             with self.subTest(field=field):
                 self.assert_invalid(instance)
-
-    def test_grounded_success_requires_knowledge_timestamp(self) -> None:
-        instance = copy.deepcopy(self.grounded)
-        instance["knowledgeSnapshotAt"] = None
-        self.assert_invalid(instance)
 
     def test_grounded_success_requires_a_persisted_handoff(self) -> None:
         instance = copy.deepcopy(self.grounded)

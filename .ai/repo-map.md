@@ -7,9 +7,8 @@ the deep directory tree lives in `docs/workspace-topology.md`.
 
 | Path | Purpose |
 |---|---|
-| `.ai` | Governed agent state: contracts, knowledge, memory |
-| `.ai/contracts` | Normative execution/writing/knowledge/workflow/tooling contracts, loaded as needed |
-| `.ai/knowledge` | One-file Knowledge Entries + approval ledgers, feature entries, keyword taxonomy |
+| `.ai` | Governed agent state: contracts, memory, templates |
+| `.ai/contracts` | Normative execution/writing/workflow/tooling contracts, loaded as needed |
 | `.ai/memory` | Human-curated decisions-log.md |
 | `.ai/templates` | Document templates |
 | `.cache` | Ignored transient caches, drafts, receipts |
@@ -34,30 +33,25 @@ the deep directory tree lives in `docs/workspace-topology.md`.
 
 ## Roles (`.github/agents/`)
 
-- **config-investigator** — Read-only evidence collector for allowlisted …. Loads instructions: managed-package; contracts: source-authority, tool-capabilities, writing-standard; skills: git-workflow, inventory-force-app, investigate-config-records, investigate-object, org-discovery, selected-files-knowledge.
+- **config-investigator** — Read-only evidence collector for allowlisted …. Loads instructions: managed-package; contracts: source-authority, tool-capabilities, writing-standard; skills: git-workflow, investigate-config-records, investigate-object, org-discovery.
 - **designer** — Design subscriber-owned extensions of the …. Loads contracts: writing-standard; skills: fetch-ado-item, git-workflow, prepare-delivery-feature, solution-design. Hands off to: developer, reviewer.
 - **developer** — Implement a designed work item …. Loads contracts: writing-standard; skills: development, document-solution, git-workflow, publish-wiki.
 - **git-agent** — Help with Git and GitHub …. Loads contracts: writing-standard; skills: git-workflow.
-- **knowledge-curator** — Maintains governed Knowledge from repository …. Loads instructions: managed-package; contracts: source-authority, writing-standard; skills: approve-knowledge-drafts, curate-knowledge, git-workflow, search-knowledge.
 - **reviewer** — Challenge a design or implementation …. Loads contracts: writing-standard; skills: check-against-principles, git-workflow.
-- **test-strategist** — Own the QA perspective — …. Loads instructions: apex; contracts: execution-contract, tool-capabilities, writing-standard; skills: check-feature-coverage, git-workflow, prepare-qa-test-plan, search-knowledge.
+- **test-strategist** — Own the QA perspective — …. Loads instructions: apex; contracts: execution-contract, tool-capabilities, writing-standard; skills: check-feature-coverage, git-workflow, prepare-qa-test-plan.
 - **workspace-maintainer** — Maintain the workspace control plane …. Loads contracts: writing-standard; skills: git-workflow, maintain-workspace.
 
 ## Skills (`.github/skills/`)
 
 - `adhoc-fix` — Express lane for a small …
-- `approve-knowledge-drafts` — Human-initiated promotion of draft one-file …
-- `author-feature` — Interactive Feature Knowledge authoring - …
 - `check-against-principles` — Evaluate a scoped design or …
 - `check-feature-coverage` — Compare a current Azure DevOps …
-- `curate-knowledge` — Procedure for knowledge-curator — health …
 - `development` — Implement a designed Salesforce work …
 - `document-solution` — Create or update three plain …
 - `fetch-ado-item` — Fetch and normalize one Azure …
 - `generate-release-handover` — Compose a current, sourced monthly …
 - `generate-technical-documentation` — Generate or update durable technical …
 - `git-workflow` — Shared Git and GitHub CLI …
-- `inventory-force-app` — Inventory the repository-root Salesforce force-app …
 - `investigate-config-records` — Take a bounded, sanitized snapshot …
 - `investigate-object` — Collect bounded, sanitized evidence about …
 - `maintain-workspace` — Bounded workspace control-plane maintenance — …
@@ -66,31 +60,23 @@ the deep directory tree lives in `docs/workspace-topology.md`.
 - `prepare-qa-test-plan` — Author or refresh one work …
 - `publish-wiki` — Publish requested solution or delivery …
 - `search-ado` — Read-only Azure DevOps text search …
-- `search-knowledge` — Read-only search over governed Knowledge …
-- `selected-files-knowledge` — Convert an explicitly selected handful …
 - `solution-design` — How to design a subscriber-owned …
 
 ## Commands (`.github/prompts/`, public)
 
 - `/adhoc-fix` → developer
-- `/approve-drafts-knowledge` → knowledge-curator
-- `/author-feature` → knowledge-curator
 - `/check-against-principles` → reviewer
-- `/curate-knowledge` → knowledge-curator
 - `/document-metadata-change` → developer
 - `/document-solution` → developer
 - `/feature-health` → test-strategist
 - `/fetch-ado-item` → designer
-- `/inventory-force-app` → config-investigator
 - `/investigate-config-records` → config-investigator
 - `/investigate-object` → config-investigator
-- `/pin-knowledge` → config-investigator
 - `/prepare-delivery-feature` → designer
 - `/prepare-qa-test-plan` → test-strategist
 - `/publish-wiki` → developer
 - `/release-handover` → test-strategist
 - `/search-ado` → designer
-- `/search-knowledge` → config-investigator
 - `/solution-design` → designer
 
 ## Contracts (`.ai/contracts/`)
@@ -108,8 +94,6 @@ the deep directory tree lives in `docs/workspace-topology.md`.
 
 ## Resume here
 
-- Knowledge coverage: `python scripts/force_app_knowledge.py inventory` then `entry-readiness` (derived, cannot drift).
 - Decisions: `.ai/memory/decisions-log.md`.
-- Search Knowledge first: the `knowledge_context` / `knowledge_search` MCP tools over the entry index (`knowledge_resolve` maps names/paths to identities); terminal fallback lives in the search-knowledge skill's command menu.
 - Deep tree: `docs/workspace-topology.md`; setup: `docs/setup-zero-to-first-prompt.md`.
 - Resume work from work-items/<id>-<slug>/: ado-context.md is the ADO requirement (when ADO-backed), design.md the intent, tasks.md the state, decisions.md the deviations; optional qa-test-plan.md and technical-documentation.md are projections read only when the task needs them — chat is never workflow truth

@@ -1183,7 +1183,7 @@ def describe_composed_soql(raw_query, use_tooling, runtime: dict) -> dict:
         return {"ok": False, "warning": "QUERY_VALIDATION_DENIED"}
     if len(set(from_targets)) > 20:
         # The evidence schema pins facts.soqlQuery.fromObjects to maxItems 20; denying
-        # up front keeps the MCP lane and the digest-checked knowledge lane consistent
+        # up front keeps the MCP lane and digest-checked consumers consistent
         # instead of emitting a VERIFIED envelope the consumer's validation rejects.
         return {"ok": False, "warning": "QUERY_VALIDATION_DENIED"}
     if "*" not in runtime["allowed_objects"]:

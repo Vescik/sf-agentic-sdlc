@@ -14,7 +14,7 @@ a form to fill.
 ## Stage 1 — local routing and baselines, before any discovery
 
 For ADO-backed work, everything in this stage is answered from persisted local files. No ADO,
-Knowledge, Salesforce, or Feature Health call — and no package-document read — may happen
+Salesforce, or Feature Health call — and no package-document read — may happen
 merely to decide the item type or delivery-map membership; a misrouted Feature or Epic must
 stop before any design context is loaded.
 
@@ -28,7 +28,7 @@ stop before any design context is loaded.
 2. Read the item's identity and type from the persisted provenance and route: a Feature gets
    no direct technical design — stop and return `/prepare-delivery-feature itemId=<ID>`; an
    Epic gets a request for a concrete child Feature/Work Item instead. Both stop here, before
-   package docs and before any Knowledge or org call.
+   package docs and before any org call.
 3. Inspect local changes and preserve unrelated work through
    [Git Workflow](../git-workflow/SKILL.md). Branch names are conventions, not design or
    commit gates. Use the explicit requirement scope; never silently include a deferred item.
@@ -63,9 +63,8 @@ Only after Stage 1 established the applicable local baselines:
    the domain from general Salesforce knowledge; VendorPkg is a niche product and the
    model's memory of it is unreliable.
 2. Run discovery per the [org-discovery skill](../org-discovery/SKILL.md): org identity,
-   installed package version, object contract for every object you touch,
-   `knowledge_context` for every artifact you touch (re-read any `hydrated: false` row
-   from its entry file before relying on it). Compare the `package-version` stamp
+   installed package version, object contract for every object you touch, and the
+   repository source of every artifact you touch. Compare the `package-version` stamp
    in `docs/package-concept.md` with the live `review_installed_packages` result; on
    mismatch, add a warning to the design ("docs describe X, org has Y") and treat
    documented details with caution. Keep discovery proportional to the Story's technical
@@ -124,12 +123,9 @@ Only after Stage 1 established the applicable local baselines:
 - **Planned change surface** — the compact component map defined below; there is no
   second map.
 - **Assumptions and limits** — a tool that failed, a fact you could not verify, a
-  knowledge entry with recorded `limitations`: each becomes an explicit assumption in
+  recorded limitation: each becomes an explicit assumption in
   the design, with its consequence and the work that depends on resolving it. Drafting
   continues without presenting the affected implementation as ready.
-
-Record a `no-entry` observation about knowledge coverage only after actually calling the
-knowledge tools — never from prediction.
 
 ### Behavior to implement
 

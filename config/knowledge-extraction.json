@@ -1,8 +1,0 @@
-{
-  "$schema": "../schemas/knowledge-extraction.schema.json",
-  "schemaVersion": 1,
-  "maxUsageRefs": 300,
-  "additionalSystemTypes": [],
-  "soqlFieldExtraction": true,
-  "localVariableResolution": true
-}

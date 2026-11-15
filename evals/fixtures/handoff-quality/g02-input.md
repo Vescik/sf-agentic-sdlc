@@ -1,7 +1,7 @@
 # G2 input: Flow, bulk Apex and per-input errors
 
 This is a synthetic human-written requirement. It is not an ADO item, a live org
-observation, or approved production Knowledge. Follow `evals/README.md`; no live
+observation, or approved production records. Follow `evals/README.md`; no live
 Salesforce/ADO call, deployment or publication is authorized.
 
 - Branch: `chore/handoff-pilot-g02`.

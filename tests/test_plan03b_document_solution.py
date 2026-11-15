@@ -206,7 +206,7 @@ class SolutionDocumentationEditTests(SolutionDocumentationFixture):
                      "force-app/main/default/classes/Example.cls"):
             with self.subTest(path=path):
                 self.assertEqual("allow", self.edit(path))
-        self.assertEqual("deny", self.edit(".ai/knowledge/artifacts/example.md"))
+        self.assertEqual("deny", self.edit(".ai/memory/example.md"))
 
 
 class SolutionDocumentationGitTests(SolutionDocumentationFixture):

@@ -221,7 +221,7 @@ From the JSON `result`, copy the host part of `instanceUrl` (looks like
 production MCP reads are also permitted within existing role limits, except Test Strategist.
 The facade proves the live identity and checks pins and the denylist. `IsSandbox=false` alone
 never grants direct CLI access. The pins are optional — an
-unlisted alias is also readable, but only configured entries can anchor Knowledge org snapshots.
+unlisted alias is also readable.
 
 ## Part 8 — Final verification
 
@@ -259,7 +259,7 @@ To diagnose one Salesforce org by hand:
    Never test forbidden execution on a real production org.
 
 **Where to go next:** `README.md` for the architecture, `SETUP.md` §5–7 for the full operating
-model (work items, approvals, knowledge), and the eighteen `/` prompt commands in Copilot Chat.
+model (work items, approvals), and the fourteen `/` prompt commands in Copilot Chat.
 
 ## When something fails
 
@@ -294,7 +294,7 @@ All roles can use all Git/gh commands through [Git Workflow](../.github/skills/g
 Hooks validate only commit-message syntax and matching IDs. Branch names, working directories,
 paths, staging methods, commit options, and Salesforce/ADO configuration do not gate Git.
 Active authors commit coherent results after verification and preserve unrelated changes.
-A review remains a review; Knowledge and editor permissions keep their existing boundaries.
+A review remains a review; editor permissions keep their existing boundaries.
 You do not need to switch to Git Agent for repository work.
 
 Install final commit-message validation once per checkout:

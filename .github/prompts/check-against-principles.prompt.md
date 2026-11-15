@@ -20,8 +20,7 @@ explicit, possibly non-contiguous set) or a contiguous `base=<ref> head=<ref>` r
 invocation. Invalid, missing, unreachable, or ambiguous refs return an incomplete review
 subject before any semantic review. This prompt defines input only — the complete procedure,
 including Scope alignment, is the skill's. Evaluate it (per `scope`, default: design when a design.md exists)
-against every applicable scoped Principle, effective scope-matched Knowledge under the skill's
-retrieval rules, and repository/org reconciliation.
+against every applicable scoped Principle and repository/org reconciliation.
 
 Review only — never implement fixes, edit files, or weaken a constraint to make the result pass.
 Return the skill's verdict, every violated rule ID with its evidence, and unresolved gaps.

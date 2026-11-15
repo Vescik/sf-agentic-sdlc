@@ -13,12 +13,10 @@ team's real rules — do not invent them.
 ## One source per procedure
 
 Procedures live in skills; agents and prompts are thin and point at the skill, never
-restating its content in their own words. Knowledge retrieval rules (lanes, citation,
-drift/hydration handling) live only in `search-knowledge/SKILL.md` — any other skill or
-agent that needs them links there instead of re-deriving them inline. Before writing a
-new retrieval rule anywhere else: check whether `search-knowledge` already has it.
+restating its content in their own words. Any other skill or agent that needs a rule links
+to the skill that owns it instead of re-deriving it inline.
 
-Why it is a rule: the same inline copy of the retrieval rules was found drifted in five
-places during the 2026-08 knowledge audit — every copy is a place a future rule change
+Why it is a rule: the same inline copy of one set of rules was found drifted in five
+places during a 2026-08 audit — every copy is a place a future rule change
 silently misses. When a review finds a skill or agent restating another skill's
 procedure, the fix is a pointer, not a better copy.

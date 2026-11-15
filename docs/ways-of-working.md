@@ -20,7 +20,7 @@ authoritative source. If you have not installed the workspace yet, start with
 | ------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | Business intent and acceptance criteria                             | Evidence collection and structured design                                        |
 | Vendor guarantees not established by evidence                       | Repository review and read-only org review within role limits                    |
-| Approval of scope, designs, and Knowledge                           | Drafting, comparison, and traceable artifacts                                    |
+| Approval of scope and designs                                       | Drafting, comparison, and traceable artifacts                                    |
 | Merge and release decisions; confirmation of each exact real deploy | Repository edits and in-scope Salesforce CLI execution within the Developer role |
 
 Four points hold across every path:
@@ -30,8 +30,8 @@ Four points hold across every path:
 - On `prod`, direct CLI permits only verified metadata retrieve. Other production reads use the
   existing read-only Salesforce facade within role limits. Confirmation cannot override a
   production denial. Test Strategist cannot use production, including MCP, in either QA lane.
-- You decide whether a proposed design, scope, or Knowledge approval proceeds.
-- Durable work belongs in repository artifacts (`work-items/`, `docs/solutions/`, `.ai/knowledge/`),
+- You decide whether a proposed design or scope proceeds.
+- Durable work belongs in repository artifacts (`work-items/`, `docs/solutions/`),
   not in chat memory. `output/` holds ignored temporary drafts and reports.
 
 Agents answer in the conversation language; English chat uses technical English. New artifact
@@ -97,7 +97,7 @@ From a written requirement:
    without starting design or pushing. Once explicitly published, Azure Boards links the commit
    natively; no manual Branch link is required. Existing unrelated changes are preserved.
 3. On `/solution-design`, the designer reads the persisted context (or your written
-   requirement), gathers Knowledge, repository, and allowed org evidence, and persists the
+   requirement), gathers repository and allowed org evidence, and persists the
    design in `work-items/<id>-<slug>/design.md`, naming the requirement-context path and AC
    coverage for ADO-backed work. It commits the completed draft locally after verification.
    A noticed ADO/design content difference may be reported briefly; it does not force redesign
@@ -122,14 +122,13 @@ From a written requirement:
    works the same for custom, managed-package, and mixed changes. It can draft before
    implementation and refresh against the finished code; it asks you only the few facts the
    evidence cannot establish (entry points, personas, vendor guarantees, safe test data).
-   Skip it for work no tester picks up — Knowledge maintenance, investigations, harness-only
+   Skip it for work no tester picks up — investigations, harness-only
    changes; nothing creates it automatically, and QA execution results (PASS/FAIL, runs,
    screenshots) stay in Azure Test Plans, never in the repository.
 8. Each active author commits coherent implementation, test, plan, and documentation results
    locally after verification. All roles can use all Git/gh commands; hooks validate only
    commit messages. Branch schemes are conventions, not gates. Git Agent is optional.
-   Preserve unrelated work; a review remains a review, and Knowledge keeps its existing
-   lifecycle. Push, PR publication/update, merge, and destructive actions require your explicit
+   Preserve unrelated work; a review remains a review. Push, PR publication/update, merge, and destructive actions require your explicit
    instruction. One instruction can cover multiple steps; publication alone does not imply
    merge. Finished phases and passing checks never trigger publication. The author reports
    actual remote state; queued is not merged. Release decisions remain yours; real Salesforce
@@ -252,9 +251,7 @@ If several Stories must branch in parallel before the prepared Feature context i
 not duplicate an unmerged Feature map across unrelated Story branches; the default is sequential
 delivery after the first Story/context commit lands.
 
-Two things this overlay is not: it is not Feature Knowledge (`/author-feature` and
-`.ai/knowledge/features/` curate governed product meaning — a delivery map is short-lived
-coordination, and neither implies the other), and it is not `/feature-health` (the explicit,
+This overlay is short-lived coordination. It is not `/feature-health` (the explicit,
 higher-cost Feature/BRD-to-Story coverage review, which you run separately when a Feature is
 release-critical, ambiguous, or BRD-backed — never triggered by preparation or Story work).
 
@@ -297,7 +294,7 @@ configured review alias within role limits.)
 
 - confirm the bounded entry conditions hold;
 - retrieve and read the current org source through the appropriate evidence or CLI lane;
-- check relevant Knowledge and dependencies;
+- check the component's dependencies in the repository source;
 - make the smallest coherent repository edit in `force-app/`;
 - verify what can be verified locally;
 - write a fix note under `output/documentation/adhoc-fixes/`;
@@ -309,8 +306,7 @@ configured review alias within role limits.)
 - confirm the diagnosis and component ownership;
 - decide whether the express lane is still appropriate as facts emerge;
 - review the exact change;
-- confirm the exact target and scope when the agent proposes a real deployment;
-- decide whether the finding should become durable Knowledge.
+- confirm the exact target and scope when the agent proposes a real deployment.
 
 ### Done here means
 
@@ -348,14 +344,13 @@ The preferred entry point is still the normal design path, with the dependency n
 <Namespace>__<Component>; verify ownership, package version, and the supported extension point.
 ```
 
-For a narrow fact-finding question, `/search-knowledge` and `/investigate-object` are read-only
-starting points — but an investigation report is an observation, not an approved design and not
-citable Knowledge by itself.
+For a narrow fact-finding question, `/investigate-object` is the read-only starting point — but
+an investigation report is an observation, not an approved design.
 
 ### What the workspace will do
 
 - establish component ownership and the installed-package context;
-- consult effective Knowledge and the available evidence sources;
+- consult the repository source and the available evidence sources;
 - keep package impact explicit in the design, in its own right — not buried in a paragraph;
 - record the actual ownership and impact of every changed surface without applying a
   namespace-based deny;
@@ -537,8 +532,8 @@ to create or update exactly three plain Markdown files in one stable solution di
 
 Later Stories update relevant passages in the same set and preserve human notes. The command
 runs on request, on the current work branch, with the existing local commit procedure.
-It does not require Knowledge setup, create a design, or replace `/document-metadata-change`.
-Delivery documentation, handover, and Knowledge keep their existing contracts.
+It does not create a design or replace `/document-metadata-change`.
+Delivery documentation and handover keep their existing contracts.
 
 The files can describe implementation on a work branch before deployment. Sources and material
 unknowns stay explicit; a local commit or merge does not prove production state. Wiki publication
@@ -559,30 +554,6 @@ Full live reads preserve manual content, conditional writes detect conflicts, an
 verify links. Results distinguish page success from Story-link success. See
 [Wiki publication](wiki-publication.md) for examples, retry behavior, and gradual migration.
 
-## Feature Knowledge
-
-Two kinds of governed Knowledge live in this workspace, and they answer different questions:
-
-- **Artifact Knowledge** holds governed technical facts about individual components.
-- **Feature Knowledge** groups human-curated product meaning — what a feature is, its
-  vocabulary, and its topology across many artifacts.
-
-You curate the feature boundary and the business meaning; source collectors cannot derive them.
-Technical claims do not become authoritative by appearing in a Feature document — they still
-need the appropriate Artifact Knowledge or evidence behind them. Approval of Feature Knowledge
-is an explicit human action through the existing digest-pinned lane.
-
-Entry points:
-
-- `/author-feature <feature-name-or-slug>` — interactive authoring of one Feature document;
-- `/feature-health itemId=<Feature ID>` — the ADO Feature/BRD-to-Story coverage check run
-  before Solution Design; this is a delivery gate, not Feature Knowledge approval.
-
-Use Feature Knowledge when you are onboarding to a feature that spans many artifacts, explaining
-feature topology and vocabulary, preserving business meaning that collectors cannot derive, or
-reviewing impact across a curated feature boundary. For the governing detail, see
-[knowledge-one-file-contract.md](knowledge-one-file-contract.md).
-
 ## Where work is recorded
 
 | Artifact                                               | Human meaning                                                                                                                                    |
@@ -598,7 +569,6 @@ reviewing impact across a curated feature boundary. For the governing detail, se
 | `docs/solutions/<slug>/{overview,flows,components}.md` | Optional three-file description of an implemented solution, maintained across Stories; separate from delivery documentation and wiki publication |
 | `docs/org-changes/**`                                  | Standalone org-change history only when no Work Item or prepared Feature applies                                                                 |
 | `output/**`                                            | Ignored temporary drafts and reports, including monthly handover, Feature Health, and adhoc fix notes                                            |
-| `.ai/knowledge/**`                                     | Governed Knowledge, written only through its existing lanes                                                                                      |
 
 See [work-items/README.md](../work-items/README.md) for the work-item files and
 [grounding-architecture.md](grounding-architecture.md) for the evidence boundary. Chat is not
@@ -606,10 +576,10 @@ durable state; if it matters, it belongs in one of these artifacts.
 
 ## What agents cannot do for you
 
-- approve their own Knowledge or your business decisions;
+- approve your business decisions;
 - invent vendor guarantees or package internals;
 - run a real deployment without your fresh confirmation of that exact target and scope;
-- treat a mutation log, CLI result, or dry run as release approval, QA evidence, Knowledge, or
+- treat a mutation log, CLI result, or dry run as release approval, QA evidence, or
   proof that the org still has that state;
 - silently merge, release, or resolve ownership decisions;
 - convert incomplete evidence into certainty.
@@ -653,10 +623,8 @@ prove UI behavior.
 | Start from a written requirement                              | `/solution-design <requirement>`                                                                                                |
 | Review a persisted design or implementation                   | `/check-against-principles itemId=<ID> scope=design` (or `scope=implementation`)                                                |
 | Apply a small diagnosed fix                                   | `/adhoc-fix component=<Type:Name> org=<alias>` plus the diagnosis                                                               |
-| Search governed Artifact Knowledge                            | `/search-knowledge keyword=<term>` (other filters: `text=`, `subject=`, `anchor=`, `error=`)                                    |
 | Investigate an allowlisted object                             | `/investigate-object objectApiName=<API name>`                                                                                  |
 | Investigate reference/config records                          | `/investigate-config-records objectApiName=<API name> org=<alias>`                                                              |
-| Author Feature Knowledge                                      | `/author-feature <slug-or-name>`                                                                                                |
 | Assess feature coverage                                       | `/feature-health itemId=<Feature ID>`                                                                                           |
 | Document one Work Item's change or existing state             | `/document-metadata-change itemId=<ID>`                                                                                         |
 | Document an implemented solution across components or Stories | `/document-solution <topic and scope>` with optional `itemId=<ID>` and `documentationPath=docs/solutions/<slug>/`               |

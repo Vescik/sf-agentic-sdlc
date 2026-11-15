@@ -97,17 +97,6 @@ scenarios:
     expectedDecision: deny
     reasonContains: may not edit
 
-  - id: investigator-knowledge-direct-edit-denied
-    guard: role
-    role: config-investigator
-    workingDirectory: repository
-    event:
-      tool_name: edit/editFiles
-      tool_input:
-        path: .ai/knowledge/artifacts/automation/Flow/c/Example.md
-    expectedDecision: deny
-    reasonContains: may not edit
-
   - id: strategist-generated-test-write-denied
     guard: role
     role: test-strategist
@@ -327,26 +316,6 @@ scenarios:
     # is therefore pinned with an inline config in tests/test_safety_hooks.py instead.
     reasonContains: "Salesforce org review blocked"
 
-  - id: curator-org-attach-denied
-    guard: role
-    role: knowledge-curator
-    workingDirectory: repository
-    event:
-      tool_name: execute/runInTerminal
-      tool_input:
-        command: python3 scripts/knowledge_store.py entry-org-attach --identity CustomObject:c:Invoice__c --org dev-sbx --probes-file .cache/org-usage/pending/probes.json
-    expectedDecision: deny
-
-  - id: developer-org-attach-denied
-    guard: role
-    role: developer
-    workingDirectory: repository
-    event:
-      tool_name: execute/runInTerminal
-      tool_input:
-        command: python3 scripts/knowledge_store.py entry-org-attach --identity CustomObject:c:Invoice__c --org dev-sbx --probes-file .cache/org-usage/pending/probes.json
-    expectedDecision: deny
-
   - id: global-git-force-push-allowed
     guard: global
     workingDirectory: repository
@@ -469,17 +438,6 @@ scenarios:
         paths:
           - .github/skills/maintain-workspace/SKILL.md
           - force-app/main/default/classes/X.cls
-    expectedDecision: deny
-    reasonContains: denied
-
-  - id: maintainer-governed-knowledge-denied
-    guard: role
-    role: workspace-maintainer
-    workingDirectory: repository
-    event:
-      tool_name: edit/editFiles
-      tool_input:
-        path: .ai/knowledge/artifacts-ledger.jsonl
     expectedDecision: deny
     reasonContains: denied
 
@@ -733,16 +691,6 @@ scenarios:
   - id: plan03-config-investigator-gh-version-readable
     guard: role
     role: config-investigator
-    workingDirectory: repository
-    event:
-      tool_name: execute/runInTerminal
-      tool_input:
-        command: gh --version
-    expectedDecision: continue
-
-  - id: plan03-knowledge-curator-gh-version-readable
-    guard: role
-    role: knowledge-curator
     workingDirectory: repository
     event:
       tool_name: execute/runInTerminal

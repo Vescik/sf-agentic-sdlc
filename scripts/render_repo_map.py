@@ -4,8 +4,7 @@
 The atlas is the agent-facing orientation map (directory purposes, role -> files matrix,
 skills/contracts/commands catalogs, resume pointers). Everything except the seeded directory
 purposes and resume lines is parsed from existing frontmatter and headings, so the map can never
-drift from its sources; `render --check` fails when the committed artifacts drift, mirroring
-`knowledge_store.py entry-check`.
+drift from its sources; `render --check` fails when the committed artifacts drift.
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SEED_PATH = ROOT / "config/repo-map-seed.json"
 MAP_MD_PATH = ROOT / ".ai/repo-map.md"
 MAP_JSON_PATH = ROOT / ".ai/repo-map.json"
-# 800 covered five agents exactly; raised once for the sixth (knowledge-curator, 2026-07-17)
+# 800 covered five agents exactly; raised once for a sixth agent (2026-07-17)
 # rather than trimming existing entries, and again for the investigate-config-records and
 # adhoc-fix prompt/skill pairs (2026-07-23). Grow only with a structural addition, never for prose.
 WORD_BUDGET = 900

@@ -14,7 +14,7 @@ sf-harness-brain-core/       # Git repository, SFDX root, workspace folder: brai
 ├── manifest/                # package.xml and related manifests
 ├── tests/e2e/               # promoted Salesforce end-to-end tests
 ├── .github/                 # Copilot instructions, agents, prompts, skills, hooks
-├── .ai/                     # governed Knowledge and durable work state
+├── .ai/                     # contracts, memory and durable work state
 ├── work-items/              # durable Work Item artifacts, stable folders by ID
 ├── docs/solutions/          # optional three-file documentation, stable folders by solution
 ├── output/                  # ignored temporary drafts and reports
@@ -30,7 +30,7 @@ Opening the repository directory directly is also valid. Runtime configuration u
 sessions.
 
 The root owns `sfdx-project.json`, `force-app/`, `manifest/`, `tests/e2e/`, instructions, agents,
-skills, Knowledge, Memory, cache, and generated drafts. Skills must resolve
+skills, Memory, cache, and generated drafts. Skills must resolve
 `brain-core` as the one SFDX root and must reject a missing or ambiguous project rather than
 searching a subfolder, parent directory, sibling directory, or other checkout.
 
@@ -52,7 +52,7 @@ can be published to wiki through its separate workflow.
 under a valid solution slug, without general `docs/` access. Reuse the same directory across
 Stories; Work Item and design context are optional. These plain Markdown files describe available
 implementation sources, including work on a branch that is not deployed. They do not replace
-delivery documentation, handover, or governed Knowledge. Wiki publication remains separate.
+delivery documentation or handover. Wiki publication remains separate.
 See the [document-solution skill](../.github/skills/document-solution/SKILL.md).
 
 The guarded Salesforce MCP launcher starts from `brain-core` and refuses to start when root
@@ -62,7 +62,7 @@ org identity over REST. Production reads follow role limits; production CLI perm
 metadata retrieve. Developer writes on `dev`/`uat`/`stage` use direct
 Salesforce CLI rather than a write MCP. Root identity does not grant root-wide file authority: role
 permissions bound file edits to approved metadata/test subpaths such as `force-app/`,
-`manifest/`, and `tests/e2e/`. Harness instructions, Knowledge, work items, configuration,
+`manifest/`, and `tests/e2e/`. Harness instructions, work items, configuration,
 and other governance content remain outside the Salesforce write scope.
 
 Root `manifest/package.xml` is a generic starter manifest. Before an org-facing operation it must

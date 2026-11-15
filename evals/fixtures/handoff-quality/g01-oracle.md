@@ -23,7 +23,7 @@ metadata/work-item files as appropriate.
 ## Mandatory observations
 
 1. The design connects the three supplied outcomes to this exact behavior and planned
-   verification. It names synthetic provenance and does not invent org or Knowledge
+   verification. It names synthetic provenance and does not invent org
    evidence. `Covered` is not presented as execution or acceptance.
 2. The Developer creates tasks before the first implementation edit. A small coherent
    task or compact checklist is sufficient if each material task has a stable local ID,
@@ -37,7 +37,7 @@ metadata/work-item files as appropriate.
 5. The design remains proportionate: no invented backfill, Flow, Apex, UI, permissions,
    runtime gate, duplicate inventory or unnecessary technical sections.
 6. The handoff identifies the exact design path and actual local state. No ADO ID,
-   publication, deployment or accepted production Knowledge is fabricated.
+   publication, deployment or accepted production records is fabricated.
 
 ## Positive and negative task controls
 

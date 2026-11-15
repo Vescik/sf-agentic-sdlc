@@ -31,7 +31,7 @@ options: `mode=direct-children`, `childDetail=summary`, `includeTestCases=false`
 `onStale=refresh`, attachments metadata-only at most. That skill remains the only ADO
 retrieval/cache procedure; do not call `ado-readonly` directly, add a cache family, or fetch the
 Feature's parent, sibling Features, grandchildren, Test Cases, full child bodies, or attachment
-content. Preparation also runs no Knowledge tool, no Salesforce review tool, no repository source
+content. Preparation also runs no Salesforce review tool, no repository source
 discovery, and never invokes `/feature-health`.
 
 ## Type gate
@@ -146,10 +146,8 @@ included/deferred entries require clarification of that map; never guess its mem
 
 Forbidden in the map: copied Description/Acceptance Criteria, full child bodies, comments or
 attachments, credentials or sensitive record content, technical proposals, implementation
-checkboxes, mirrored ADO status, QA results, invented dependencies, Feature Knowledge claims or
-citations, approval wording. The ADO delivery Feature is unrelated to governed Feature Knowledge
-(`.ai/knowledge/features/**`): no mapping, sync, or approval propagation, and a prepared map
-approves nothing about the child requirements or designs.
+checkboxes, mirrored ADO status, QA results, invented dependencies, approval wording. A prepared map approves nothing about the child
+requirements or designs.
 
 ## Refresh and reconciliation
 

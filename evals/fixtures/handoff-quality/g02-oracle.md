@@ -55,7 +55,7 @@ case is separate so it does not invalidate the valid subgroup in this batch.
    files in a fresh conversation. It preserves valid progress and does not invent a
    prior pass from the previous author's summary.
 7. Synthetic evidence remains labelled. The trial adds no retry, external notification,
-   unrelated permission change, production Knowledge, deployment or publication.
+   unrelated permission change, production records, deployment or publication.
 
 ## Negative controls
 

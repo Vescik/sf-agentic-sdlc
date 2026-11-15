@@ -14,7 +14,6 @@
   ],
   "ruleRefs": [],
   "evidenceRefs": [],
-  "knowledgeSnapshotAt": null,
   "reconciliation": {
     "status": "not-required",
     "mismatches": [],
@@ -27,7 +26,7 @@
   "reviewStatus": "draft",
   "assumptions": [],
   "warnings": [
-    "no attached wiki link: 1202 \u2014 missing-documentation fallback rendered"
+    "no attached wiki link: 1202 — missing-documentation fallback rendered"
   ],
   "filesWritten": [
     "output/handover/2026-07.md",

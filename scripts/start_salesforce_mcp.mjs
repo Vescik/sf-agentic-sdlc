@@ -4,8 +4,8 @@
 // Kept (plan-2026-08-09 F-3 deviation, reviewed): .vscode/mcp.json cannot express a
 // cross-platform Python interpreter path, and a bare "python" command would run
 // whatever interpreter is first on PATH - typically one without the admitted
-// `requests` dependency. This launcher resolves the interpreter exactly like the
-// knowledge server does (env override -> repo .venv -> py -3 -> python3 -> python,
+// `requests` dependency. This launcher resolves the interpreter with a fixed ladder
+// (env override -> repo .venv -> py -3 -> python3 -> python,
 // probed for the real dependency) and keeps the pre-contact walls that must hold
 // before ANY process talks to an org. The old vendor-MCP child and the .mjs review
 // server are gone from this launch path; F-4 deletes them from the tree.
@@ -77,7 +77,7 @@ if (config?.salesforce?.review?.enabled !== true) {
 
 process.stderr.write("Salesforce MCP startup: resolving the Python runtime\n");
 
-// Interpreter ladder (same shape as knowledge_mcp_server.mjs): the probe imports the
+// Interpreter ladder: the probe imports the
 // facade's real third-party dependency, so a missing `requests` surfaces here as one
 // actionable message instead of a dead server.
 function interpreterCandidates() {

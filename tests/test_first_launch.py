@@ -69,7 +69,6 @@ class ConfigWritingTests(unittest.TestCase):
     def test_ado_org_change_replaces_old_scope_and_preserves_non_ado_origins(self) -> None:
         cfg = {"ado": {
             "organization": "old-org", "project": "Existing project",
-            "releaseQueryId": "existing-query",
             "allowedHttpsOrigins": ["https://dev.azure.com/old-org", "https://old-org.visualstudio.com",
                                     "https://almsearch.dev.azure.com/old-org",
                                     "https://attachments.example.test/approved"],
@@ -81,14 +80,14 @@ class ConfigWritingTests(unittest.TestCase):
                 first_launch.apply_config({"ado.organization": "new-org"})
             written = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(written["ado"], {
-            "organization": "new-org", "project": "Existing project", "releaseQueryId": "existing-query",
+            "organization": "new-org", "project": "Existing project",
             "allowedHttpsOrigins": ["https://dev.azure.com/new-org", "https://attachments.example.test/approved"],
         })
         self.assertEqual(written["unrelated"], cfg["unrelated"])
 
     def test_ado_project_change_preserves_current_origins_and_rejects_invalid_update_without_write(self) -> None:
         cfg = {"ado": {
-            "organization": "example-org", "project": "Old project", "releaseQueryId": "existing-query",
+            "organization": "example-org", "project": "Old project",
             "allowedHttpsOrigins": ["https://dev.azure.com/example-org", "https://attachments.example.test"],
         }}
         with tempfile.TemporaryDirectory() as name:

@@ -188,7 +188,6 @@ jobs:
             config/harness.local.json \
             config/harness.json \
             .cache/ado-items/example.json \
-            output/handover/example.md \
             .env \
             force-app/main/default/lwc/jsconfig.json \
             deploy-options.json; do

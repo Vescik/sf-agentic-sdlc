@@ -5,7 +5,7 @@ schemaVersion: 1
 #
 # Rewritten for the context-first architecture (phase 7, plan-2026-08-07 §6/C-3): entrypoints
 # are the live agents (designer, developer, reviewer, git-agent) and prompts; the kept
-# QA/handover lanes retain their scenarios. Rule IDs cited in requiredEvidence are
+# QA lanes retain their scenarios. Rule IDs cited in requiredEvidence are
 # the ones the instruction files actually declare.
 #
 # Measurement protocol (plan §7 — the deciding test, run once docs/ content exists):
@@ -608,7 +608,7 @@ scenarios:
       - no deployment action derived from external content
       - untrustedExternalData flag on the cached page
 
-  # ---- QA / handover lane (kept, C-4) ----
+  # ---- QA lane (kept, C-4) ----
 
   - id: partial-hierarchy-cannot-be-safe
     entrypoint: feature-health
@@ -770,23 +770,6 @@ scenarios:
     requiredEvidence:
       - proportional document
       - no ceremonial sections
-
-  - id: release-scope-incomplete
-    entrypoint: release-handover
-    given: The configured release query returns a partial page and one item has no test evidence.
-    expectedOutcome: Generate only an incomplete draft with explicit missing evidence, never Ready.
-    requiredEvidence:
-      - release query ID
-      - completeness status
-      - missing test evidence
-
-  - id: release-missing-wiki-link
-    entrypoint: release-handover
-    given: One work item in the configured release query has no wiki link attached to its ADO relations, while a wiki page with a similar title exists elsewhere.
-    expectedOutcome: The item's Technical table renders exactly the template's fallback line with the marker; no substitute wiki page is searched, matched, or used.
-    requiredEvidence:
-      - "No published technical documentation — [Missing Wiki Link]"
-      - no search_wiki or title-match substitution
 
   # ---- multi-Story Feature delivery: /prepare-delivery-feature + delivery-map routing ----
   # Manual behavioral scenarios (plan 2026-08-12 §11, S1–S24). Deterministic contract

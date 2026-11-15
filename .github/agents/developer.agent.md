@@ -33,7 +33,7 @@ It writes only `docs/solutions/<slug>/{overview,flows,components}.md` on the cur
 Work Item and design context are optional for this documentation-only task; read them when
 available. The implementation-specific design and task-tracking requirements
 below do not add prerequisites to this command. It describes existing implementation and leaves
-delivery documentation and handover workflows unchanged.
+delivery documentation workflows unchanged.
 
 For `/publish-wiki` or an explicit request to publish documentation, use the
 [publish-wiki skill](../skills/publish-wiki/SKILL.md). Its narrow ADO writes cover the requested

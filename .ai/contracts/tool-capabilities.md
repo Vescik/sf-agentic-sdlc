@@ -60,7 +60,7 @@ Already dispatched requests cannot be recalled. The global hook rejects calls wi
 configured project or with a mismatched project/ADO URL. The vendor domains include write-capable
 tools. The existing connector's narrow publication adaptation and role/safety guards allow only
 the two Developer publication operations above. The server name `ado-readonly` is retained for
-compatibility. Search, Reviewer, and handover retain their existing read-only behavior.
+compatibility. Search and Reviewer retain their existing read-only behavior.
 
 Publication cannot use the sanitized wiki cache as a write base. The adapted page read returns
 full content and its ETag together. Conditional updates reject a changed page; conditional creates

@@ -163,7 +163,6 @@ class TemplateOnboardingTests(unittest.TestCase):
             with patch.object(first_launch, 'CONFIG_PATH', config_path):
                 first_launch.prepare_config()
                 pending = {'ado.organization': 'example', 'ado.project': 'Demo',
-                    'ado.releaseQueryId': '11111111-1111-1111-1111-111111111111',
                     'review.enabled': True, 'review.objects': ['Account'],
                     'org.alpha': {'alias': 'alpha', 'environment': 'prod',
                         'orgId': '00D000000000001AAA', 'host': 'pilot.my.salesforce.com'}}

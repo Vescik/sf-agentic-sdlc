@@ -570,10 +570,6 @@ class RoleGuardTests(unittest.TestCase):
             ("python scripts/run_evals.py", all_roles),
             ("python --version", all_roles),
             ("node --version", all_roles),
-            (
-                "python scripts/validate_handover_output.py output/handover/2026-07.md",
-                all_roles,
-            ),
         )
         for command, roles in matrix:
             for role in roles:
@@ -622,28 +618,6 @@ class RoleGuardTests(unittest.TestCase):
         for command in denied:
             with self.subTest(command=command):
                 self.assertFalse(role_guard.allowed_role_command(command, root, "designer"))
-
-    def test_handover_render_check_accepts_only_one_contained_draft(self) -> None:
-        from scripts import copilot_role_guard as role_guard
-
-        denied = (
-            # extra arguments and the --template override stay human/CI-only
-            "python scripts/validate_handover_output.py output/handover/a.md output/handover/b.md",
-            "python scripts/validate_handover_output.py output/handover/a.md --template x.md",
-            # containment: never outside output/handover/, never absolute, only .md
-            "python scripts/validate_handover_output.py output/handover/../../SECURITY.md",
-            "python scripts/validate_handover_output.py /etc/hosts",
-            "python scripts/validate_handover_output.py output/handover/2026-07.json",
-            "python scripts/validate_handover_output.py output/handover/",
-            "python scripts/validate_handover_output.py",
-            # interpreter prefix is mandatory
-            "scripts/validate_handover_output.py output/handover/2026-07.md",
-        )
-        for command in denied:
-            with self.subTest(command=command):
-                self.assertFalse(
-                    role_guard.allowed_role_command(command, ROOT, "test-strategist")
-                )
 
     @configured_policy()
     def test_developer_may_run_direct_salesforce_cli(self) -> None:

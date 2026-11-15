@@ -32,11 +32,6 @@ try:
 except ModuleNotFoundError:  # imported as scripts.validate_harness by unit tests
     from scripts.schema_format import FORMAT_CHECKER
 
-try:
-    from validate_handover_output import template_fixed_texts
-except ModuleNotFoundError:  # imported as scripts.validate_harness by unit tests
-    from scripts.validate_handover_output import template_fixed_texts
-
 
 ROOT = Path(__file__).resolve().parents[1]
 # Reserved, deliberately synthetic identifiers owned by this harness's test fixtures.
@@ -236,7 +231,6 @@ def check_required_files(audit: Audit) -> None:
         ".ai/contracts/writing-standard.md",
         ".ai/third-party/asd-ste100/README.md",
         ".ai/third-party/asd-ste100/LICENSE",
-        "scripts/validate_handover_output.py",
         "schemas/salesforce-org-review-evidence.schema.json",
         "config/salesforce-review-policy.json",
         "docs/grounding-architecture.md",
@@ -745,8 +739,6 @@ def check_settings_and_mcp(audit: Audit) -> None:
     doc_prompt, _ = frontmatter(ROOT / ".github/prompts/document-metadata-change.prompt.md", audit)
     audit.require("salesforce-development/*" not in doc_prompt.get("tools", []), "Documentation prompt must not inherit Salesforce write tools")
     audit.require("execute/runInTerminal" in doc_prompt.get("tools", []), "Documentation prompt needs guarded terminal execution (read-only orientation)")
-    release_prompt, _ = frontmatter(ROOT / ".github/prompts/release-handover.prompt.md", audit)
-    audit.require("execute/runInTerminal" in release_prompt.get("tools", []), "Release prompt needs guarded terminal execution (handover render check, citation verify)")
     role_guard = required_text(ROOT / "scripts/copilot_role_guard.py", audit)
     audit.require(role_guard.count('".cache/ado-items/"') >= 3, "ADO cache must be writable by its three consuming roles")
     audit.require('".cache/test-cases/"' not in role_guard, "the Test Case cache write permission retired with the QA sync lane and must not return")
@@ -852,7 +844,7 @@ def check_skill_commands(audit: Audit) -> None:
     first command. Fail closed here so the skill text and the guard can never drift apart again.
     """
 
-    guarded = "validate_handover_output"
+    guarded = "validate_harness|run_evals|validate_salesforce_deploy"
     bare = re.compile(r"`\s*scripts/(?:" + guarded + r")\.py(?:\s|`)")
     backslash = re.compile(r"`[^`]*(?:scripts\\|\.venv\\)")
     for skill in sorted((ROOT / ".github/skills").glob("*/SKILL.md")):
@@ -869,40 +861,6 @@ def check_skill_commands(audit: Audit) -> None:
                 f"{relative(skill)}: guarded command uses a backslash path (POSIX shlex mangles it): {match.group(0)!r}",
             )
 
-
-def check_release_handover_contract(audit: Audit) -> None:
-    """The handover template stays the single structure source; the skill quotes none of it.
-
-    scripts/validate_handover_output.py derives the expected document shape from the template
-    at every run, keyed on the repeat-per-item marker, so template edits are enforced without
-    any code change. The skill must load the template by path and instruct the render
-    self-check, and must not embed any of the template's fixed fallback texts: a quoted
-    literal desynchronizes the moment a human edits the template (T11 follow-up).
-    """
-
-    template = required_text(ROOT / ".ai/templates/release-handover.md", audit)
-    audit.require(
-        template.count("<!-- repeat-per-item -->") == 1,
-        "release-handover template must contain exactly one <!-- repeat-per-item --> marker "
-        "(scripts/validate_handover_output.py keys per-item repetition on it; keep it when "
-        "editing the template)",
-    )
-    skill = required_text(ROOT / ".github/skills/generate-release-handover/SKILL.md", audit)
-    audit.require(
-        "../../../.ai/templates/release-handover.md" in skill,
-        "generate-release-handover must load the template by path (single structure source)",
-    )
-    audit.require(
-        "scripts/validate_handover_output.py" in skill,
-        "generate-release-handover must instruct the render self-check",
-    )
-    for text in template_fixed_texts(template):
-        audit.require(
-            text not in skill,
-            f"generate-release-handover quotes a template fixed text ({text!r}); reference "
-            "the template's fallback generically so template edits cannot desynchronize "
-            "the skill",
-        )
 
 
 def check_python_yaml_safety(audit: Audit) -> None:
@@ -946,7 +904,6 @@ def check_schemas_and_evals(audit: Audit) -> None:
         "ado-wiki-cache.schema.json": ("ado-wiki.complete.json", "ado-wiki.partial.json"),
         "output-envelope.schema.json": (
             "output.incomplete.json",
-            "output.release-handover.valid.json",
         ),
     }
     for schema_name, fixture_names in mappings.items():
@@ -1437,7 +1394,6 @@ def main() -> int:
             check_secret_signatures,
             check_python_yaml_safety,
             check_skill_commands,
-            check_release_handover_contract,
             check_retired_surfaces,
             check_dependency_admissions,
         ),

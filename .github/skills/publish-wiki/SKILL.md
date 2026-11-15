@@ -9,7 +9,7 @@ user-invocable: false
 Apply the [shared execution contract](../../../.ai/contracts/execution-contract.md).
 The Developer publishes only on an explicit request. That request authorizes the scoped page,
 navigation, and delivery Story-link writes below without another confirmation for each step.
-Search, Reviewer, and handover retain their existing read and lifecycle boundaries.
+Search and Reviewer retain their existing read and lifecycle boundaries.
 
 ## Identify the source and destination
 
@@ -21,7 +21,7 @@ Resolve local paths inside the repository, including symlinks. Use these durable
 - Delivery: `work-items/<id>-<slug>/technical-documentation.md`. Resolve its stable folder by ID
   using [Generate Technical Documentation](../generate-technical-documentation/SKILL.md).
   Read the complete document and the current Story with its relations. Preserve its existing
-  nine-section format, review status, and handover purpose. A missing source requires preparation
+  nine-section format, and review status. A missing source requires preparation
   through its authoring workflow, not an independent wiki-only draft.
   Establish the wiki's single published branch from its live metadata before publishing a delivery
   page. Use that branch for publication and linking: the Story artifact relation has no branch selector.
@@ -69,7 +69,7 @@ statement to establish which documented scope is deployed. A merge, latest `main
 Story does not prove deployment. Do not require a new org read, SHA, claim, or status registry.
 If deployed scope is unknown or the files include later changes, prepare the matching content
 or report the exact gap. Do not replace the current production description with an unconfirmed version.
-Delivery documentation may be published before deployment for the existing handover workflow.
+Delivery documentation may be published before deployment.
 
 Publish the durable source content with only required title and link adaptations. Convert links
 between the three local files to the corresponding wiki pages. Keep useful repository/source links
@@ -102,7 +102,7 @@ Do not import all wiki edits into the repository automatically or silently disca
    adds the missing relation. Do not supply a raw artifact URI or unrelated link type.
    Read current relations before and after the operation. Do not duplicate links, change other
    fields or relations, or replace an existing different delivery document without resolving scope.
-   Existing duplicate or competing documentation links remain a visible ambiguity for handover.
+   Existing duplicate or competing documentation links remain a visible ambiguity.
 6. For solution pages, use Story links in page content when useful. Do not automatically attach
    solution pages as competing Wiki relations on a Story or replace its delivery documentation.
 
@@ -119,7 +119,7 @@ for a scoped local commit. Publication does not authorize push, a PR, or merge.
 
 ## Migrate only the requested area
 
-Inventory that area's purpose, URLs, Work Item links, and handover dependencies before changing it.
+Inventory that area's purpose, URLs, and Work Item links before changing it.
 Adapt existing solution pages in place and add missing Flows/Components there. A domain index can
 link to an older address. Preserve delivery documents and their URLs/relations. Add historical
 cross-references only within the requested migration scope. Retirement updates the description

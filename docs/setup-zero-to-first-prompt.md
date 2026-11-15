@@ -168,7 +168,6 @@ team lead / harness maintainer:
 | `ado.organization` | Azure DevOps organization slug (e.g. `contoso`, not a URL) | team lead |
 | `ado.project` | ADO project name | team lead |
 | `ado.allowedHttpsOrigins` | Include `https://dev.azure.com/contoso`, matching the organization slug | derived from `ado.organization` |
-| `ado.releaseQueryId` | Saved ADO query id for release scope (only release flows need it) | team lead |
 | `salesforce.orgs[].alias` | Your local alias for each sandbox (you choose it; reuse it in Part 7) | you |
 | `salesforce.orgs[].expectedInstanceHost` | The org's My Domain host (optional pin; set together with the org id) | filled in Part 7 |
 | `salesforce.orgs[].expectedOrganizationId` | The org id (optional pin; set together with the host) | filled in Part 7 |
@@ -259,7 +258,7 @@ To diagnose one Salesforce org by hand:
    Never test forbidden execution on a real production org.
 
 **Where to go next:** `README.md` for the architecture, `SETUP.md` §5–7 for the full operating
-model (work items, approvals), and the fourteen `/` prompt commands in Copilot Chat.
+model (work items, approvals), and the thirteen `/` prompt commands in Copilot Chat.
 
 ## When something fails
 

@@ -171,9 +171,9 @@ tool call. To diagnose one org by hand, run
 1. Trust the cloned repository only after reviewing it; the single named workspace folder
    `brain-core` resolves to its root.
 2. Open **Chat: Open Customizations** / Chat Diagnostics.
-3. Confirm exactly seven agents, fourteen public prompts, eighteen internal skills, three Principle
+3. Confirm exactly seven agents, thirteen public prompts, seventeen internal skills, three Principle
    files, the safety hook, and two read-only MCP servers without diagnostics.
-4. Confirm `/` shows the fourteen prompts once each and their argument hints.
+4. Confirm `/` shows the thirteen prompts once each and their argument hints.
 5. Run one harmless ADO read, then the three bounded Salesforce review calls against the configured
    synthetic/pilot component. Confirm no raw CLI/alias or sensitive payload appears in Chat.
 6. Use the controlled executor in `docs/production-policy-pilot.md` for denial/deploy canaries.

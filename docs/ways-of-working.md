@@ -174,9 +174,8 @@ results are separate. It projects the design's verification strategy and does no
 development or QA prerequisite. Other roles read it only when their task needs it.
 
 Use relative repository links to this durable file. Keeping it in Git does not publish it:
-request `/publish-wiki` to publish it and confirm its Story link. Release handover still requires a wiki link
-attached to the Work Item. A local document does not clear `Missing Wiki Link`. Historical
-`output/` drafts are not migrated automatically; monthly handover and Feature Health remain
+request `/publish-wiki` to publish it and confirm its Story link. Historical
+`output/` drafts are not migrated automatically; Feature Health reports remain
 temporary reports in their existing paths.
 
 ### Done here means
@@ -533,7 +532,7 @@ to create or update exactly three plain Markdown files in one stable solution di
 Later Stories update relevant passages in the same set and preserve human notes. The command
 runs on request, on the current work branch, with the existing local commit procedure.
 It does not create a design or replace `/document-metadata-change`.
-Delivery documentation and handover keep their existing contracts.
+Delivery documentation keeps its existing contract.
 
 The files can describe implementation on a work branch before deployment. Sources and material
 unknowns stay explicit; a local commit or merge does not prove production state. Wiki publication
@@ -549,7 +548,7 @@ For delivery documentation, the same request includes its Story link without ano
 
 The solution parent contains the overview, with Flows and Components below it. Existing addresses
 remain stable across Stories and releases. Current solution pages require confirmed production
-scope; delivery documentation can be published before deployment for handover.
+scope; delivery documentation can be published before deployment.
 Full live reads preserve manual content, conditional writes detect conflicts, and read-back checks
 verify links. Results distinguish page success from Story-link success. See
 [Wiki publication](wiki-publication.md) for examples, retry behavior, and gradual migration.
@@ -568,7 +567,7 @@ verify links. Results distinguish page success from Story-link success. See
 | `work-items/<feature-id>-<slug>/delivery-map.md`       | Explicit membership and order of an actively prepared ADO Feature's delivery — coordination only (Feature folders only)                          |
 | `docs/solutions/<slug>/{overview,flows,components}.md` | Optional three-file description of an implemented solution, maintained across Stories; separate from delivery documentation and wiki publication |
 | `docs/org-changes/**`                                  | Standalone org-change history only when no Work Item or prepared Feature applies                                                                 |
-| `output/**`                                            | Ignored temporary drafts and reports, including monthly handover, Feature Health, and adhoc fix notes                                            |
+| `output/**`                                            | Ignored temporary drafts and reports, including Feature Health and adhoc fix notes                                                               |
 
 See [work-items/README.md](../work-items/README.md) for the work-item files and
 [grounding-architecture.md](grounding-architecture.md) for the evidence boundary. Chat is not

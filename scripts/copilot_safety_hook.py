@@ -307,7 +307,33 @@ def hook_response(decision: str | None = None, reason: str | None = None) -> dic
     }
     if reason:
         output["permissionDecisionReason"] = reason
-    return {"hookSpecificOutput": output}
+    # VS Code reads hookSpecificOutput; Copilot CLI documents top-level permissionDecision.
+    # Emitting both keeps one decision valid on both hosts (docs/copilot-cli-port.md).
+    return {"hookSpecificOutput": output, **{key: value for key, value in output.items() if key != "hookEventName"}}
+
+
+# Copilot CLI: write_bash/write_powershell send raw keystrokes to a running shell session.
+# The input is not a reviewable command (it can answer a confirmation prompt or start a
+# command no rule has seen), so interactive shell input is denied for every role.
+INTERACTIVE_SHELL_INPUT_TOOLS = frozenset({"write_bash", "write_powershell"})
+
+
+def normalize_event(event: dict[str, Any]) -> dict[str, Any]:
+    """Map the Copilot CLI camelCase payload (toolName/toolArgs) onto tool_name/tool_input.
+
+    The repository registers PascalCase PreToolUse hooks, for which VS Code and Copilot CLI
+    both send tool_name/tool_input. A camelCase registration sends toolName and toolArgs
+    (toolArgs may be a JSON string); this keeps both shapes on one evaluation path.
+    """
+    if "tool_name" in event or "toolName" not in event:
+        return event
+    arguments: Any = event.get("toolArgs", {})
+    if isinstance(arguments, str):
+        try:
+            arguments = json.loads(arguments)
+        except json.JSONDecodeError:
+            pass
+    return {**event, "tool_name": event.get("toolName"), "tool_input": arguments}
 
 
 def flatten(value: Any) -> str:
@@ -500,6 +526,36 @@ def _flag_enabled(parts: list[str], *flags: str) -> bool:
             if part.startswith(f"{flag}="):
                 return part.split("=", 1)[1] not in {"false", "0", "no"}
     return False
+
+
+# SAFE-DEPLOY-AUTONOMY-001 (owner decision 2026-11-15). The orchestrator host process sets this
+# variable to the configured salesforce.agentOrg; the hook process inherits it from the host,
+# and no model command can change the hook's environment. Only then does a real deploy to that
+# exact org skip the per-deploy question. Validate and retrieve already run without one.
+AUTONOMY_ENV = "SF_AGENTIC_AUTONOMOUS_ORG"
+AUTONOMOUS_DEPLOY_WORDS = frozenset({("project", "deploy", "start"), ("deploy", "metadata")})
+
+
+def autonomous_deploy_grant(parts: list[str], environment: str | None, root: Path) -> str | None:
+    """Return the agent org when this real deploy is covered by the host's autonomy grant."""
+    granted = os.environ.get(AUTONOMY_ENV, "")
+    if not granted:
+        return None
+    config = load_config(root) or {}
+    salesforce = config.get("salesforce") if isinstance(config, dict) else None
+    agent_org = salesforce.get("agentOrg") if isinstance(salesforce, dict) else None
+    if not isinstance(agent_org, str) or granted != agent_org:
+        return None
+    words = tuple(word.lower() for word in sf_policy.command_words(sf_policy.canonical_command(parts)))
+    if words not in AUTONOMOUS_DEPLOY_WORDS:
+        return None
+    # The target must be spelled out and be exactly the agent org: no CLI default, no second org.
+    targets = target_orgs(parts)
+    if not targets or any(target != agent_org for target in targets):
+        return None
+    if environment not in {"dev", "uat", "stage"}:
+        return None
+    return agent_org
 
 
 def is_real_deploy_command(parts: list[str]) -> bool:
@@ -719,6 +775,11 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
     )
     is_sf_dev = "salesforce-development" in lowered_name or bare_tool in SALESFORCE_DEV_TOOL_TOKENS
     tool_input = event.get("tool_input", {})
+    if bare_tool in INTERACTIVE_SHELL_INPUT_TOOLS:
+        return hook_response(
+            "deny",
+            "Interactive shell input is not reviewable; run one complete non-interactive command instead.",
+        )
     if tool_name in NATIVE_OPERATION_TOOLS:
         # Environment questions, drift checks and deployment dialogs happen in one native
         # invocation. Do not deny an unknown classification before the host can ask.
@@ -755,7 +816,8 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
         return hook_response("deny", "Git message validator could not load; restore scripts/git_workflow_policy.py.")
     if not command and git_policy is not None:
         paths = collect_filesystem_paths(tool_input)
-        is_editor = any(token in lowered_name for token in ("edit", "createfile", "create_file", "replace", "insert", "patch", "write"))
+        # Bare "create" is the Copilot CLI new-file tool; exact match only (a substring would hit MCP tools).
+        is_editor = bare_tool == "create" or any(token in lowered_name for token in ("edit", "createfile", "create_file", "replace", "insert", "patch", "write"))
         correct_cwd = Path(event.get("cwd") or os.getcwd()).resolve() == root
         if is_editor and paths and (correct_cwd or all(Path(path).is_absolute() for path in paths)) and all(git_policy.pr_body_path(root, path) for path in paths):
             # A PR description can quote a forbidden command without executing it.
@@ -802,6 +864,13 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
         if not decision.allowed:
             return hook_response("deny", decision.reason)
         if is_real_deploy_command(sf_parts):
+            granted_org = autonomous_deploy_grant(sf_parts, decision.environment, root)
+            if granted_org is not None:
+                return hook_response(
+                    "allow",
+                    f"SAFE-DEPLOY-AUTONOMY-001: host autonomy grant for agent org {granted_org} "
+                    f"(Org ID {decision.organization_id}; environment {decision.environment}).",
+                )
             reason = real_deploy_confirmation_reason(sf_parts)
             reason += f" Resolved Org ID: {decision.organization_id}; environment: {decision.environment}."
             return hook_response("ask", reason)
@@ -854,7 +923,7 @@ def main() -> int:
     if not isinstance(event, dict):
         print(json.dumps(hook_response("deny", "Hook input must be an object.")))
         return 0
-    print(json.dumps(evaluate_event(event)))
+    print(json.dumps(evaluate_event(normalize_event(event))))
     return 0
 
 

@@ -9,6 +9,24 @@ user-invocable: false
 This is a read-only investigation lane: the outcome is a sanitized report under
 `output/investigations/`. Semantic org/vendor conclusions belong in the report.
 
+## Invocation contract
+
+Role: `config-investigator`. Run this contract only as the `config-investigator` custom agent, whose role guard applies.
+Arguments: `objectApiName=<API name>`.
+Entry points: VS Code `/investigate-object <arguments>` (thin alias `.github/prompts/investigate-object.prompt.md`);
+Copilot CLI `copilot --agent config-investigator` with `investigate-object <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+VS Code narrows the tools for this entry point to: `read`, `search`, `edit`, `execute`, `vscode/askQuestions`, `salesforce/review_org_identity`, `salesforce/review_installed_packages`, `salesforce/review_object_contract`, `salesforce/review_configured_orgs`, `salesforce/review_soql_query`. Copilot CLI applies the agent's own list.
+
+Require exactly one `objectApiName` (ask once (VS Code: `vscode/askQuestions`; Copilot CLI: in the reply) if missing). The
+name must be on the configured review allowlist; evidence stays bounded, sanitized, and
+grounded through the guarded review tools (record reads via `review_soql_query`); the facade proves the live org identity within the active role's limits before tool discovery, and object facts reconcile the describe and Tooling endpoints with contested traits nulled and listed in `contestedProperties`.
+
+The outcome is a sanitized investigation report under `output/investigations/` — never a
+verified fact. Report the report path,
+reconciliation status, limitations, and any drift or contested findings. The investigation is a standalone read; when it was raised by delivery work, link the
+report from the relevant `work-items/<id>-<slug>/` folder.
+
 ## Input
 
 Require the exact question, normalized package/component subject, environment,

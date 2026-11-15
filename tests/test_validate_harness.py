@@ -27,6 +27,22 @@ def squash(text: str) -> str:
     return " ".join(text.split())
 
 
+def prompt_contract(name: str) -> str:
+    """A public command as both hosts see it: the thin VS Code alias plus its skill's contract.
+
+    Since the 2026-11-15 migration a prompt file holds only frontmatter and a one-sentence
+    alias; routing, arguments and stops live in the linked skill's `## Invocation contract`.
+    Skill-relative links are rewritten to the prompt-relative form the markers use.
+    """
+    prompt = (ROOT / f".github/prompts/{name}.prompt.md").read_text(encoding="utf-8")
+    skill = re.search(r"\]\(\.\./skills/([a-z0-9-]+)/SKILL\.md\)", prompt).group(1)
+    contract = validate_harness.invocation_contract(
+        (ROOT / f".github/skills/{skill}/SKILL.md").read_text(encoding="utf-8")
+    )
+    assert contract is not None, skill
+    return prompt + "\n" + contract.replace("](../", "](../skills/")
+
+
 class TempRootBase(unittest.TestCase):
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
@@ -138,7 +154,7 @@ class TestCustomizationsHostileFrontmatter(GithubCopyBase):
     def test_role_cannot_lose_its_guarded_github_terminal(self) -> None:
         self.rewrite_frontmatter(
             ".github/agents/designer.agent.md",
-            lambda data: data["tools"].remove("execute/runInTerminal"),
+            lambda data: data["tools"].remove("execute"),
         )
         audit = self.run_audit(validate_harness.check_customizations, root=self.root)
         self.assertTrue(any("shared GitHub reads require the guarded terminal" in message
@@ -262,7 +278,20 @@ class TestInventoryIsDiscoveredNotCountPinned(GithubCopyBase):
         "argument-hint: none\n"
         "agent: agent\n"
         "---\n"
-        "Use the [probe skill](../skills/fetch-ado-item/SKILL.md).\n"
+        "Thin VS Code alias. Follow the [probe skill](../skills/probe-temp/SKILL.md), starting\n"
+        "with its `Invocation contract`.\n"
+    )
+    # A valid public command is an alias plus a skill that owns its Invocation contract.
+    SKILL = (
+        "---\n"
+        "name: probe-temp\n"
+        "description: Temporary probe skill for the count-pin regression test\n"
+        "user-invocable: false\n"
+        "---\n\n"
+        "# Probe\n\n"
+        "## Invocation contract\n\n"
+        "Role: `agent`. Arguments: `none`. Entry points: VS Code `/probe-temp <arguments>`.\n\n"
+        "## Procedure\n\nNothing.\n"
     )
 
     def test_valid_additional_prompt_changes_no_expectation(self) -> None:
@@ -270,6 +299,9 @@ class TestInventoryIsDiscoveredNotCountPinned(GithubCopyBase):
         (self.root / ".github/prompts/probe-temp.prompt.md").write_text(
             self.PROMPT, encoding="utf-8"
         )
+        skill = self.root / ".github/skills/probe-temp/SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text(self.SKILL, encoding="utf-8")
         after = self.run_audit(validate_harness.check_customizations, root=self.root).errors
         self.assertEqual(before, after)
 
@@ -313,7 +345,7 @@ class TestSolutionDocumentationRouting(GithubCopyBase):
 
     def test_missing_edit_capability_is_rejected(self) -> None:
         self.rewrite_frontmatter(
-            self.PROMPT_PATH, lambda data: data["tools"].remove("edit/editFiles")
+            self.PROMPT_PATH, lambda data: data["tools"].remove("edit")
         )
         audit = self.run_audit(validate_harness.check_customizations, root=self.root)
         self.assertIn(
@@ -537,9 +569,7 @@ class TestFetchPromptIntakeBoundary(unittest.TestCase):
     instructs an automatic continuation into Solution Design."""
 
     def setUp(self) -> None:
-        self.text = (ROOT / ".github/prompts/fetch-ado-item.prompt.md").read_text(
-            encoding="utf-8"
-        )
+        self.text = prompt_contract("fetch-ado-item")
 
     def test_prompt_routes_to_fetch_skill_and_persists_context(self) -> None:
         self.assertIn("skills/fetch-ado-item/SKILL.md", self.text)
@@ -572,9 +602,7 @@ class TestGitBootstrapBeforeSolutionDesign(unittest.TestCase):
         cls.git_agent = (ROOT / ".github/agents/git-agent.agent.md").read_text(
             encoding="utf-8"
         )
-        cls.design_prompt = (ROOT / ".github/prompts/solution-design.prompt.md").read_text(
-            encoding="utf-8"
-        )
+        cls.design_prompt = prompt_contract("solution-design")
 
     def test_git_agent_retains_optional_start_work_item_assistance(self) -> None:
         self.assertIn("start work item <ID>", self.git_skill)
@@ -652,9 +680,7 @@ class TestPrepareDeliveryFeatureBoundaries(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.prompt = (
-            ROOT / ".github/prompts/prepare-delivery-feature.prompt.md"
-        ).read_text(encoding="utf-8")
+        cls.prompt = prompt_contract("prepare-delivery-feature")
         cls.skill = (
             ROOT / ".github/skills/prepare-delivery-feature/SKILL.md"
         ).read_text(encoding="utf-8")
@@ -746,15 +772,11 @@ class TestSolutionDesignDeliveryMapRouting(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.prompt = (ROOT / ".github/prompts/solution-design.prompt.md").read_text(
-            encoding="utf-8"
-        )
+        cls.prompt = prompt_contract("solution-design")
         cls.skill = (ROOT / ".github/skills/solution-design/SKILL.md").read_text(
             encoding="utf-8"
         )
-        cls.fetch_prompt = (ROOT / ".github/prompts/fetch-ado-item.prompt.md").read_text(
-            encoding="utf-8"
-        )
+        cls.fetch_prompt = prompt_contract("fetch-ado-item")
 
     def test_zero_one_multiple_map_handling_is_defined(self) -> None:
         self.assertIn("Zero matches", self.skill)
@@ -804,7 +826,7 @@ class TestFetchEpicNavigation(unittest.TestCase):
         )
         cls.skill = squash(cls.skill_raw)
         cls.prompt = squash(
-            (ROOT / ".github/prompts/fetch-ado-item.prompt.md").read_text(encoding="utf-8")
+            prompt_contract("fetch-ado-item")
         )
         cls.git_skill = squash(
             (ROOT / ".github/skills/git-workflow/SKILL.md").read_text(encoding="utf-8")
@@ -935,9 +957,7 @@ class TestFeatureHealthStaysDecoupled(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.prompt = (ROOT / ".github/prompts/feature-health.prompt.md").read_text(
-            encoding="utf-8"
-        )
+        cls.prompt = prompt_contract("feature-health")
         cls.prepare_skill = (
             ROOT / ".github/skills/prepare-delivery-feature/SKILL.md"
         ).read_text(encoding="utf-8")
@@ -1002,9 +1022,7 @@ class TestSolutionDesignRoutingPrecedesDiscovery(unittest.TestCase):
         cls.skill = (ROOT / ".github/skills/solution-design/SKILL.md").read_text(
             encoding="utf-8"
         )
-        cls.prompt = (ROOT / ".github/prompts/solution-design.prompt.md").read_text(
-            encoding="utf-8"
-        )
+        cls.prompt = prompt_contract("solution-design")
 
     def test_skill_defines_local_routing_stage_before_discovery_stage(self) -> None:
         stage1 = self.skill.index("Stage 1 — local routing")
@@ -1043,7 +1061,7 @@ class TestDesignerScopedTerminalCapability(unittest.TestCase):
         data, _ = validate_harness.frontmatter(ROOT / ".github/agents/designer.agent.md", audit)
         self.assertEqual([], audit.errors)
         expected = {
-            "read", "edit/editFiles", "execute/runInTerminal", "vscode/askQuestions",
+            "read", "edit", "execute", "vscode/askQuestions",
             "ado-readonly/*", "salesforce/review_org_identity",
             "salesforce/review_installed_packages", "salesforce/review_object_contract",
             "salesforce/review_soql_query",
@@ -1152,9 +1170,7 @@ class TestSolutionDesignProcedureOwnership(unittest.TestCase):
         cls.skill = (ROOT / ".github/skills/solution-design/SKILL.md").read_text(
             encoding="utf-8"
         )
-        cls.prompt = (ROOT / ".github/prompts/solution-design.prompt.md").read_text(
-            encoding="utf-8"
-        )
+        cls.prompt = prompt_contract("solution-design")
         # Recipient handoff prompts have their own validation. This contract checks
         # the Designer's procedure body, not the inputs passed to another role.
         _, cls.agent = validate_harness.frontmatter(
@@ -1327,9 +1343,7 @@ class TestCheckAgainstPrinciplesScopeSubject(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.prompt = (
-            ROOT / ".github/prompts/check-against-principles.prompt.md"
-        ).read_text(encoding="utf-8")
+        cls.prompt = prompt_contract("check-against-principles")
         cls.skill = (
             ROOT / ".github/skills/check-against-principles/SKILL.md"
         ).read_text(encoding="utf-8")
@@ -1345,7 +1359,7 @@ class TestCheckAgainstPrinciplesScopeSubject(unittest.TestCase):
 
     def test_prompt_defines_input_only_and_delegates_the_procedure(self) -> None:
         self.assertIn("skills/check-against-principles/SKILL.md", self.prompt)
-        self.assertIn("This prompt defines input only", self.prompt_squashed)
+        self.assertIn("This contract defines input only", self.prompt_squashed)
 
     def test_shared_feature_branch_requires_an_explicit_subject(self) -> None:
         self.assertIn(

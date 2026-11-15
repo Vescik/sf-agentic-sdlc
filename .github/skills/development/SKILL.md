@@ -148,9 +148,12 @@ artifacts, agent configuration, tooling) never triggers it.
    `sfdx` deploy, state: `This will be a real deployment of changes to Salesforce org
 <target>. Scope: <scope>. Should I run this deployment?` Wait for an unambiguous answer.
    The confirmation binds only the exact invocation. Ask again for every retry or redeploy.
+   In an orchestrated run with a host autonomy grant, SAFE-DEPLOY-AUTONOMY-001 replaces the
+   question for a deploy that names exactly the configured agent org; state target and scope.
    For native operations, the extension's modal supplies that exact execution confirmation;
    a chat answer or generic tool approval cannot answer the modal. Use the native tool for
    unconfigured environments and supported latest selectors; never launch private helpers.
+   Outside VS Code that tool does not exist (SAFE-HOST-NATIVE-001): stop and report the step.
 4. **Execute and check**: run the exact confirmed command. Use deploy report/status/resume/cancel
    as needed; these status-management calls do not need a new deploy confirmation. Preserve the
    job ID and verify the resulting org state.

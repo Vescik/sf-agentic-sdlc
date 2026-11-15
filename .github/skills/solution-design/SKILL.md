@@ -11,6 +11,26 @@ Design work defines the intended behavior and explains why before anyone writes 
 implementation. There is no required template: the checklist below is a quality bar, not
 a form to fill.
 
+## Invocation contract
+
+Role: `designer`. Run this contract only as the `designer` custom agent, whose role guard applies.
+Arguments: `itemId=<ID> for ADO-backed work, or a written requirement`.
+Entry points: VS Code `/solution-design <arguments>` (thin alias `.github/prompts/solution-design.prompt.md`);
+Copilot CLI `copilot --agent designer` with `solution-design <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+
+Use the designer agent for the given input — an ADO work item ID (`itemId=<ID>`) or a written
+requirement. Follow the whole skill, in
+its order: the skill's Stage 1 owns context resolution, item-type routing, the delivery
+container, and delivery-map membership before any discovery, and its stop/recovery returns are
+the ones to use. The result is `work-items/<id>-<slug>/design.md`. The active Designer
+commits the completed design through the shared [Git Workflow](../git-workflow/SKILL.md),
+without a separate commit request or Git Agent handoff. Branch names do not gate design or Git.
+The commit records a draft; it does not approve or start implementation.
+
+For a written requirement without an ADO item, no `ado-context.md` exists or is fabricated, and
+the design identifies the requirement as human-provided.
+
 ## Stage 1 — local routing and baselines, before any discovery
 
 For ADO-backed work, everything in this stage is answered from persisted local files. No ADO,

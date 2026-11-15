@@ -1780,3 +1780,46 @@ Reviewer source editing, Knowledge authoring/approval, Salesforce/ADO access con
 root-of-trust editor approvals retain their existing boundaries. Native terminal approval
 is separate. Local implementation/tests do not prove Windows, Copilot host, CI, or release
 acceptance. See [Git Workflow](../../.github/skills/git-workflow/SKILL.md).
+
+
+## 2026-11-15 — Copilot CLI port of agents, hooks and MCP
+
+Target runtime is GitHub Copilot CLI (handoff 2026-11-15). Agent and prompt files drop
+`target: vscode` and use the tool aliases `edit`, `execute` and `web`, which both hosts
+accept; the CLI ignored the VS Code-qualified names without an error. The safety hook file
+declares `"version": 1` and stays PascalCase `PreToolUse`, so both hosts send the snake_case
+payload. Hooks emit the decision in both output shapes, accept the camelCase CLI payload,
+deny the CLI interactive shell-input tools for every role, and treat the CLI `create` tool
+as an edit. Role guard timeouts rise from 5 s to 10 s because CLI hook timeouts fail open.
+`.github/mcp.json` registers the same two read-only launchers as `.vscode/mcp.json`; the
+Salesforce alias comes from `salesforce.review.cliOrgAlias` because the CLI has no input
+prompts. The native Salesforce operation tool remains VS Code-only. Local tests do not prove
+CLI host behavior; live checks are listed in [Copilot CLI port](../../docs/copilot-cli-port.md).
+
+
+## 2026-11-15 — Prompt logic moves into skill Invocation contracts
+
+Copilot CLI does not read `.github/prompts`. Each of the 13 prompts linked exactly one skill;
+its body (argument parsing, stops, write limits, next actions) now opens that skill as
+`## Invocation contract`, with the role, arguments and both entry points. Prompt files stay as
+thin VS Code aliases. Skills stay `user-invocable: false`: a CLI slash command would run in the
+active agent, including the default agent without a role guard. On the CLI a command is
+`copilot --agent <role>` plus the command name. VS Code prompt tool narrowing has no CLI
+equivalent and is recorded in each contract. See [Copilot CLI port](../../docs/copilot-cli-port.md).
+
+
+## 2026-11-15 — One agent org, SDK orchestrator, autonomy for the agent org
+
+Owner decisions: one org for the agents lives in the ignored local policy as
+`salesforce.agentOrg` and must name a `salesforce.orgs` entry. Both Salesforce review MCP entries
+start with it (`--org-from-config`); the VS Code `${input:sf_review_org}` prompt is removed. The
+SDK orchestrator (`scripts/sdlc_orchestrator.py`) runs the W8 chain S1–S8 over the harness agents
+with structured hand-over tickets, the L3 evidence tripwire, L5 publication rejection, checker
+stations without writes, two returns per hand-over, and human checkpoints H1–H3 as in W8. Input
+is an ADO item or a written requirement. In an orchestrated run, retrieve, validate and deploy to
+the agent org need no fresh question (SAFE-DEPLOY-AUTONOMY-001): the host sets
+`SF_AGENTIC_AUTONOMOUS_ORG`, and the safety hook allows only real deploys whose every target is
+exactly the agent org, classified dev/uat/stage. Quick deploys, destructive deletes, defaults,
+other orgs and prod keep the existing question or denial. SAFE-HOST-NATIVE-001 records that the
+native operation tool exists only in VS Code. Not run live yet; see
+[SDK orchestrator](../../docs/orchestrator.md).

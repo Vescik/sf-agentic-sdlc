@@ -3,18 +3,9 @@ name: adhoc-fix
 description: Bounded defect fix express lane — edit, optionally deploy after confirmation, verify, and write a fix note.
 argument-hint: "component=<Type:Name> [org=<alias>] plus the diagnosis or a pointer to it"
 agent: developer
-tools: ['read', 'search', 'edit/editFiles', 'execute/runInTerminal', 'vscode/askQuestions', 'salesforce/review_org_identity', 'salesforce/review_object_contract', 'salesforce/review_soql_query']
+tools: ['read', 'search', 'edit', 'execute', 'vscode/askQuestions', 'salesforce/review_org_identity', 'salesforce/review_object_contract', 'salesforce/review_soql_query']
 ---
 
-Use the [adhoc-fix skill](../skills/adhoc-fix/SKILL.md).
-
-Require a named target component and a written diagnosis (ask once with
-`#tool:vscode/askQuestions` if either is missing). This lane replaces the accepted-design entry
-gate only for a small bounded defect fix; retrieve the current org state first, make the smallest
-coherent edit in `force-app/`, and write the fix note under
-`output/documentation/adhoc-fixes/`.
-
-Report the fix note path, the before → after of the defective element, local verification, and the
-proposed deployment scope. If a real deploy is needed, ask with the target, scope, and explicit
-org-change warning, then run only the exact confirmed command and verify the result. If the fix
-stops being small and bounded, route through the normal design lane.
+Thin VS Code alias with no logic of its own. As the `developer` agent, follow the
+[adhoc-fix skill](../skills/adhoc-fix/SKILL.md) for the supplied input, starting with its
+`Invocation contract`.

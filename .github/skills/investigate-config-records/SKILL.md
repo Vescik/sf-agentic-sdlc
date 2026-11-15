@@ -21,6 +21,28 @@ retirement): reference-data snapshots are documentation with a recorded digest a
 time, not verified fact; record data drifts without any repository signal, so a snapshot
 must be re-observed, never re-read from an old report.
 
+## Invocation contract
+
+Role: `config-investigator`. Run this contract only as the `config-investigator` custom agent, whose role guard applies.
+Arguments: `objectApiName=<API name> [org=<alias>] [fields=<A,B,C>]`.
+Entry points: VS Code `/investigate-config-records <arguments>` (thin alias `.github/prompts/investigate-config-records.prompt.md`);
+Copilot CLI `copilot --agent config-investigator` with `investigate-config-records <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+VS Code narrows the tools for this entry point to: `read`, `search`, `edit`, `execute`, `vscode/askQuestions`, `salesforce/review_org_identity`, `salesforce/review_object_contract`, `salesforce/review_configured_orgs`, `salesforce/review_soql_query`. Copilot CLI applies the agent's own list.
+
+Require exactly one `objectApiName` (ask once (VS Code: `vscode/askQuestions`; Copilot CLI: in the reply) if missing). The
+object must be on the configured review allowlist and hold reference data — config tables such as
+statuses, stages, or settings — not transactional records. Resolve a configured review-org alias
+(there is no default) and always pass it as `--org`. Fields come from the guarded object
+contract — caller-supplied `fields` must stay a subset of it; records come only from the
+`review_soql_query` facade tool, bounded, ordered by the natural key, and sanitized.
+
+The outcome is a sanitized snapshot report under `output/reference-data/` with its content digest and
+observation time — never a verified fact: record values drift
+without any repository signal, so later work re-observes instead of re-reading. Report the
+report path, row count, completeness, content digest, and limitations. The investigation is a standalone read; when it was raised by delivery work, link the
+report from the relevant `work-items/<id>-<slug>/` folder.
+
 ## Input
 
 Require exactly one `objectApiName` and one `org` — a configured review-org alias (enumerable via

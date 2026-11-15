@@ -106,7 +106,7 @@ def prepare(destination: Path, *, host_probe: str | None = None) -> Path:
     write_json(destination / ".github/hooks/safety.json", {"hooks": hooks})
     # JSON is a YAML subset; preserve the exact production role/timeout without a YAML dependency.
     frontmatter = {"name": "developer", "description": "Disposable Salesforce policy pilot; synthetic executor only.",
-                   "target": "vscode", "tools": ["read", "execute/runInTerminal"],
+                   "tools": ["read", "execute"],
                    "hooks": {"PreToolUse": [role]}}
     (destination / ".github/agents/developer.agent.md").write_text(
         "---\n" + json.dumps(frontmatter, indent=2) + "\n---\n\n"

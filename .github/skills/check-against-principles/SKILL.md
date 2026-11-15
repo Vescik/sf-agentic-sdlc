@@ -9,6 +9,34 @@ user-invocable: false
 Apply the [shared execution contract](../../../.ai/contracts/execution-contract.md),
 [source authority contract](../../../.ai/contracts/source-authority.md).
 
+## Invocation contract
+
+Role: `reviewer`. Run this contract only as the `reviewer` custom agent, whose role guard applies.
+Arguments: `itemId=<ID> [scope=design|implementation] [base=<ref> head=<ref> | commits=<sha1>,<sha2>,...]`.
+Entry points: VS Code `/check-against-principles <arguments>` (thin alias `.github/prompts/check-against-principles.prompt.md`);
+Copilot CLI `copilot --agent reviewer` with `check-against-principles <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+
+Require the persisted subject — the work item's `work-items/<itemId>-<slug>/design.md` for a
+design review (with `ado-context.md` as the requirement snapshot when present), or the exact
+repository diff for an implementation review; chat summaries are
+not review input.
+
+For an implementation review, the subject is defined by the input, not inferred: a standalone
+Work Item review may use the exact confirmed delivery-base-to-HEAD diff when it is unambiguous;
+a Work Item review on a shared Feature branch requires explicit `commits=<sha1>,<sha2>,...` (an
+explicit, possibly non-contiguous set) or a contiguous `base=<ref> head=<ref>` range. `base` and
+`head` appear together and define one contiguous range; never accept both forms in one
+invocation. Invalid, missing, unreachable, or ambiguous refs return an incomplete review
+subject before any semantic review. This contract defines input only — the complete procedure,
+including Scope alignment, is the skill's. Evaluate it (per `scope`, default: design when a design.md exists)
+against every applicable scoped Principle and repository/org reconciliation.
+
+Review only — never implement fixes, edit files, or weaken a constraint to make the result pass.
+Return the skill's verdict, every violated rule ID with its evidence, and unresolved gaps.
+Apply its evidence rules: missing required evidence and incomplete or mismatched org reviews
+exclude `SAFE`; approved source drift requires disclosure under the active retrieval contract.
+
 ## Inputs
 
 Require the persisted subject under review — `work-items/<id>-<slug>/design.md` for a design

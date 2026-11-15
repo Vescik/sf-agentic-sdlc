@@ -348,11 +348,40 @@ def response(decision: str | None = None, reason: str | None = None) -> dict[str
     }
     if reason:
         output["permissionDecisionReason"] = reason
-    return {"hookSpecificOutput": output}
+    # VS Code reads hookSpecificOutput; Copilot CLI documents top-level permissionDecision.
+    # Emitting both keeps one decision valid on both hosts (docs/copilot-cli-port.md).
+    return {"hookSpecificOutput": output, **{key: value for key, value in output.items() if key != "hookEventName"}}
+
+
+# Copilot CLI: write_bash/write_powershell send raw keystrokes to a running shell session.
+# The input is not a reviewable command (it can answer a confirmation prompt or start a
+# command no rule has seen), so interactive shell input is denied for every role.
+INTERACTIVE_SHELL_INPUT_TOOLS = frozenset({"write_bash", "write_powershell"})
+
+
+def normalize_event(event: dict[str, Any]) -> dict[str, Any]:
+    """Map the Copilot CLI camelCase payload (toolName/toolArgs) onto tool_name/tool_input.
+
+    The repository registers PascalCase PreToolUse hooks, for which VS Code and Copilot CLI
+    both send tool_name/tool_input. A camelCase registration sends toolName and toolArgs
+    (toolArgs may be a JSON string); this keeps both shapes on one evaluation path.
+    """
+    if "tool_name" in event or "toolName" not in event:
+        return event
+    arguments: Any = event.get("toolArgs", {})
+    if isinstance(arguments, str):
+        try:
+            arguments = json.loads(arguments)
+        except json.JSONDecodeError:
+            pass
+    return {**event, "tool_name": event.get("toolName"), "tool_input": arguments}
 
 
 def is_edit_tool(tool_name: str) -> bool:
     lowered = tool_name.lower()
+    # Bare "create" is the Copilot CLI new-file tool; exact match only (a substring would hit MCP tools).
+    if lowered.rsplit("/", 1)[-1] == "create":
+        return True
     # "create_file"/"apply_patch"/"write" are VS Code's snake_case editor tools; the earlier
     # camelCase-only tokens ("createfile") missed them, letting edits bypass role path boundaries.
     return any(
@@ -645,6 +674,11 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
             return response("deny", f"ADO policy unavailable: ado_tool_policy ({_POLICY_ERRORS.get('ado_tool_policy', 'load error')}).")
         error = ado_policy.tool_error(tool_name, event.get("tool_input", {}), role)
         return response("deny", error) if error else response()
+    if tool_name.rsplit("/", 1)[-1].lower() in INTERACTIVE_SHELL_INPUT_TOOLS:
+        return response(
+            "deny",
+            "Interactive shell input is not reviewable; run one complete non-interactive command instead.",
+        )
     if tool_name in NATIVE_OPERATION_TOOLS:
         error = native_operation_input_error(event.get("tool_input"))
         if role != "developer":
@@ -776,7 +810,7 @@ def main() -> int:
     if not isinstance(event, dict):
         print(json.dumps(response("deny", "Hook input must be an object.")))
         return 0
-    print(json.dumps(evaluate_event(event, args.role)))
+    print(json.dumps(evaluate_event(normalize_event(event), args.role)))
     return 0
 
 

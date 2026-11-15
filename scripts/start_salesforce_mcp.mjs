@@ -26,20 +26,30 @@ function fail(message) {
   process.exit(2);
 }
 
+const ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
+
 function parseArgs(argv) {
   const parsed = {};
-  for (let index = 0; index < argv.length; index += 2) {
+  for (let index = 0; index < argv.length; ) {
     const key = argv[index];
+    // Both MCP entries (.vscode/mcp.json, .github/mcp.json) read the one agent org from the
+    // ignored local policy (salesforce.agentOrg); Copilot CLI has no input prompts.
+    if (key === "--org-from-config") {
+      parsed.orgFromConfig = true;
+      index += 1;
+      continue;
+    }
     const value = argv[index + 1];
     if (!key?.startsWith("--") || value === undefined) {
-      fail("expected --mode review --org <alias>");
+      fail("expected --mode review (--org <alias> | --org-from-config)");
     }
     parsed[key.slice(2)] = value;
+    index += 2;
   }
   return parsed;
 }
 
-const { mode, org } = parseArgs(process.argv.slice(2));
+const { mode, org: argumentOrg, orgFromConfig } = parseArgs(process.argv.slice(2));
 // This launcher exposes the structured review facade only. Developer writes deliberately use
 // direct sf/sfdx commands, so no write-mode MCP process is launched from here.
 if (mode !== "review") {
@@ -47,7 +57,10 @@ if (mode !== "review") {
 }
 // The bounded read-only server proves the live host, Org ID and IsSandbox before tools.
 // Alias naming does not classify the environment or grant permissions.
-if (!org) {
+if (argumentOrg && orgFromConfig) {
+  fail("pass either --org <alias> or --org-from-config, not both");
+}
+if (!argumentOrg && !orgFromConfig) {
   fail("the org alias is missing");
 }
 
@@ -64,9 +77,20 @@ try {
   fail(`cannot read valid ${CONFIG_PATH}: ${error.message}`);
 }
 
+const org = argumentOrg ?? config?.salesforce?.agentOrg;
+if (!org) {
+  fail("salesforce.agentOrg is not set in config/harness.local.json; name the configured org the agents work against");
+}
+if (typeof org !== "string" || !ALIAS_PATTERN.test(org)) {
+  fail("the org alias is not a valid Salesforce CLI alias");
+}
+
 const matches = config?.salesforce?.orgs?.filter((candidate) => candidate?.alias === org) ?? [];
 if (matches.length > 1) fail("duplicate configured alias");
 const entry = matches[0];
+if (orgFromConfig && !entry) {
+  fail("salesforce.agentOrg must name a salesforce.orgs entry so its environment is classified");
+}
 const environment = entry ? String(entry.environment) : null;
 if (entry && !new Set(["dev", "uat", "stage", "prod", "development", "production"]).has(environment)) {
   fail(`alias '${org}' requires an explicit dev/uat/stage/prod environment (legacy qa has no automatic mapping)`);

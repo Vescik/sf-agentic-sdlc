@@ -17,6 +17,42 @@ establishes observable facts within its stated limits; the QA plan is what gets 
 The plan may explain behavior; it may not silently create a requirement or redesign the
 solution, and it never repairs a stale requirement/design baseline.
 
+## Invocation contract
+
+Role: `test-strategist`. Run this contract only as the `test-strategist` custom agent, whose role guard applies.
+Arguments: `itemId=<ID> [optional focus]`.
+Entry points: VS Code `/prepare-qa-test-plan <arguments>` (thin alias `.github/prompts/prepare-qa-test-plan.prompt.md`);
+Copilot CLI `copilot --agent test-strategist` with `prepare-qa-test-plan <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+
+The skill owns the
+complete authoring procedure. This contract only routes and bounds the invocation.
+
+Parse the invocation text: `itemId` is required and must be a positive integer. Free text after
+it may state a bounded focus; reject any other `name=value` option.
+If `itemId` is missing, ask once (VS Code: `vscode/askQuestions`; Copilot CLI: in the reply); never guess an ID.
+
+Resolve exactly one `work-items/<id>-*/` folder. Zero matches: stop and return the recovery
+(`/fetch-ado-item itemId=<ID>` with the author's local Git step, then
+`/solution-design itemId=<ID>` for ADO-backed work, or
+`/solution-design` with the written requirement). Multiple matches: stop with
+`INCOMPLETE — NEEDS HUMAN` and write nothing.
+
+The one tracked write this command may perform is creating or refreshing
+`work-items/<id>-<slug>/qa-test-plan.md`. Never edit `ado-context.md`, `design.md`, `tasks.md`,
+or `decisions.md`; never write execution results (PASS/FAIL, testers, dates, screenshots, Test
+Run IDs) anywhere; never mutate ADO or Salesforce.
+
+Return the skill's report: path and created/updated/unchanged; one verdict (`READY FOR QA`,
+`DRAFT — IMPLEMENTATION NOT COMPLETE`, `GAPS — ACTION REQUIRED`, or
+`INCOMPLETE — NEEDS HUMAN`); the evidence route (custom / managed-package / mixed); AC
+coverage; Test Cases by origin; unresolved questions; and the exact next action.
+
+After a coherent permitted QA-plan result and verification, perform the scoped local
+stage/commit through the [Git Workflow](../git-workflow/SKILL.md) yourself and report
+its SHA or concrete unresolved condition. No manual Git Agent handoff; no push/PR/merge
+without the corresponding explicit instruction.
+
 ## Input resolution
 
 1. `itemId` is a positive integer resolving exactly one `work-items/<id>-*/` directory.
@@ -98,7 +134,7 @@ unreadable one is reported per case, never reconstructed from memory.
 Discover first, then ask. Every question states what is already known, the exact missing
 fact, and why it changes QA execution — and never asks for anything a tool can establish
 safely. At most three tightly related questions per round, at most two rounds per invocation
-(`#tool:vscode/askQuestions`). If material gaps remain after that, save or preserve a useful
+(VS Code: `vscode/askQuestions`; Copilot CLI: in the reply). If material gaps remain after that, save or preserve a useful
 draft and return `INCOMPLETE — NEEDS HUMAN`. Answers are evidence for this plan, labeled
 `Maintainer-confirmed`.
 

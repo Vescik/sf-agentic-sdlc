@@ -1,11 +1,4 @@
 {
-  "inputs": [
-    {
-      "id": "sf_review_org",
-      "type": "promptString",
-      "description": "Salesforce alias for the structured review facade; Developer write operations use direct sf/sfdx (the facade proves the live non-production identity before tool discovery)"
-    }
-  ],
   "servers": {
     "ado-readonly": {
       "type": "stdio",
@@ -23,8 +16,7 @@
         "scripts/start_salesforce_mcp.mjs",
         "--mode",
         "review",
-        "--org",
-        "${input:sf_review_org}"
+        "--org-from-config"
       ]
     }
   }

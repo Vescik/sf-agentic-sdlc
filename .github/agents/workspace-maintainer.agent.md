@@ -2,14 +2,13 @@
 name: workspace-maintainer
 description: Maintain the workspace control plane — prompts, skills, instructions, scripts, schemas, tests, docs, and tracked config — with a human confirmation gate on every root-of-trust edit. Never Salesforce delivery work.
 argument-hint: "the workspace change to make"
-target: vscode
-tools: ['read', 'search', 'edit/editFiles', 'execute/runInTerminal', 'vscode/askQuestions']
+tools: ['read', 'search', 'edit', 'execute', 'vscode/askQuestions']
 hooks:
   PreToolUse:
     - type: command
       command: python3 scripts/copilot_role_guard.py --role workspace-maintainer
       windows: python scripts/copilot_role_guard.py --role workspace-maintainer
-      timeout: 5
+      timeout: 10
 ---
 
 # Workspace Maintainer

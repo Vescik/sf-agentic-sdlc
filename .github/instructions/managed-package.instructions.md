@@ -35,6 +35,18 @@ change that conflicts with them is wrong even if it works.
   tool approval do not replace it. Every new deploy, quick deploy, or redeploy requires fresh confirmation. Dry runs,
   retrieve, report/status, resume, cancel, and record mutations do not require this
   deployment-specific confirmation.
+- **SAFE-DEPLOY-AUTONOMY-001 — a host grant covers the agent org only.** An orchestrated run
+  (`scripts/sdlc_orchestrator.py`) may grant autonomy for the configured `salesforce.agentOrg`.
+  The grant lives in the host process, never in chat or a tool argument. Under it, a real
+  `sf project deploy start` or `sf deploy metadata` that names exactly that org with
+  `--target-org` needs no chat question; the safety hook records the grant. State the target and
+  scope before running and report the result as usual. The grant never covers another org, a
+  project default, a `prod` classification, quick deploys, or destructive changes. Without the
+  grant, SAFE-DEPLOY-CONFIRM-001 applies unchanged.
+- **SAFE-HOST-NATIVE-001 — no native operation tool outside VS Code.** On Copilot CLI and in
+  orchestrated SDK runs the native Salesforce operation tool does not exist. When a step needs it
+  (an unconfigured target, a latest selector, an environment answer), stop and report the step;
+  never substitute a terminal command or a wrapper.
 
 ## Trust and honesty
 
@@ -81,5 +93,6 @@ unconfigured targets and mutable latest selectors. The Developer uses the native
 selection or supported latest-job operation. Pass only `arguments: string[]`, without the
 executable. The installed extension owns dialogs, rechecks and dispatch; a chat answer or an
 agent-written environment/approval flag is never authority. Nothing persists as classification
-or consent. Cancellation means no execution. See `docs/native-salesforce-operations.md` for
+or consent. Cancellation means no execution. On Copilot CLI and in orchestrated SDK runs this
+tool does not exist (SAFE-HOST-NATIVE-001): stop and report instead. See `docs/native-salesforce-operations.md` for
 installation, the private-runtime boundary and remaining host/live acceptance.

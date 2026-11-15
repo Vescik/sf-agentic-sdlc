@@ -402,6 +402,23 @@ def apply_config(pending: dict[str, object]) -> None:
         else:
             orgs.append(updated)
 
+    # salesforce.agentOrg (2026-11-15) names the one org both review MCP entries start with.
+    # Onboarding fills it only when unset and exactly one non-production org was recorded now;
+    # any other case stays a human choice (see the next steps).
+    recorded = []
+    for key, entry in pending.items():
+        if not key.startswith("org."):
+            continue
+        try:
+            environment = sf_policy.normalize_environment(entry.get("environment", key[4:]))
+        except (ValueError, TypeError):
+            continue
+        if environment != "prod":
+            recorded.append(entry["alias"])
+    salesforce = cfg.get("salesforce")
+    if len(recorded) == 1 and isinstance(salesforce, dict) and "agentOrg" not in salesforce:
+        salesforce["agentOrg"] = recorded[0]
+
     if pending.get("review.enabled") is True:
         cfg["salesforce"]["review"]["enabled"] = True
     if pending.get("review.objects"):
@@ -578,8 +595,9 @@ def main() -> None:
     print("  - Restart ado-readonly after changing ado.organization or ado.project.")
     print("  - Verify one Work Item and one wiki page in the configured project; setup checks do not prove ADO access.")
     print(
-        "  - Start the Salesforce MCP; when prompted for \"sf_review_org\", enter an "
-        "authorized alias."
+        "  - Set salesforce.agentOrg in config/harness.local.json to the configured org the "
+        "agents work against (filled automatically when exactly one non-production org was "
+        "recorded); both Salesforce MCP entries start with it."
     )
     print(
         "  - The Salesforce MCP is review-only; Developer org changes use direct sf/sfdx "

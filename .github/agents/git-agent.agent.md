@@ -2,14 +2,13 @@
 name: git-agent
 description: Help with Git and GitHub CLI, descriptive commits, and explicitly requested publication, merge, and destructive actions.
 argument-hint: "start work item <ID> | start feature <Feature ID> | commit work item <ID> | commit feature <Feature ID> | push | prepare PR | publish PR | merge PR"
-target: vscode
-tools: ['read', 'edit/editFiles', 'execute/runInTerminal', 'vscode/askQuestions']
+tools: ['read', 'edit', 'execute', 'vscode/askQuestions']
 hooks:
   PreToolUse:
     - type: command
       command: python3 scripts/copilot_role_guard.py --role git-agent
       windows: python scripts/copilot_role_guard.py --role git-agent
-      timeout: 5
+      timeout: 10
 ---
 
 # Git Agent

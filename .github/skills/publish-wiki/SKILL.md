@@ -11,6 +11,21 @@ The Developer publishes only on an explicit request. That request authorizes the
 navigation, and delivery Story-link writes below without another confirmation for each step.
 Search and Reviewer retain their existing read and lifecycle boundaries.
 
+## Invocation contract
+
+Role: `developer`. Run this contract only as the `developer` custom agent, whose role guard applies.
+Arguments: `<solution directory, delivery document, or topic> [itemId=<ID>] [wiki=<name>] [path=<existing wiki path>]`.
+Entry points: VS Code `/publish-wiki <arguments>` (thin alias `.github/prompts/publish-wiki.prompt.md`);
+Copilot CLI `copilot --agent developer` with `publish-wiki <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+VS Code narrows the tools for this entry point to: `read`, `search`, `edit`, `execute`, `vscode/askQuestions`, `ado-readonly/*`. Copilot CLI applies the agent's own list.
+
+Apply the skill to the requested source and scope.
+The request authorizes its scoped page/index writes and the existing delivery Story link.
+Read full live pages, preserve manual content, and reuse stable addresses. Publish solution
+content only for confirmed production-deployed scope. Return the main URL and actual page/link
+outcomes, including any partial failure. The skill owns discovery, conflicts, and verification.
+
 ## Identify the source and destination
 
 Accept one solution directory, delivery document, or an unambiguous topic/Work Item identifying it.

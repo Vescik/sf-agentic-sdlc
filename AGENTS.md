@@ -12,7 +12,7 @@ supply approval/environment fields. See `docs/native-salesforce-operations.md`.
 Before a real deploy, identify target/scope and warn that changes reach the org; confirm that exact
 invocation. Native execution requires its modal confirmation.
 
-Governed Salesforce/ADO and protected non-Git edits require **VS Code Local** custom-agent
-frontmatter hooks, unavailable in default Agent mode. Git/gh work independently, with only
+Governed Salesforce/ADO and protected non-Git edits need a custom agent's role guard
+(VS Code or Copilot CLI); default Agent mode lacks it. Git/gh work independently, with only
 commit-message validation. Preserve unrelated work; publication, merge,
 and destructive actions require explicit instructions.

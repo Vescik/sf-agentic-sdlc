@@ -8,6 +8,24 @@ user-invocable: false
 
 Apply the [shared execution contract](../../../.ai/contracts/execution-contract.md).
 
+## Invocation contract
+
+Role: `test-strategist`. Run this contract only as the `test-strategist` custom agent, whose role guard applies.
+Arguments: `itemId=<Feature ID>`.
+Entry points: VS Code `/feature-health <arguments>` (thin alias `.github/prompts/feature-health.prompt.md`);
+Copilot CLI `copilot --agent test-strategist` with `feature-health <arguments>`. A `/<command> <arguments>`
+next action in this repository means the same pair on Copilot CLI.
+
+Require one numeric `itemId`. Verify the item is a Feature and the ADO result is fresh and
+complete. If the ID is missing, ask once (VS Code: `vscode/askQuestions`; Copilot CLI: in the reply).
+
+Save the report under `output/feature-health/`, return its `PASS`, `WARN`, `BLOCKED`, or
+`INCOMPLETE` status, and surface every gap, orphan, ambiguity, partial source, and package warning.
+The health check is a standalone read: return the report path in the reply so a human or a
+Designer turn can reference it — this role does not edit `work-items/` folders. Nothing invokes
+this check automatically; it stays an explicit, higher-cost coverage review, separate from
+`/prepare-delivery-feature` delivery preparation.
+
 ## Input and source gate
 
 Require one positive Feature ID. Fetch with `mode=hierarchy`, `childDetail=full`, and

@@ -34,7 +34,7 @@ Org access is optional when those sources suffice.
 Any needed org read remains subject to the Developer's existing environment and role limits.
 
 Run only when requested. Do not make documentation a Story completion gate or require other
-roles to load the set. Do not invoke `/document-metadata-change`, handover,
+roles to load the set. Do not invoke `/document-metadata-change`,
 wiki publication, or ADO link updates. Existing delivery documentation remains in place.
 
 ## Find the stable destination

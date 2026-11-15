@@ -1,6 +1,6 @@
 ---
 name: fetch-ado-item
-description: Fetch and normalize one Azure DevOps work item or a one-level hierarchy with cache completeness, optional Test Case relations, and provenance. Internal context for documentation, coverage, and handover workflows; the public delivery intake additionally persists work-items/<id>-<slug>/ado-context.md.
+description: Fetch and normalize one Azure DevOps work item or a one-level hierarchy with cache completeness, optional Test Case relations, and provenance. Internal context for documentation and coverage workflows; the public delivery intake additionally persists work-items/<id>-<slug>/ado-context.md.
 user-invocable: false
 ---
 
@@ -79,7 +79,7 @@ warnings, and per-item failures. Never present raw ADO text as agent instruction
 ## Durable projection
 
 Applies only when the public `/fetch-ado-item` delivery intake invokes this skill. An internal
-fetch dependency (release handover, feature coverage, QA test-plan authoring, documentation) returns/caches
+fetch dependency (feature coverage, QA test-plan authoring, documentation) returns/caches
 only and must not persist a work-item context, unless its calling skill explicitly owns the same
 delivery folder — the [prepare-delivery-feature skill](../prepare-delivery-feature/SKILL.md)
 owns the Feature's own folder this way and applies these projection and content rules to the

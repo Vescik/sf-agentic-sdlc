@@ -215,13 +215,10 @@ def collect_ado(pending: dict[str, object]) -> None:
     print("    One organization and project per workspace; saved only in config/harness.local.json.")
     ado_org = prompt("ADO organization")
     ado_project = prompt("ADO project")
-    ado_query = prompt("ADO release saved-query id")
     if ado_org:
         pending["ado.organization"] = ado_org
     if ado_project:
         pending["ado.project"] = ado_project
-    if ado_query:
-        pending["ado.releaseQueryId"] = ado_query
 
 
 def classify_non_production_host(host: str) -> tuple[bool, bool] | None:
@@ -376,8 +373,6 @@ def apply_config(pending: dict[str, object]) -> None:
         cfg["ado"]["allowedHttpsOrigins"] = [f"https://dev.azure.com/{ado_org}", *retained]
     if pending.get("ado.project"):
         cfg["ado"]["project"] = pending["ado.project"]
-    if pending.get("ado.releaseQueryId"):
-        cfg["ado"]["releaseQueryId"] = pending["ado.releaseQueryId"]
     if any(key.startswith("ado.") for key in pending):
         error = ado_config_error(cfg)
         if error:

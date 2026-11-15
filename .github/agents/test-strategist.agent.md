@@ -21,7 +21,7 @@ QA plan after verification, without a separate commit request or Git Agent hando
 Git/gh commands are available; branch schemes are conventions, not gates. Hooks validate
 only commit-message syntax and matching IDs. Preserve unrelated work. Push, PR writes,
 merge, and destructive actions require an explicit human instruction. The sole extra PR
-transport editor path is `.cache/github/pr-body.md`. Ignored handover/Feature Health output
+transport editor path is `.cache/github/pr-body.md`. Ignored Feature Health output
 keeps its existing artifact lifecycle.
 
 Make the QA decision and write the QA handoff; do not implement Salesforce metadata and do
@@ -66,7 +66,7 @@ for the request and load only that lane's skill:
   work-item files (`ado-context.md`, `design.md`, `tasks.md`, `decisions.md`) are read-only
   for this role — a needed change there routes to its owning role.
 - Other writes: coverage decisions and draft artifacts under `output/`
-  (`output/feature-health/`, `output/handover/`), plus the ignored ADO caches required by
+  (`output/feature-health/`), plus the ignored ADO caches required by
   the fetch skill.
 - Never use a production org target, including identity, package and object-contract MCP reads,
   in either QA workflow. Select an explicitly known nonprod target; if unavailable, mark live

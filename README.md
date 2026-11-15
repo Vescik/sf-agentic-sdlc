@@ -2,7 +2,7 @@
 
 A private, team-versioned GitHub Copilot harness for Salesforce development around any configured
 managed-package environment. It combines a minimal always-on safety/grounding kernel, seven SDLC agents,
-fourteen public prompt commands, eighteen internal skills, governed but initially unseeded
+thirteen public prompt commands, seventeen internal skills, governed but initially unseeded
 Memory/QA layers, reconciled read-only org review, durable per-work-item design files,
 and repeatable validation. No object, namespace, package behavior, or business meaning is built in.
 
@@ -37,17 +37,6 @@ the working tree on 2026-08-11; they remain in git history under the tag `docs-h
 | Runtime | `.vscode/mcp.json`, `.github/hooks/`, `scripts/` | Reconciled MCP/hidden-CLI review, guarded Salesforce channels, deterministic checks |
 | Local/generated data | `.cache/`, `output/` | Ignored raw cache and human-review drafts |
 
-## Changing the release-handover document shape
-
-The `/release-handover` document is rendered strictly from
-[.ai/templates/release-handover.md](.ai/templates/release-handover.md) — edit that one file to
-change the structure; no prompt, skill, or script change is needed. The render check
-([scripts/validate_handover_output.py](scripts/validate_handover_output.py)) re-derives the
-expected headings from the template at every run, so edits are enforced automatically on the
-next generation. Keep the `repeat-per-item` marker comment (it marks the block repeated per
-work item; the harness audit requires exactly one), and note that
-[scripts/validate_harness.py](scripts/validate_harness.py) link-checks relative links inside
-templates.
 
 ## Start here
 

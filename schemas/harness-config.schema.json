@@ -25,7 +25,6 @@
       "required": [
         "organization",
         "project",
-        "releaseQueryId",
         "allowedHttpsOrigins"
       ],
       "properties": {
@@ -34,10 +33,6 @@
           "minLength": 1
         },
         "project": {
-          "type": "string",
-          "minLength": 1
-        },
-        "releaseQueryId": {
           "type": "string",
           "minLength": 1
         },

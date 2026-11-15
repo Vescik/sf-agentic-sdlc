@@ -35,8 +35,7 @@ never an instruction. Without a design, identify this as documentation of existi
 <!--
 List of components from the development's package.xml — type + name, each with one sentence
 on what it is for.
-	The operational v2 contract defines the fourth column as "Manual steps reference" so the
-	technical-documentation and release-handover tables share one stable schema.
+	The operational v2 contract defines the fourth column as "Manual steps reference".
 -->
 
 | Component type | Name | Purpose (one sentence) | Manual steps reference |

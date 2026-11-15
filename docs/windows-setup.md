@@ -93,7 +93,6 @@ it here on Windows. Set at minimum:
 - `ado.organization` — the organization slug, such as `contoso`, without a URL
 - `ado.project` — your ADO project (the hook requires every ADO call to carry this)
 - `ado.allowedHttpsOrigins` — include `https://dev.azure.com/contoso`, matching your organization
-- `ado.releaseQueryId` — your saved release query id (only for release flows)
 - For each sandbox under `salesforce.orgs`: `alias`, `expectedInstanceHost`, `expectedOrganizationId`
 - `salesforce.review.allowedObjectApiNames` — objects the agent may read; `["*"]` = all objects
   (keep tighter if the org holds sensitive data)

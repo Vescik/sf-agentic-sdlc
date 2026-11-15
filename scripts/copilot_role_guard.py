@@ -48,7 +48,6 @@ ALLOWED_PREFIXES = {
     ),
     "test-strategist": (
         "output/feature-health/",
-        "output/handover/",
         ".cache/ado-items/",
         ".cache/ado-wiki/",
     ),
@@ -393,20 +392,6 @@ def flag_values(parts: list[str], flag: str) -> list[str]:
     return values
 
 
-def handover_draft_path_allowed(raw: str, root: Path) -> bool:
-    """Rendered handover drafts only: containment mirror of manifest_input_path_allowed."""
-    path = Path(raw)
-    if path.is_absolute():
-        return False
-    draft_root = (root / "output/handover").resolve(strict=False)
-    candidate = (root / path).resolve(strict=False)
-    try:
-        relative = candidate.relative_to(draft_root)
-    except ValueError:
-        return False
-    return bool(relative.parts) and candidate.suffix.lower() == ".md"
-
-
 # Read-only orientation commands available to every role. Rationale: a default-deny terminal
 # that blocks `git status`/`ls`/`grep` doesn't make the harness safer — it paralyzes the agent
 # into thrashing (documented incidents), while the genuinely dangerous operations (sf, deploys,
@@ -513,7 +498,6 @@ def allowed_role_command(command: str, root: Path, role: str) -> bool:
     script = script.resolve(strict=False)
     validate_harness = (root / "scripts/validate_harness.py").resolve()
     run_evals = (root / "scripts/run_evals.py").resolve()
-    validate_handover_output = (root / "scripts/validate_handover_output.py").resolve()
     remainder = parts[index + 1 :]
     # Read-only self-verification available to every role: agents legitimately check their own
     # work (2026-07-14 usability fix — these were denied and caused live flailing).
@@ -521,11 +505,6 @@ def allowed_role_command(command: str, root: Path, role: str) -> bool:
         return not remainder
     if script == (root / "scripts/validate_salesforce_deploy.py").resolve():
         return validate_deploy_command_allowed(remainder, role)
-    if script == validate_handover_output:
-        # Read-only render self-check, every role (same rationale as validate_harness above).
-        # --template is deliberately NOT accepted here: guarded agents may only check a draft
-        # against the canonical committed template; the flag exists for humans, tests, and CI.
-        return len(remainder) == 1 and handover_draft_path_allowed(remainder[0], root)
     return False
 
 
@@ -707,8 +686,7 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
                         "deny",
                         f"{role}: this exact command is outside the terminal allowlist. "
                         "Allowed families: guarded harness scripts ("
-                        "scripts/validate_harness.py, run_evals.py, "
-                        "validate_handover_output.py), "
+                        "scripts/validate_harness.py, run_evals.py), "
                         "Git/gh (message format only), file reads "
                         "(ls/cat/grep/type/Get-Content), and tool --version checks — all plain, "
                         "single commands with no ; & | < > ` $ chaining. Do not retry variants "

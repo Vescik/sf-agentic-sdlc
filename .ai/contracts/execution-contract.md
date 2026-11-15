@@ -50,7 +50,7 @@ Developer, subject to the global real-deploy confirmation hook:
   Select it once via "Python: Select Interpreter" → `.venv`; the integrated terminal then activates
   it automatically. Running system Python fails with `ModuleNotFoundError`.
 - Run from the repository root. Harness Python commands are limited to
-  `validate_handover_output.py` (read-only handover render check), `validate_harness.py`,
+  `validate_harness.py`,
   `run_evals.py`, and the legacy optional `validate_salesforce_deploy.py` (`start`/`status`
   check-only validation), each with its allowlisted subcommands.
 - The Developer may invoke direct `sf`/`sfdx` commands for deployments, record mutations, Apex,
@@ -209,7 +209,7 @@ Requested delivery documentation for a concrete Work Item belongs in
 `work-items/<id>-<slug>/technical-documentation.md`. Use the stable folder and update procedure
 in the Generate Technical Documentation skill. This optional file is not a development or QA gate.
 Read it only when the current task needs it. `output/` holds temporary results, including the
-existing handover, Feature Health, and adhoc outputs. A local document is not committed,
+existing Feature Health and adhoc outputs. A local document is not committed,
 reviewed, deployed, or published merely because its path is durable. Wiki publication and its
 confirmed Work Item link remain separate. Do not migrate historical output in bulk.
 

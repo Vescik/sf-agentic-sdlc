@@ -113,11 +113,10 @@ only the ADO URL established by the source. On updates, preserve human notes out
 change and do not transfer an earlier review status to new content. No mandatory index,
 design template, or empty sections are added to existing free-form designs.
 
-`output/` remains ignored temporary storage, including monthly handover, Feature Health,
+`output/` remains ignored temporary storage, including Feature Health
 and adhoc fix notes. Do not migrate its historical drafts automatically. A document in
 `work-items/` is eligible for source control; the author verifies the actual local commit.
-A durable path or commit does not establish review, deployment, or publication. Wiki publishes selected documentation through a separate workflow; a local file
-does not remove a handover's `Missing Wiki Link` condition.
+A durable path or commit does not establish review, deployment, or publication. Wiki publishes selected documentation through a separate workflow.
 
 After a work item closes: review `decisions.md` and any `org-changes.md` — lessons promote to
 `docs/package-constraints.md` or `docs/package-concept.md`; the folder stays as the

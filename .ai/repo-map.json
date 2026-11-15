@@ -347,13 +347,6 @@
       "path": ".github/prompts/publish-wiki.prompt.md"
     },
     {
-      "agent": "test-strategist",
-      "argumentHint": "period=YYYY-MM",
-      "description": "Build a current monthly release handover from the configured saved ADO query and linked evidence.",
-      "name": "release-handover",
-      "path": ".github/prompts/release-handover.prompt.md"
-    },
-    {
       "agent": "designer",
       "argumentHint": "query=<text> [target=wiki|workitems|both] [top=<N>]",
       "description": "Text-search Azure DevOps wikis and work items in the configured project; fetched wiki pages are sanitized, cached, and quoted with provenance.",
@@ -401,14 +394,9 @@
       "path": ".github/skills/document-solution/SKILL.md"
     },
     {
-      "description": "Fetch and normalize one Azure DevOps work item or a one-level hierarchy with cache completeness, optional Test Case relations, and provenance. Internal context for documentation, coverage, and handover workflows; the public delivery intake additionally persists work-items/<id>-<slug>/ado-context.md.",
+      "description": "Fetch and normalize one Azure DevOps work item or a one-level hierarchy with cache completeness, optional Test Case relations, and provenance. Internal context for documentation and coverage workflows; the public delivery intake additionally persists work-items/<id>-<slug>/ado-context.md.",
       "name": "fetch-ado-item",
       "path": ".github/skills/fetch-ado-item/SKILL.md"
-    },
-    {
-      "description": "Compose a current, sourced monthly release-handover draft from the configured saved ADO query, per-item work evidence, linked technical wiki documentation, and formal Test Case relations without inventing missing scope or content.",
-      "name": "generate-release-handover",
-      "path": ".github/skills/generate-release-handover/SKILL.md"
     },
     {
       "description": "Generate or update durable technical documentation for one Salesforce work item, with or without a design, using the repository-root SFDX project, manifest, source components, current ADO context, tests, and human manual steps.",
@@ -467,16 +455,16 @@
     }
   ],
   "sourceDigests": {
-    ".ai/contracts/execution-contract.md": "sha256:42ef87b85f54ce51b87598ec13ae39565fd89d8dadeb6b7dea08a44b6c69d2f8",
+    ".ai/contracts/execution-contract.md": "sha256:ae6fa65793c47d2fde0ddd8531958f1152be780e451d8954bb4389554c5c0c02",
     ".ai/contracts/source-authority.md": "sha256:a44ef511a496cf3634ffa097a214fad075a97c5e0ac57c8e9e901e94a0627ed9",
-    ".ai/contracts/tool-capabilities.md": "sha256:381ad29c1c06b8768b2cff0a3828e3ba8f9dbf8c1911a7656267e7cf36d72bfa",
+    ".ai/contracts/tool-capabilities.md": "sha256:ca22283a323a76022e628611dfe73af0d887a0f856970801731b4df8cb3c4151",
     ".ai/contracts/writing-standard.md": "sha256:edf666b8198130c907f4f9bf52abc6572182dc1565025503870a0a54fdfa2b50",
     ".github/agents/config-investigator.agent.md": "sha256:81458cf422841cd5c6897e0a1e0c245749eebc1bc0347d3a6d9ec40d078352b0",
     ".github/agents/designer.agent.md": "sha256:9ca4c835eb103a4644b7a065aad4061f91600ed99dc8a70b2244532290a306eb",
-    ".github/agents/developer.agent.md": "sha256:6b1140ac92cb70c2c3168c14199361eaf99ea9f4813cbb3b3473832b3e7a5d1e",
+    ".github/agents/developer.agent.md": "sha256:70ec289db7be6f8ddf71120b01615cb86515b435847dc01e6685c1a587b54fc4",
     ".github/agents/git-agent.agent.md": "sha256:1497f5c7eaa6ce3420bd457cc87eb470b1d9bd443717712592aac11e59f20f12",
     ".github/agents/reviewer.agent.md": "sha256:a3f8c49dba3ed7a8af04977da458cb5eeb91eac0581a1da80c49a5bc3e737cf5",
-    ".github/agents/test-strategist.agent.md": "sha256:1b656b909af6ecb631aea6f1efc5c989a4c86327e2e9bd8ce12c26c5f21f9539",
+    ".github/agents/test-strategist.agent.md": "sha256:5f7761dd1dbcac04b0678df4e34e995643071794b8951eb40d2b63d2f9e2c31b",
     ".github/agents/workspace-maintainer.agent.md": "sha256:eb5a4689b09fc9b6a8ef20cc8677c21eb23b5038b7e93c591d208aaa95dd7a56",
     ".github/instructions/apex.instructions.md": "sha256:d28260c9247d670c71353f0cdaa22195f2490d4bb1b5bf11d403861602cda5b3",
     ".github/instructions/flows.instructions.md": "sha256:63c560e27041a9bf6e89342f0df491310f6a6fb3dc3d70d1a56f6c61d5788adc",
@@ -492,17 +480,15 @@
     ".github/prompts/prepare-delivery-feature.prompt.md": "sha256:13a7d188f0059a657db3c80bae0d4deb66cf4b8bd07f9a32f73f20cc96a8807c",
     ".github/prompts/prepare-qa-test-plan.prompt.md": "sha256:e962d5fba67694012c37f52c71ca3c58df4bf4696330070bdfae779e001a8ee1",
     ".github/prompts/publish-wiki.prompt.md": "sha256:97cea76b60027239a54f24f6c860f9fbc75195ef4dd8f66860637cc43511dc95",
-    ".github/prompts/release-handover.prompt.md": "sha256:723b90811dac3acd2a604baaa9dc5c35ed00640a9920755fefaaecbb01c5f18c",
     ".github/prompts/search-ado.prompt.md": "sha256:2542fd8b73bb7241a547dceb6c317ceae8846c52b8aa1b07fa5c8bf95ed0ac8e",
     ".github/prompts/solution-design.prompt.md": "sha256:f54634c6181b204cd034917505f52d489f0dadb00b906eefbdf208243fbc57e3",
     ".github/skills/adhoc-fix/SKILL.md": "sha256:3811b7bcbb2762511daeb182a4c683881bc4d2ffba1e4dae6e56e6b3330eb8a6",
     ".github/skills/check-against-principles/SKILL.md": "sha256:82979b23dcdb62ffd4f0c51a89d5466a355278c902b74ac6d8b51257b9fd93be",
     ".github/skills/check-feature-coverage/SKILL.md": "sha256:dadb77590f0f9644085c443a9648d16d040553c09e7e4a18f9ffa9c0ace3c3a6",
     ".github/skills/development/SKILL.md": "sha256:e468c8d0675aed6f2687b7007b28f6091ab3d4c8139a804194e3cc4b8ea947eb",
-    ".github/skills/document-solution/SKILL.md": "sha256:ece46aba33a3c9442e6729a89e7a190f339664fb18e29c4f6491b7a3c9796e39",
-    ".github/skills/fetch-ado-item/SKILL.md": "sha256:974c368daa869c5e42ad4936b349d4c432bb69151593b01f0eaaa5077fc52d37",
-    ".github/skills/generate-release-handover/SKILL.md": "sha256:ba3c0b9a6de0f73cde229e707c7877b078ffdb451f978f32f59b045bceffdfc5",
-    ".github/skills/generate-technical-documentation/SKILL.md": "sha256:2cbc660ba01cf0a5e01a42d67d95dfd1eb277b79aaa1131b82b03e77633e8fce",
+    ".github/skills/document-solution/SKILL.md": "sha256:b63c7cc9b8a7240a8016a2701e367d1120d212bb57c5e62bbe032be122a7287e",
+    ".github/skills/fetch-ado-item/SKILL.md": "sha256:0ed5c0f1ea725afe95650310162416ec57fe72a2cce472b48dd35d0f7c2cf809",
+    ".github/skills/generate-technical-documentation/SKILL.md": "sha256:da69b7c0d7f75ebdcb8aef8cbeb2cd50d9627048cf37388927940c08fdf603b1",
     ".github/skills/git-workflow/SKILL.md": "sha256:850776624b15408d9387c9ae480ab039db89362613d14356f7792f3428c899d6",
     ".github/skills/investigate-config-records/SKILL.md": "sha256:dce8d4abdb07f3fea63759d27d26b183a67ee5c5398540bb29ee934e4d03dfd3",
     ".github/skills/investigate-object/SKILL.md": "sha256:e304a38b16d30a7d9ae16cf979b23ae460d8faa95170daab8e4c3c97d963687f",
@@ -510,10 +496,10 @@
     ".github/skills/org-discovery/SKILL.md": "sha256:8a28ecfc658781afe0d1bae6284180cacd793ca430a0262e2484b21f7642b6fb",
     ".github/skills/prepare-delivery-feature/SKILL.md": "sha256:9ecb725d293d9043d65e1afe06891e0ca54b93d1c156d33f0c3b88eaf0799b8c",
     ".github/skills/prepare-qa-test-plan/SKILL.md": "sha256:76cc7d85bfa3af7742019e334fb8221183ca519d74962d02f7f68b465b857052",
-    ".github/skills/publish-wiki/SKILL.md": "sha256:7bd39686b5fa992ade3dc33a406b9bd74d9058988d2c62798a82989d8e7c07e6",
+    ".github/skills/publish-wiki/SKILL.md": "sha256:3e1693fec3b7a0b507d3c003b95dadae1a7f8f5b0c013a8def58cf8f7203a0bb",
     ".github/skills/search-ado/SKILL.md": "sha256:0479bf999a0969a4eadab293e71564745e66505633b960c67972e32dd9d65c75",
     ".github/skills/solution-design/SKILL.md": "sha256:a0c79907b13682a02bd82a973cadb8adb303c1e387e22547edbccc3090ef07c2",
     "config/repo-map-seed.json": "sha256:900d25d577d75b81254ab88bb141748a16c98096c26ab9467578580a2b0552dd"
   },
-  "wordCount": 743
+  "wordCount": 730
 }

@@ -43,7 +43,7 @@ Requested technical documentation belongs at
 rename it after an ADO title change. This optional document can describe existing state without
 creating a design or other lifecycle files. It is eligible for Git tracking, but its location
 does not establish review, deployment, or wiki publication. New references use the durable path.
-`output/` remains ignored temporary storage for reports such as monthly handover, Feature Health,
+`output/` remains ignored temporary storage for reports such as Feature Health
 and adhoc fix notes; historical drafts are not migrated automatically. Selected documentation
 can be published to wiki through its separate workflow.
 
@@ -52,7 +52,7 @@ can be published to wiki through its separate workflow.
 under a valid solution slug, without general `docs/` access. Reuse the same directory across
 Stories; Work Item and design context are optional. These plain Markdown files describe available
 implementation sources, including work on a branch that is not deployed. They do not replace
-delivery documentation or handover. Wiki publication remains separate.
+delivery documentation. Wiki publication remains separate.
 See the [document-solution skill](../.github/skills/document-solution/SKILL.md).
 
 The guarded Salesforce MCP launcher starts from `brain-core` and refuses to start when root

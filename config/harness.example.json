@@ -4,7 +4,6 @@
   "ado": {
     "organization": "<ADO_ORGANIZATION>",
     "project": "<ADO_PROJECT>",
-    "releaseQueryId": "<ADO_SAVED_QUERY_ID>",
     "allowedHttpsOrigins": [
       "https://dev.azure.com/<ADO_ORGANIZATION>"
     ]

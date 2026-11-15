@@ -131,19 +131,5 @@ class AdoCacheCompatibilityTests(unittest.TestCase):
                 del value["completeness"][key]
                 self.assert_invalid(value)
 
-    def test_handover_keeps_template_git_identity_but_not_query_revision(self):
-        value = fixture("output.release-handover.valid.json")
-        schema = json.loads((ROOT / "schemas" / "output-envelope.schema.json").read_text())
-        Draft202012Validator(schema, format_checker=FORMAT_CHECKER).validate(value)
-        query_refs = [ref for ref in value["sourceRefs"] if "/query/" in ref]
-        self.assertTrue(query_refs)
-        for ref in query_refs:
-            self.assertNotRegex(ref, r"@\d+$")
-        template_refs = [ref for ref in value["sourceRefs"] if ref.startswith("template:")]
-        self.assertEqual(1, len(template_refs))
-        self.assertRegex(template_refs[0], r"@[0-9a-f]{40}(?:\+dirty)?$")
-        self.assertIn("recordRevision", schema["$defs"]["recordRef"]["required"])
-
-
 if __name__ == "__main__":
     unittest.main()

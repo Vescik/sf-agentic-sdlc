@@ -300,7 +300,6 @@ class AdoLauncherTests(unittest.TestCase):
         proc, _ = self.start_launcher()
         config = copy.deepcopy(VALID_CONFIG)
         config["ado"]["allowedHttpsOrigins"].reverse()
-        config["ado"]["releaseQueryId"] = "new-query"
         config["salesforce"] = {"orgs": []}
         self.write_config(config)
         output, error = proc.communicate(b"still-current\n", timeout=5)

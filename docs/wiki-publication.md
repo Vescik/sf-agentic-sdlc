@@ -3,7 +3,7 @@
 Use `/publish-wiki` with the Developer in VS Code Local when you want to publish existing
 repository documentation. The request includes the necessary page and navigation updates.
 For delivery documentation, it also includes the existing Story link. It does not start a
-Salesforce deployment or change handover contracts.
+Salesforce deployment.
 
 ```text
 /publish-wiki docs/solutions/invoice-approval/
@@ -43,15 +43,15 @@ This requires no mandatory org read, SHA, approval ledger, or new status registr
 ## Delivery documentation and links
 
 `work-items/<id>-<slug>/technical-documentation.md` remains the document for one delivery.
-It can be published before deployment for handover. Publication preserves its existing format and
-adds or confirms the Story's link to that page. A local file alone does not clear `Missing Wiki Link`.
+It can be published before deployment. Publication preserves its existing format and
+adds or confirms the Story's link to that page. 
 Use the single published branch established by live wiki metadata. The Story artifact relation has
-no branch selector, so publishing a delivery page to another branch cannot establish its handover link.
+no branch selector, so publishing a delivery page to another branch cannot establish its Story link.
 Unknown or ambiguous published-branch metadata leaves that operation incomplete.
 
 Solution pages can link to Stories in their text. They do not automatically add Wiki relations that
-compete with the delivery document used by release handover. Existing duplicate or competing links
-are reported for resolution. Handover keeps its existing selection and missing-link behavior.
+compete with the delivery document. Existing duplicate or competing links are reported for
+resolution.
 Optional release notes are a short index of changes and links, not copies of the three pages.
 
 ## Existing content, conflicts, and results

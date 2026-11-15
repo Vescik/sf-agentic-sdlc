@@ -1,0 +1,248 @@
+name: Harness CI
+
+# Diff-aware routing (master plan 2026-08-12): one workflow is created for every PR and
+# default-branch push — never workflow-level path filters, which can leave a required
+# check permanently Pending. The classify job computes one authoritative change set;
+# job-level conditions select the lanes; the always-run "PR CI / Gate" job is the single
+# stable required-check candidate and fails when any required lane did not succeed.
+#
+# Path policy (fail-safe): only force-app/** (Salesforce lane) and work-items/**
+# (content, no heavy lane) are exempt from the full harness. Every other path —
+# including paths this file has never heard of — runs the full harness.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harness-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: Classify changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      salesforce_changed: ${{ steps.classify.outputs.salesforce_changed }}
+      full_harness_required: ${{ steps.classify.outputs.full_harness_required }}
+      content_only: ${{ steps.classify.outputs.content_only }}
+      integration_field_candidates: ${{ steps.classify.outputs.integration_field_candidates }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # Full history: the classifier diffs the immutable event SHAs (merge-base
+          # range), not a stale branch name or the GitHub changed-files API.
+          fetch-depth: 0
+
+      - name: Classify the commit range
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: python3 scripts/classify_ci_changes.py classify --event "$EVENT_NAME" --base "$BASE_SHA" --head "$HEAD_SHA"
+
+  salesforce:
+    name: Salesforce checks
+    needs: classify
+    if: needs.classify.outputs.salesforce_changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+
+      - name: Install validation dependencies
+        run: python -m pip install --disable-pip-version-check --require-hashes -r requirements-dev.lock
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install pinned Salesforce review runtime
+        run: npm ci --ignore-scripts
+
+      - name: Validate embedded Salesforce project tooling
+        run: |
+          npm run prettier:verify
+          npm run lint
+
+      - name: Run integration field impact check
+        # Advisory findings exit 0; checker integrity failures exit non-zero and fail
+        # this lane. Deliberately NO continue-on-error: a crashed checker must not be
+        # indistinguishable from a trustworthy green result.
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python scripts/check_integration_field_impact.py \
+            --registry config/integration-fields.yml \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --markdown-output "$RUNNER_TEMP/integration-field-impact.md"
+
+      - name: Publish integration field impact report
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/integration-field-impact.md" ]; then
+            cat "$RUNNER_TEMP/integration-field-impact.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  full-harness:
+    name: Validate brain-core contracts (${{ matrix.os }})
+    needs: classify
+    if: needs.classify.outputs.full_harness_required == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    # Headroom for the windows-latest leg: NTFS + Defender make file IO and process spawns
+    # (the facade subprocess tests) several times slower than ubuntu-latest, and runner noise
+    # varies between runs. (The 3000-entry benchmark gate that once justified 30 minutes left
+    # CI on 2026-08-04; the benchmark itself was retired on 2026-08-05.)
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+
+      - name: Install validation dependencies
+        # --require-hashes verifies every downloaded artifact against the pinned sha256 set,
+        # defeating index-substitution / version-hijack (matters most for the rpds-py binary wheel).
+        run: python -m pip install --disable-pip-version-check --require-hashes -r requirements-dev.lock
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install pinned Salesforce review runtime
+        run: npm ci --ignore-scripts
+
+      - name: Audit npm dependency tree
+        # Hard-fail on HIGH+ advisories in the production tree (tightened from critical on
+        # 2026-08-04 after the deps-hygiene lockfile refresh cleared every high). Known
+        # accepted residual: the moderate fast-xml-parser advisory on a 4.x copy nested in
+        # the MCP code-analyzer provider — unfixable in range from here, discovery
+        # 2026-08-04. Moderate stays non-blocking (it would flap on upstream churn).
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Compile Python controls
+        run: python -m compileall -q scripts tests
+
+      - name: Parse Salesforce MCP launcher
+        run: |
+          node --check scripts/start_ado_mcp.mjs
+          node --check scripts/start_salesforce_mcp.mjs
+          node --check scripts/knowledge_mcp_server.mjs
+
+      - name: Test and package native Salesforce operation tool
+        run: |
+          npm run native:test
+          npm run native:build
+          npm run native:package
+
+      - name: Validate harness structure and contracts
+        run: python scripts/validate_harness.py
+
+      - name: Validate knowledge entry integrity
+        # CI owns the Knowledge domain gates; the static validator does not re-run them.
+        run: python scripts/knowledge_store.py entry-check
+
+      - name: Validate knowledge feature integrity
+        run: python scripts/knowledge_store.py feature-check
+
+      - name: Validate knowledge search index drift
+        run: python scripts/knowledge_search.py build
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Run deterministic safety evaluations
+        run: python scripts/run_evals.py
+
+      - name: Validate embedded Salesforce project tooling
+        run: |
+          npm run prettier:verify
+          npm run lint
+
+      - name: Confirm local and generated state is ignored
+        shell: bash
+        run: |
+          # git check-ignore exits 0 if ANY argument is ignored, so check each path individually
+          # to catch a single path that stops being ignored.
+          for path in \
+            config/harness.local.json \
+            config/harness.json \
+            .cache/ado-items/example.json \
+            output/handover/example.md \
+            .env \
+            force-app/main/default/lwc/jsconfig.json \
+            deploy-options.json; do
+            git check-ignore -q "$path" || { echo "NOT IGNORED: $path"; exit 1; }
+          done
+          # Inverse canary: versioned Salesforce source must NOT be ignored. Exit code 1 is the
+          # only acceptable answer (0 = ignored, >1 = git error).
+          rc=0
+          git check-ignore -q force-app/main/default/classes/TrackedCanary.cls || rc=$?
+          if [ "$rc" -ne 1 ]; then
+            echo "Salesforce source path is unexpectedly ignored (or git check-ignore failed, rc=$rc): force-app/main/default/classes/TrackedCanary.cls"
+            exit 1
+          fi
+
+  gate:
+    # The single stable required-check candidate. The later ruleset requires only this
+    # context; lane implementation details can change without ruleset churn.
+    name: PR CI / Gate
+    needs: [classify, salesforce, full-harness]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Evaluate required lanes
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          SALESFORCE_REQUIRED: ${{ needs.classify.outputs.salesforce_changed }}
+          SALESFORCE_RESULT: ${{ needs.salesforce.result }}
+          FULL_HARNESS_REQUIRED: ${{ needs.classify.outputs.full_harness_required }}
+          FULL_HARNESS_RESULT: ${{ needs['full-harness'].result }}
+        # No pipe around the gate command: a pipeline would report the last command's
+        # exit status and could mask a failing gate. The decision lands in the job log;
+        # the summary is written afterwards from the captured output.
+        run: |
+          python3 scripts/classify_ci_changes.py gate \
+            --classify-result "$CLASSIFY_RESULT" \
+            --salesforce-required "$SALESFORCE_REQUIRED" \
+            --salesforce-result "$SALESFORCE_RESULT" \
+            --full-harness-required "$FULL_HARNESS_REQUIRED" \
+            --full-harness-result "$FULL_HARNESS_RESULT" > gate-decision.txt && status=0 || status=$?
+          cat gate-decision.txt
+          cat gate-decision.txt >> "$GITHUB_STEP_SUMMARY"
+          exit $status

@@ -1,0 +1,96 @@
+# Integration field registry — the single authority mapping integration-sensitive
+# Salesforce fields to the integrations that consume them.
+#
+# Ownership and update timing:
+# - The integration/platform owner named in each entry maintains that entry; review the
+#   whole registry quarterly (human process) and whenever an integration contract changes.
+# - Populate entries only from confirmed integration contracts — never from guesses.
+#   The bootstrap state below (integrations: {}) is intentional for a freshly copied
+#   workspace: the checker reports REGISTRY_EMPTY and does not claim "no impact".
+# - Fields are canonical, case-preserving `ObjectApiName.FieldApiName` strings
+#   (e.g. Account.External_Id__c). One field may appear under several integrations;
+#   duplicates within one integration are invalid.
+# - No credentials, endpoints, tokens, payloads, customer data, or org IDs belong here.
+#
+# MOCK DATA (2026-08-12): the entries below are placeholder/sample integrations added on
+# owner request to exercise the populated-registry path. They do NOT describe real
+# integration contracts — replace them with confirmed entries (or empty the map back to
+# `integrations: {}`) before relying on integration-impact coverage. While mock entries
+# are present the checker reports NO_REGISTERED_IMPACT / IMPACT_DETECTED against THIS
+# mock data, not against reality.
+
+version: 1
+
+integrations:
+  erp-customer-sync:
+    name: ERP Customer Sync (mock)
+    owner: integration-team
+    fields:
+      - Account.External_Id__c
+      - Account.ERP_Account_Number__c
+      - Contact.Customer_Number__c
+
+  billing-bridge:
+    name: Billing Bridge (mock)
+    owner: finance-platform-team
+    fields:
+      - Account.External_Id__c
+      - Invoice__c.Total_Amount__c
+      - Invoice__c.Billing_Cycle__c
+
+  marketing-audience-feed:
+    name: Marketing Audience Feed (mock)
+    owner: marketing-ops-team
+    fields:
+      - Contact.Email_Opt_In__c
+      - Contact.Segment_Code__c
+
+  data-warehouse-export:
+    name: Data Warehouse Export (mock)
+    owner: analytics-platform-team
+    fields:
+      - Account.External_Id__c
+      - Opportunity.Revenue_Category__c
+      - Case.Resolution_Code__c
+
+  document-generation:
+    name: Document Generation (mock)
+    owner: sales-tooling-team
+    fields:
+      - Opportunity.Contract_Reference__c
+      - Quote.Approval_Level__c
+
+  payment-gateway-sync:
+    name: Payment Gateway Sync (mock)
+    owner: finance-platform-team
+    fields:
+      - Invoice__c.Payment_Token__c
+      - Invoice__c.Settlement_Status__c
+
+  shipping-status-import:
+    name: Shipping Status Import (mock)
+    owner: logistics-team
+    fields:
+      - Order.Tracking_Number__c
+      - Order.Carrier_Code__c
+
+  support-ticket-mirror:
+    name: Support Ticket Mirror (mock)
+    owner: service-desk-team
+    fields:
+      - Case.External_Ticket_Id__c
+      - Case.Escalation_Tier__c
+
+  partner-portal-profile:
+    name: Partner Portal Profile (mock)
+    owner: partner-success-team
+    fields:
+      - Account.Partner_Tier__c
+      - Contact.Portal_Role__c
+
+  vendor-package-telemetry:
+    name: Vendor Package Telemetry (mock)
+    owner: platform-governance-team
+    fields:
+      - VendorNS__Subscription__c.VendorNS__License_Count__c
+      - VendorNS__Subscription__c.VendorNS__Renewal_Date__c

@@ -1,0 +1,39 @@
+{
+  "inputs": [
+    {
+      "id": "sf_review_org",
+      "type": "promptString",
+      "description": "Salesforce alias for the structured review facade; Developer write operations use direct sf/sfdx (the facade proves the live non-production identity before tool discovery)"
+    }
+  ],
+  "servers": {
+    "ado-readonly": {
+      "type": "stdio",
+      "command": "node",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "scripts/start_ado_mcp.mjs"
+      ]
+    },
+    "salesforce": {
+      "type": "stdio",
+      "command": "node",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "scripts/start_salesforce_mcp.mjs",
+        "--mode",
+        "review",
+        "--org",
+        "${input:sf_review_org}"
+      ]
+    },
+    "knowledge": {
+      "type": "stdio",
+      "command": "node",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "scripts/knowledge_mcp_server.mjs"
+      ]
+    }
+  }
+}

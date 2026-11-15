@@ -1,0 +1,122 @@
+# Compatibility Contract
+
+Status: normative
+Owner: harness maintainers
+Last verified against vendor documentation: 2026-07-10
+
+## Supported baseline
+
+| Component | Supported baseline | Notes |
+|---|---|---|
+| VS Code | 1.112+; certify current stable before rollout | Windows is the primary platform. Salesforce MCP is read-only; Developer Salesforce writes use reviewed CLI or the native operation tool. Requested Wiki publication uses its narrow ADO connector adaptation. |
+| GitHub Copilot | Consolidated `GitHub.copilot` extension bundled/supported by the chosen VS Code release | The old separate Copilot Chat prerequisite is not used. |
+| Python | 3.11+ | Runs validation, safety hooks, and tests using the standard library plus the dev requirement below. |
+| GitHub CLI | `gh`/`gh.exe` on PATH | Authentication is human-managed for the host in origin; no automatic login or token output. CLI/parser checks do not certify host approvals. |
+| PyYAML | `>=6,<7`; CI uses the lock file | Frontmatter and evaluation validation. |
+| jsonschema | `>=4,<5`; CI uses the lock file | Draft 2020-12 configuration/cache/output validation. |
+| Node.js | 22+ (`.nvmrc` pins 24) | MCP launchers and the ADO server run on Node; CI installs the `.nvmrc` version. |
+| Azure DevOps MCP | Local stdio `@azure-devops/mcp` 2.8.1, installed from `package-lock.json` and started through `node scripts/start_ado_mcp.mjs`; domains work-items/wiki/search (linked Test Cases read as Work Items) | The no-argument launcher reads one organization/project from local JSON and checks scope before vendor startup. It stops the old process after a scope change; restart `ado-readonly` in that workspace. Startup downloads no package. The installed vendor defaults to interactive OAuth in VS Code Local; Azure CLI login is not required. A local preload adapts only Wiki reads/writes and the delivery Wiki relation; role/safety hooks deny other mutations. See [Wiki publication](wiki-publication.md). |
+| Salesforce review facade | `scripts/salesforce_review_server.py` (REST) | Replaced the vendor-MCP child architecture (plan-2026-08-09, F-4); Salesforce CLI 2.136.8+ required for token access. |
+
+## Required Copilot capabilities
+
+- Repository and referenced instruction files
+- Custom agents with structured handoffs
+- Agent Skills and hidden internal skill commands
+- Prompt files with custom-agent selection
+- Subagent `agent` tool
+- Workspace and agent-scoped hooks
+- MCP servers and namespaced tools
+
+## Verification boundary
+
+Static validation in CI proves file shape and policy invariants. It does not prove that an
+installed VS Code build exposes every tool. Before a developer pilot, open **Chat: Open
+Customizations** and **Chat Diagnostics** on each supported platform and record:
+
+- all eight custom agents and the current prompt/skill catalog validated by
+  `scripts/validate_harness.py`; no missing or duplicated registrations;
+- no unresolved tool, handoff, frontmatter, hook, or MCP diagnostic;
+- one successful harmless read call through each configured external server.
+
+The harness configures no write-mode Salesforce MCP server in the first cutover. The Developer
+uses direct `sf`/`sfdx` for deployments, record mutations, Apex, package operations, and org
+lifecycle on `dev`/`uat`/`stage`. Production CLI permits only verified metadata retrieve;
+other production reads use existing MCP within role limits. Test Strategist cannot use
+production, including MCP. The global hook asks before every nonprod real deploy and includes target, scope, and a clear
+warning that changes will be deployed to the org. Each invocation requires fresh confirmation;
+dry runs, retrieve, status/report/resume/cancel, and data mutations do not. The configured facade
+remains read-only and is preferred for structured evidence. Browser automation tooling remains
+denied outright.
+
+Governed Salesforce/ADO work and protected non-Git edits require repository custom agents
+within their role limits. Built-in/default Agent mode is unsupported for those capabilities.
+This restriction does not apply to Git/gh commands, which use message-only validation as
+specified below. Use the credential-free portable pilot for rejection tests and least-privileged
+real accounts for owner-side destination checks. Hooks are not a general shell sandbox.
+
+## Git/gh role and host acceptance
+
+All eight agents expose terminal access for all Git/gh commands. Hooks validate only commit
+messages, with no role, branch, path, staging, commit-option, working-directory, repository,
+or PR gate. Git does not depend on Salesforce/ADO configuration. Install the local
+`commit-msg` hook to check final messages produced by an editor, file, or Git itself:
+`python3 scripts/install_git_message_hook.py` (`python` on Windows). Standard Git hook-skipping
+behavior remains; this is not a server-side guarantee for every commit path.
+
+Push, PR publication/update, merge, and destructive actions require an explicit human
+instruction. A review request remains a review. Knowledge lifecycle and source editor
+permissions are unchanged. Git Agent's editor exception remains `.cache/github/pr-body.md`.
+Native terminal approval is separate from these repository hooks. The canonical procedure is
+[Git Workflow](../.github/skills/git-workflow/SKILL.md).
+
+Use a fresh trusted VS Code Local session for each platform: record VS Code/Copilot/Git/gh/Python
+versions, effective prompt tools, terminal payload name, and both hook results. Exercise bootstrap
+and commits in a temporary repository, plus a literal description containing command-like words.
+Test requested PR writes only in the specifically authorized pilot repository/branches; record
+actual remote state and failures. Windows and macOS host evidence are separate; unit/CLI checks
+alone do not verify either platform or remote writes.
+
+## Upgrade policy
+
+Do not use `latest` for runtime dependencies in the shared workspace. `requirements-dev.txt`
+declares supported ranges; `requirements-dev.lock` pins CI's resolved set. Upgrade one component
+at a time, run static tests plus the behavioral evaluation suite, update the lock and this file,
+and retain the previous pinned version until the pilot evidence is accepted.
+
+The lock is **hash-pinned**: CI and SETUP install with `pip install --require-hashes`, which
+verifies every downloaded artifact's sha256 (regenerate the `--hash` lines from the PyPI JSON API
+as noted in `requirements-dev.txt` when bumping a pin). `typing_extensions` appears in the lock
+only as a transitive of `referencing` under `python_version < '3.13'`; on Python 3.13+ it drops
+out of the resolved set automatically. Supply-chain monitoring runs continuously via
+`.github/dependabot.yml` (pip, npm, github-actions) plus a `npm audit --audit-level=critical` CI
+gate; lower-severity npm advisories in the remaining npm tree (`@azure-devops/mcp`) are tracked by
+Dependabot rather than hard-failing CI. (The former largest npm subtree, the vendor Salesforce MCP,
+was removed with the REST facade rewrite - plan-2026-08-09 F-4.)
+
+The current 24 non-critical npm findings were investigated on 2026-07-13 and are a recorded,
+accepted risk: all are transitive to vendor-pinned Salesforce tooling, no stable upgrade resolves
+them, and an in-range update was tested and rejected because it worsened the posture. See the
+2026-07-13 entry in `.ai/memory/decisions-log.md` before attempting another upgrade.
+
+## Production read-only migration and acceptance
+
+Use [the production access contract](production-read-only.md) before org operations.
+Canonical environment values are `dev`, `uat`, `stage`, `prod`; aliases remain unchanged.
+Old `production` stays protected. Legacy `qa` requires a deliberate assignment by org purpose.
+VS Code Local approval binding, host failure/timeout behavior and Windows/macOS acceptance
+are NOT VERIFIED. Deterministic tests are not proof of host enforcement.
+
+For a copied template, use the [credential-free portable pilot](production-policy-pilot.md).
+Generate it on the destination machine; do not copy the author's private config or Python paths.
+It distinguishes process tests, Local host evidence and real-org installation checks.
+
+
+## Native one-operation Salesforce tool (plan 01a)
+
+Install the reviewed local VSIX using [the native operation guide](native-salesforce-operations.md) when Developer
+needs an unconfigured environment question or supported latest-job operation. The tool owns
+native dialogs and one invocation's dispatch; terminal helpers and model-supplied approval or
+environment fields remain forbidden. Existing production retrieve-only and MCP role limits apply.
+Local tests/build are separate from actual VS Code Local and live-org acceptance; consult the
+current plan 01a handoff before claiming either verified.

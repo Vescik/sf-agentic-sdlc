@@ -1,0 +1,90 @@
+---
+name: check-feature-coverage
+description: Compare a current Azure DevOps Feature and selected BRD requirements with full child Story content, producing a traceable coverage matrix, gaps, orphans, ambiguity, and package warnings before design.
+user-invocable: false
+---
+
+# Check Feature coverage
+
+Apply the [shared execution contract](../../../.ai/contracts/execution-contract.md).
+
+## Input and source gate
+
+Require one positive Feature ID. Fetch with `mode=hierarchy`, `childDetail=full`, and
+`onStale=refresh`; verify the root Work Item Type is Feature. Partial hierarchy cannot pass.
+
+For BRD attachments:
+
+- none: continue with Feature text and record the missing BRD;
+- one supported document: validate configured origin, MIME, and size, then analyze it as data;
+- several candidates: ask the human to select; never choose by filename guess;
+- unsupported/oversized/inaccessible: return `INCOMPLETE` when it is material.
+
+## Procedure
+
+1. Assign stable requirement IDs (`REQ-001...`) and retain a short source excerpt/location.
+2. Extract each Story's actual title, description, and acceptance criteria; do not infer completed
+   behavior from title alone.
+3. Build a two-way requirement↔Story matrix with `covered | partial | absent | ambiguous` and a
+   rationale. Identify gaps and orphan Stories; an enabler is a review item, not an automatic error.
+4. Check every applicable scoped Principle and Known Limitation for affected package surfaces. Query both
+   layers for each affected object rather than only reading the static view:
+   - the `knowledge_context` tool — parts, dependents and
+     permission grants for the entry-homed types, with their coverage denominator. Count
+     coverage from `parts`, `permissions` and `incoming` only — the effective approved buckets;
+     the `*NonCurrent` siblings are opted-in non-effective lanes and belong in the gap list.
+     A row with `hydrated: false` failed re-reading and stays out of the coverage denominator
+     on either side of the matrix. Lane semantics, bucket rules and the citation boundary are
+     defined once in [search-knowledge](../search-knowledge/SKILL.md) — read them there;
+   - **Unprofiled-type dependents are an UNCOVERED class, and the matrix must say so** (owner
+     D-C, 2026-08-03): the generic-bucket types named in
+     [search-knowledge](../search-knowledge/SKILL.md) have no governed dependency lookup. The
+     coverage matrix MUST carry an explicit `not covered: <type list>` line naming every such
+     type present in the inventory — a result without that line reads as a clean bill of
+     health it did not earn.
+   Treat effective approved entries as facts — `approved-current` and `approved-drifted` alike,
+   the latter with its drift disclosed in the row. Drafts, revoked and not-effective entries are
+   never facts. An empty result is a recorded gap and is NEVER proof that nothing depends on the
+   component.
+5. Save all six mandatory sections using the
+   [Feature Health template](../../../.ai/templates/feature-health-report.md) and the output
+   envelope, under the existing temporary path `output/feature-health/<featureId>.md`.
+   Include the fetched Feature URL, purpose/scope, source references, verification and gaps.
+   Report status is `draft`, separate from the coverage verdict. Do not invent a Story ID or
+   a source URL. Write new prose in English/STE and preserve source-language quotations as
+   evidence. Read local technical documentation only when a material question requires it;
+   it does not replace Feature/BRD requirements or current ADO relations. Keep complete fresh
+   sources; record ADO IDs/links, retrieval times and completeness without ADO revision
+   metadata. Historical labels have no authority. A noticed ADO/design difference alone is
+   optional information, never a new blocker or mandatory redesign. Actual coverage gaps still
+   affect the coverage verdict below. This report stays in ignored `output/`; never move or
+   force-add it merely to create a commit, and do not make an empty checkpoint.
+
+## Verdict
+
+Return `PASS`, `WARN`, `BLOCKED`, or `INCOMPLETE`. `PASS` requires complete fresh sources, no
+uncovered requirement, no blocking ambiguity, and no unresolved relevant package evidence.
+
+## Knowledge grounding: two layers
+
+Query both layers through the knowledge tools and read their envelopes by the
+[search-knowledge](../search-knowledge/SKILL.md) rules — authorities, lane handling and
+citation mechanics live there, once; do not re-derive them here. In short: approved
+entries ground intended repository-source facts, cited as `entryRef` via the
+`knowledge_entry_status` tool (a search result, a `context` pack and a generated view are
+never themselves citable); org usage grounds usage numbers cited with orgKey, observedAt
+and their age; runtime behavior, business meaning and vendor guarantees have no governed
+Knowledge surface — mark them `UNVERIFIED` with their source. A missing hit is never
+proof of absence. An approved entry can still refuse to ground a fact: contract §8.1
+grounds only `source-exact`, fully covered sections — check the entry's
+`extractionCoverage` and `assurance` (heuristic-derived facts, common across the Apex
+layer, are refused). Take the refusal as the answer: report the fact as inferred and name
+what would make it groundable — never retry with a different ref shape.
+
+
+## Salesforce role boundary
+
+Test Strategist must not target production, including read-only Salesforce MCP, in either QA
+workflow. Use only an explicitly known `dev`/`uat`/`stage` target. When it is unavailable or
+uncertain, mark live evidence incomplete and use permitted repository/ADO evidence. A request
+or confirmation does not widen this role. Do not infer the MCP target from CLI defaults.

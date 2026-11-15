@@ -1,0 +1,325 @@
+# Setup and Operations
+
+## 1. Prerequisites
+
+- VS Code 1.112+; certify current stable for team rollout. Windows is the primary platform. The
+  configured MCP surface is read-only by construction on every platform (no write-mode Salesforce
+  MCP server exists).
+- Consolidated GitHub Copilot extension and the recommendations in `.vscode/extensions.json`.
+- GitHub CLI `gh` (or `gh.exe`) on PATH for repository/PR work. Check `gh --version` and
+  `gh auth status` for the host used by `origin`; the human configures authentication. Never
+  paste tokens into chat or files. Merge requires support for `--match-head-commit`.
+- Git, Python 3.11+, Node.js 22+ (the MCP launchers and the ADO server run on Node), and Salesforce CLI 2.136.8+ (the review facade needs `sf org auth show-access-token`).
+  On Windows both install flavors are supported — npm (`sf.cmd`) and the installer (`sf.exe`);
+  the review server resolves whichever `where.exe sf` would find first.
+- **Windows is a first-class runtime, not best-effort**: CI runs the full gate
+  (validation, unit suite, evals, hash-locked install) on a `windows-latest` leg, and
+  `docs/windows-setup.md` is the platform runbook.
+- Local Salesforce CLI authorization for the explicitly selected orgs within role limits. Authenticate manually;
+  never give credentials or session material to an agent.
+
+Use a dedicated pilot OS account, VM, or container and least-privileged Salesforce users. The
+human owns the authorization inventory. Production is available only through verified CLI metadata
+retrieve and existing read-only MCP within role limits; Test Strategist cannot target production.
+Do not use built-in/default Agent mode or an arbitrary terminal for governed external work. Use
+`docs/production-policy-pilot.md` for credential-free denial and confirmation checks.
+
+See [docs/compatibility.md](docs/compatibility.md) for the tested contract.
+
+> **Runtime enforcement depends on your VS Code build.** The custom-agent/tool hooks
+> (`.github/hooks/`, `chat.hookFilesLocations`, `chat.useCustomAgentHooks`) are recent/preview
+> Copilot surfaces. Where a build does not implement them, they are silently ignored and the guard
+> scripts never run — reducing the harness to prompt-level guidance. Before relying on this
+> workspace for governed work, verify in your exact VS Code version that (a) each `chat.*`
+> customization key resolves in the Settings UI (no "Unknown Configuration Setting") and (b) the
+> `PreToolUse` hooks actually fire. If unsupported, treat the corresponding controls as advisory
+> and enforce equivalents inside the MCP wrapper scripts. The `scripts/*_guard.py` and
+> `scripts/copilot_safety_hook.py` logic has local test coverage; host invocation, approval
+> binding and timeout behavior require separate proof. Developer mutations are limited to
+> `dev`/`uat`/`stage`; production CLI permits only verified metadata retrieve. Read the acceptance
+> gaps in `docs/production-read-only.md` before using this template for governed operations.
+
+## 2. Clone and workspace layout
+
+```bash
+git clone <your-fork-url> sf-harness-brain-core
+code sf-harness-brain-core/sf-harness.code-workspace
+```
+
+This is one Git repository and one Salesforce DX project. The repository root is the SFDX root;
+do not create a nested Salesforce project or clone a second metadata repository. The workspace
+presents exactly one named folder: `brain-core` → repository root (`.`).
+
+Opening `sf-harness.code-workspace` is preferred, but opening the repository folder directly is
+supported. MCP servers and tasks use `${workspaceFolder}` without a folder-name qualifier, so the
+folder does not need to be displayed as `brain-core` for variable resolution.
+
+Confirm `sfdx-project.json`, `force-app/`, `manifest/package.xml`, and `tests/e2e/` are present at
+the repository root before continuing. Metadata-dependent skills reject a missing or ambiguous
+root rather than searching subfolders, parent directories, sibling directories, or other checkouts.
+
+## 3. Local configuration
+
+From the repository root, create `config/harness.local.json` from `config/harness.example.json`
+only if the local file does not exist. Keep existing settings and replace unresolved placeholders
+with approved values. Keep
+`workspace.salesforceRootName` set to `brain-core`; manifest and promoted-test paths are relative
+to the repository/SFDX root. Select the read facade target explicitly within the active role's
+permissions; production access follows `docs/production-read-only.md`. An org entry is
+`{alias, environment}`; the identity pins (`expectedInstanceHost` + `expectedOrganizationId`)
+are optional and travel together — with pins the facade holds the alias to that exact org,
+without them it freezes the live-discovered identity for the session. Configure the package
+namespaces and component API-name allowlist, and keep the review API version/current evidence
+window deliberate. The write-mode Salesforce MCP lane remains retired. The Developer uses direct
+`sf`/`sfdx` for org changes; every real deploy requires fresh target-and-scope chat confirmation.
+
+The operator selects the exact read-facade alias. Startup proves the live org identity and checks
+configured pins when present; production MCP reads are permitted within the active role's limits.
+`salesforce.review.deniedOrganizationIds` still blocks specific organization IDs regardless of alias.
+Configured environments are `dev`, `uat`, `stage`, `prod`; aliases are arbitrary names, never roles.
+See `docs/production-read-only.md` for legacy migration and the separate unknown-CLI-target limit.
+
+The checked-in `manifest/package.xml` is only a generic starter. Narrow it to the exact components
+the approved design (`work-items/<id>-<slug>/design.md`) names before retrieve, validation, or
+deployment; a wildcard does not grant
+scope and must not be used as a substitute for claim-backed ownership or human approval. Deploys
+are performed by a human, and that human review is where manifest narrowing is checked (the
+automated wildcard gate retired with the write capability, 2026-08-04).
+
+**Migration note (2026-08-05).** The config schema is fail-closed: retired keys are rejected,
+not tolerated. If your existing `config/harness.local.json` predates 2026-08-05, delete these
+keys wherever they appear, or the config schema check in `first_launch.py` reports errors: per-org
+`allowAgentRead`/`allowAgentWrite`/`allowAgentReview`, `review.allowAnyNonProduction`,
+`review.maxObjectsPerCall`, `safety.browserSessionApproval`, `safety.batchDevToolApproval`,
+`cache.adoItemMaxAgeMinutes`, `cache.testCaseMaxAgeMinutes`, `workspace.promotedTestsPath`,
+and the whole `browser` section.
+
+The file holds identifiers, allowlists, and paths, not secrets. ADO uses the connector's
+interactive OAuth flow in VS Code Local. Salesforce uses existing CLI authorization.
+Alias names and environment labels are not identity proof. Salesforce MCP startup checks local
+authorization against live org identity and `Organization.IsSandbox`, with configured pins and
+explicit denylist checks. `IsSandbox=false` alone does not distinguish production from Developer
+Edition; technical org type never overrides the configured production CLI policy. The Developer uses direct `sf`/`sfdx` for org operations; the configured
+MCP remains the structured read/evidence path.
+
+Set `ado.organization` and `ado.project` in `config/harness.local.json`. Use the organization
+slug, such as `example-org`, and the project name. This file is the only ADO target configuration.
+Each workspace supports one organization and one project. Use a separate workspace for another scope.
+Include `https://dev.azure.com/<your-org-slug>` in `ado.allowedHttpsOrigins`. The onboarding
+script replaces old ADO origins when you change the organization and preserves other approved HTTPS origins.
+
+VS Code starts `scripts/start_ado_mcp.mjs` without arguments. The launcher validates the local
+scope before it starts the installed vendor server. It reports configuration errors on stderr.
+Correct the named field in the existing file. Do not replace your local file with the example.
+
+Restart `ado-readonly` after changing `ado.organization` or `ado.project`. The launcher stops
+the old process when it detects a scope change. Restart only that workspace's ADO server.
+The retired `ADO_ORGANIZATION` variable is ignored, including conflicting values. You can leave
+it in place for other tools. No shell profile change or system environment synchronization is needed.
+
+## 4. Install validation dependencies
+
+**Guided quick start (all platforms):** instead of the manual steps below, run the onboarding
+script from the repository root, which checks prerequisites, installs the pinned dependencies,
+creates `config/harness.local.json`, collects your ADO settings, walks you through authorizing
+each selected org (auto-filling its live host and org ID with explicit environment classification),
+and runs the verification gates.
+
+> **Developer Edition orgs:** the script records them like any other non-production org
+> (host + organization ID; `IsSandbox=false` is expected there). A config entry is optional
+> for reading — an unlisted alias is proven live by the facade — but only configured entries
+> can anchor Knowledge org snapshots. To sanity-check an alias
+> up front, run `python scripts/verify_salesforce_org.py --org <alias>`.
+
+```bash
+python scripts/first_launch.py
+```
+
+It is plain Python (no PowerShell execution policy involved), works on Windows, macOS, and Linux,
+and is a human-run helper only (not an agent tool). Re-run it any time to add an org or update
+ADO settings. New to all of this? Follow the zero-assumptions walkthrough in
+[docs/setup-zero-to-first-prompt.md](docs/setup-zero-to-first-prompt.md) instead. To do the same
+steps by hand:
+
+```bash
+python -m venv .venv
+# macOS/Linux: source .venv/bin/activate
+# Windows (cmd.exe): .venv\Scripts\activate.bat
+#   PowerShell is policy-blocked on team machines - do not use Activate.ps1.
+#   Activation is optional anyway: .venv\Scripts\python.exe works directly, and the
+#   MCP launchers resolve the .venv interpreter themselves without activation.
+python -m pip install --require-hashes -r requirements-dev.lock
+npm ci --ignore-scripts
+python scripts/validate_harness.py           # static repository structure and safety wiring
+python scripts/knowledge_store.py entry-check    # Knowledge entry integrity (CI runs this too)
+python scripts/knowledge_store.py feature-check  # Knowledge feature integrity (CI runs this too)
+python -m unittest discover -s tests -v      # unit tests
+python scripts/run_evals.py                  # deterministic safety evals
+npm run prettier:verify
+npm run lint
+```
+
+Use `python` on Windows (the python.org installer puts `python` on PATH; this repo does not rely on
+the `py` launcher or `python3`). The same
+commands are available through `Terminal: Run Task` as Harness: Validate, Harness: Test, and
+Harness: Evals.
+
+There is no separate readiness step before a workflow: the Salesforce review MCP proves the
+selected org's live identity before tool discovery, and ADO scope is checked on every
+tool call. To diagnose one org by hand, run
+`python scripts/verify_salesforce_org.py --org <alias>`.
+
+## 5. Verify Copilot customizations
+
+1. Trust the cloned repository only after reviewing it; the single named workspace folder
+   `brain-core` resolves to its root.
+2. Open **Chat: Open Customizations** / Chat Diagnostics.
+3. Confirm exactly seven agents, eighteen public prompts, twenty-two internal skills, three Principle
+   files, the safety hook, and two read-only MCP servers without diagnostics.
+4. Confirm `/` shows the eighteen prompts once each and their argument hints.
+5. Run one harmless ADO read, then the three bounded Salesforce review calls against the configured
+   synthetic/pilot component. Confirm no raw CLI/alias or sensitive payload appears in Chat.
+6. Use the controlled executor in `docs/production-policy-pilot.md` for denial/deploy canaries.
+   Production query and deploy are denied; only verified metadata retrieve can pass CLI policy.
+   On `dev`/`uat`/`stage`, reviewed dry-run may pass and real deploy asks for exact target/scope
+   confirmation. Test permitted MCP reads separately; Test Strategist cannot target production.
+   A synthetic executor is not host approval or live Salesforce proof.
+
+### Reducing approval clicks (auto-approval)
+
+The workspace pre-approves its own guarded scripts so agents run them without a confirmation
+click, via `chat.tools.terminal.autoApprove` in `.vscode/settings.json`:
+
+- Auto-approved: `knowledge_store.py`
+  (except `entry-approve`/`feature-approve`/`entry-revoke`/`feature-revoke` — those stay on the
+  chat-confirmation lane), `knowledge_search.py` (read-only), and `force_app_knowledge.py`. The
+  regexes are anchored and reject shell metacharacters, so chained or redirected commands never
+  auto-run.
+- Direct `sf`/`sfdx` has a terminal auto-approval rule, but policy still denies forbidden production
+  operations, unresolved targets and identity errors before deployment confirmation. Nonprod real
+  deploys return `ask`. One-use host approval binding needs destination verification; a saved
+  approval is not evidence of authorization. Recursive deletion and remote-history rewriting remain denied.
+- Git/gh role permission and terminal auto-approval are separate. Authors start scoped local
+  stage/commit themselves, but native terminal approval may still appear. Keep the two workspace
+  settings copies consistent; do not add shared gh/add/commit auto-approval or `git=true`/`gh=true`.
+- **Do not** enable `chat.tools.global.autoApprove` / `/yolo` — that blanket-approves everything,
+  including destructive actions, and defeats the model.
+
+**MCP read-only tools** cannot be pre-approved from a committed setting (VS Code has no per-tool
+`mcp.json` field yet — it is an open feature request). To stop the per-call prompt, approve them
+once interactively: run **Chat: Manage Tool Approval**, expand `salesforce` and
+`ado-readonly`, and trust all tools from those two servers at **workspace** scope. This choice
+persists per workspace. (These are the only configured MCP servers. The local ADO server has no
+server-side read-only mode — read-only remains harness policy enforced by the hooks, an accepted
+owner decision of 2026-07-14.)
+
+## 6. External runtimes
+
+- `ado-readonly` starts through `scripts/start_ado_mcp.mjs`. It runs the installed stdio
+  `@azure-devops/mcp` 2.8.1, pinned in `package-lock.json`, with the `work-items`, `wiki`,
+  and `search` domains. Startup does not download a package. In VS Code Local, the vendor
+  defaults to interactive OAuth. Complete its sign-in prompt with your own account.
+  Azure CLI login is not a prerequisite. Never put tokens, PATs, or passwords in local JSON.
+  Local validation does not prove authentication or ADO access. After setup or migration,
+  read one Work Item and one wiki page in the configured project.
+- `salesforce` starts through `scripts/salesforce_review_server.py` (via the interpreter-resolving launcher). It binds one exact
+  selected org within the active role's permissions and exposes identity, configured-package,
+  allowlisted-object review, composed read-only SOQL (`review_soql_query`), and (when
+  `safety.allowScopedEnumeration` is enabled) a configured-orgs listing built purely
+  from local configuration. At startup it checks the CLI version, obtains a token, reads the
+  configured org identity, and proves that identity live over REST before exposing tools. It
+  redacts raw authorization/identity payloads and returns `VERIFIED`, `MISMATCH`, `INCOMPLETE`,
+  or `BLOCKED`. Fixed runtime bounds are 60 seconds for CLI calls, 30 seconds for REST reads,
+  15 seconds for token refresh, and at most 45 seconds for one composed SOQL query.
+- The Developer receives direct `sf`/`sfdx`; other roles keep their narrower tool contracts.
+  The read facade remains preferred for bounded, structured evidence. MCP/CLI agreement is
+  transport corroboration from the same org, not independent package/business authority.
+- `knowledge` starts through `scripts/knowledge_mcp_server.mjs` and is the primary read
+  surface over governed Knowledge (context/search/impact/resolve/entry-status plus the
+  curator deep-dive set) — read-only by construction, binds no org, takes no secrets. VS Code
+  asks for one-time trust on first start. Copilot CLI reads the same server from
+  `.github/mcp.json` (it does not read `.vscode/mcp.json`). The server resolves its Python
+  interpreter at startup (`KNOWLEDGE_MCP_PYTHON` env override → repo `.venv` → `py -3` →
+  `python3` → `python`) and **refuses to start** when none can `import yaml` — run
+  `python scripts/first_launch.py` (or `pip install -r requirements-dev.txt`) and restart the
+  server; the terminal command menu in the search-knowledge skill is the operator fallback.
+- Record-level reads for design/development context run through the facade's
+  `review_soql_query` tool (the CLI `salesforce_read.py` lane was retired 2026-08-04).
+  There is no write-mode Salesforce MCP server in the first cutover. The Developer uses direct
+  CLI for reviewed deploys, data mutations, Apex, package work, and org lifecycle on
+  `dev`/`uat`/`stage`. Production CLI permits only verified retrieve; other production reads use
+  existing MCP within role limits. The safety hook asks
+  before every real deploy with the exact target and scope; dry runs, retrieve, deploy status,
+  cancel, and data mutations do not use that deployment-specific gate. The legacy
+  `scripts/validate_salesforce_deploy.py` helper remains optional for check-only validation.
+- Browser tooling is not available in this harness: direct browser/Playwright/automation commands
+  and browser-named MCP tools are denied by the global safety hook (the guarded browser lane was
+  removed 2026-08-05).
+
+## 7. Team workflow
+
+- The active author follows [Git Workflow](.github/skills/git-workflow/SKILL.md) to inspect the
+  checkout and confirm its base, then prepare/resume the proper branch. Do not commit directly
+  to `main`, or pull/reset/stash as an automatic fix for a dirty or divergent checkout.
+- After a coherent permitted intake, design, code, test, plan, or documentation result and
+  verification, the author stages exact files and commits locally without a separate request.
+  Git Agent is optional assistance; Reviewer is read-only and Knowledge keeps its existing lane.
+- Investigators draft Knowledge as one-file entries through the governed `knowledge_store.py`
+  lanes (`entry-draft`/`draft --component`; the v1 claim registry retired 2026-08-03). Approval
+  needs a human either way: the agent may request the digest-pinned
+  `knowledge_store.py entry-approve`/`feature-approve` and the safety hook stops it for your
+  confirmation click (recorded as `copilot-chat-entry-confirmation` with the
+  `knowledge.chatReviewer` name from local config). Raw cache and unreviewed `output/` remain
+  ignored.
+- Durable scope lives in `work-items/<id>-<slug>/`: `ado-context.md` for the ADO requirement
+  snapshot (ADO-backed work, written by `/fetch-ado-item`), `design.md` for intent and scope,
+  `tasks.md` for the execution plan, `decisions.md` for deviations. Human review happens on the pull request
+  that carries those files next to the metadata; Knowledge approvals keep their own digest-pinned
+  chat confirmation.
+
+  The global Copilot hook always denies agent-originated invocation of this subcommand. Approval
+  never comes from chat text, an agent confirmation, or a manually edited record. In the current
+  controlled pilot the approver identity/reference is human-asserted and hash-bound, not verified
+  through a provider API or signature; close that identity-authenticity gate before team-wide use.
+- Run validation and tests before pushing.
+- Explicitly ask the executing author to publish/update a PR or merge when intended. One request
+  may cover both operations; a publication-only request never implies merge. The author uses
+  `gh`, verifies the exact repository/PR/head/base and requirements, and reports actual remote
+  state. A completed milestone or passing CI does not trigger publication or merge.
+- Obtain the review required by repository governance. Ready is not review or merge approval;
+  criteria for automatic Ready remain a separate workflow.
+- Never use broad `git add -A` in a mixed workspace; stage intentional paths.
+
+## 8. Troubleshooting
+
+- Missing customizations: check VS Code version, workspace file, Settings UI, and Chat Diagnostics.
+- MCP server missing: run `MCP: List Servers`; validate local config and OAuth/CLI authorization.
+  If VS Code reports that `workspaceFolder` cannot be resolved, pull the current configuration,
+  confirm `.vscode/mcp.json` contains `${workspaceFolder}` without `:brain-core`, then restart the
+  MCP server or reload the window.
+- Salesforce review blocked: verify the exact alias, expected hostname/organization ID, review
+  permission, package namespace, component allowlist, and pinned runtime. Never claim the missing
+  review evidence by bypassing the facade with raw MCP, `ALLOW_ALL_ORGS`, a default org, or direct
+  CLI. The Developer's separate CLI write capability does not turn a blocked review into evidence.
+- Salesforce project missing: restore root `sfdx-project.json`, `force-app/`, `manifest/`, and
+  `tests/e2e/` from this repository; do not fall back to a subfolder, parent/sibling directory, or
+  second checkout.
+- Tool startup or call failure (Salesforce MCP refusing to start, ADO scope denied): fix the
+  reported dependency/configuration; do not ask the model to bypass it.
+
+## 9. Human-owned rollout blockers
+
+Before a real developer pilot, provide company naming/review policy, shared-sandbox coordination,
+the real package/component ownership and risk registry with version-scoped sources, ADO
+project/query, and approved Salesforce aliases. The harness will remain conservative while any
+relevant value is unknown.
+
+
+## Native one-operation Salesforce tool (plan 01a)
+
+Install the reviewed local VSIX using [the native operation guide](docs/native-salesforce-operations.md) when Developer
+needs an unconfigured environment question or supported latest-job operation. The tool owns
+native dialogs and one invocation's dispatch; terminal helpers and model-supplied approval or
+environment fields remain forbidden. Existing production retrieve-only and MCP role limits apply.
+Local tests/build are separate from actual VS Code Local and live-org acceptance; consult the
+current plan 01a handoff before claiming either verified.

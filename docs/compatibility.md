@@ -65,7 +65,7 @@ or PR gate. Git does not depend on Salesforce/ADO configuration. Install the loc
 behavior remains; this is not a server-side guarantee for every commit path.
 
 Push, PR publication/update, merge, and destructive actions require an explicit human
-instruction. A review request remains a review. Knowledge lifecycle and source editor
+instruction. A review request remains a review. Source editor
 permissions are unchanged. Git Agent's editor exception remains `.cache/github/pr-body.md`.
 Native terminal approval is separate from these repository hooks. The canonical procedure is
 [Git Workflow](../.github/skills/git-workflow/SKILL.md).

@@ -12,7 +12,7 @@ guard is the enforcement point; this skill is the procedure, never a substitute 
 1. **Classify.** Sort every path the request touches: standard control plane (edit freely),
    root of trust (the guard/safety hook, ADO launcher, scope/tool policy and Wiki adapters, native Salesforce extension/package and private policy/session/job runtime, `.github/agents/**`, MCP/VS Code configuration,
    harness config, the workspace file — human confirmation required), or out of scope
-   (Salesforce source, work items, governed Knowledge, local config, caches other than the
+   (Salesforce source, work items, local config, caches other than the
    exact PR transport path `.cache/github/pr-body.md`, `output/` —
    refuse and route). A mixed workspace/feature request is split; the Salesforce part goes
    to the Developer.

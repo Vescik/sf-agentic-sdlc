@@ -31,7 +31,7 @@ Your write authority is the role guard's three-way taxonomy, enforced by the hoo
   Never create a new custom agent, alter MCP setup, or edit a hook/guard without that
   described impact and the confirmation.
 - **Out of scope, always**: Salesforce source (`force-app/`, `manifest/`, `tests/e2e/`),
-  work items, governed Knowledge files and ledgers, `config/harness.local.json`, caches
+  work items, `.ai/memory/`, `config/harness.local.json`, caches
   except the exact PR transport file `.cache/github/pr-body.md`, `output/`, org/ADO/browser
   access, and deploys. Git/GitHub work follows the shared workflow below.
 

@@ -2,10 +2,8 @@
 
 One rule, learned the expensive way: a class that carries tests may never inherit from
 another class that carries tests. Inheriting a test-bearing base silently re-runs every
-inherited test in each subclass — test_knowledge_store.py used to collect 460 tests for
-97 unique methods (363 accidental re-runs, ~72 s of duplicate work). Shared setUp and
-helpers belong in a fixture class with NO test methods (KnowledgeStoreFixture,
-FeatureFixture, OrgUsageBase are the pattern).
+inherited test in each subclass (one suite once collected 460 tests for 97 unique
+methods). Shared setUp and helpers belong in a fixture class with NO test methods.
 """
 
 from __future__ import annotations

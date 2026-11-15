@@ -1,7 +1,7 @@
 # G1 input: one formula field
 
 This is a synthetic human-written requirement for an isolated handoff trial. It is not
-an ADO item, a live org observation, or approved production Knowledge. Follow the trial
+an ADO item, a live org observation, or approved production records. Follow the trial
 setup in `evals/README.md`. No live Salesforce/ADO call, deployment or publication is
 authorized. Use the exact design path as identity, without a fabricated numeric ID.
 

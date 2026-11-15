@@ -19,7 +19,7 @@ committing; include only the requested result or changes the human explicitly as
 Choose the staging method that fits that scope, including partial staging or `git add -A`.
 Active authors can commit coherent milestones after proportional verification without a
 separate commit request. A review request stays a review; available Git commands do not
-instruct Reviewer to change source. Knowledge authoring and approval keep their own lifecycle.
+instruct Reviewer to change source.
 Editor permissions and Salesforce/ADO access controls are unchanged.
 
 Push, PR creation/update, merge, and destructive Git operations require an explicit human
@@ -107,7 +107,7 @@ is not merged. Report the actual PR URL, head, status, and checks.
 
 Use `.github/pull_request_template.md` for truthful descriptions. Write the body through the
 editor to the ignored `.cache/github/pr-body.md` and pass `--body-file`; this transport file
-is the Git Agent's existing narrow editor exception, never a source/Knowledge edit grant.
+is the Git Agent's existing narrow editor exception, never a source edit grant.
 Preserve human edits. Prefer explicit `--repo`, `--head`, `--base`, and `--title` when creating
 a PR and `--match-head-commit` when merging to avoid acting on a changed head. These are
 workflow practices, not hook-enforced command restrictions. Ordinary publication defaults

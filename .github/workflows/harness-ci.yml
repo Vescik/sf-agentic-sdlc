@@ -158,7 +158,6 @@ jobs:
         run: |
           node --check scripts/start_ado_mcp.mjs
           node --check scripts/start_salesforce_mcp.mjs
-          node --check scripts/knowledge_mcp_server.mjs
 
       - name: Test and package native Salesforce operation tool
         run: |
@@ -168,16 +167,6 @@ jobs:
 
       - name: Validate harness structure and contracts
         run: python scripts/validate_harness.py
-
-      - name: Validate knowledge entry integrity
-        # CI owns the Knowledge domain gates; the static validator does not re-run them.
-        run: python scripts/knowledge_store.py entry-check
-
-      - name: Validate knowledge feature integrity
-        run: python scripts/knowledge_store.py feature-check
-
-      - name: Validate knowledge search index drift
-        run: python scripts/knowledge_search.py build
 
       - name: Run unit tests
         run: python -m unittest discover -s tests -v

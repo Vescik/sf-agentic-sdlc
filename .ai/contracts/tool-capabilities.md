@@ -11,7 +11,7 @@ upgrade.
 | Reconciled installed package inventory | `salesforce/review_installed_packages` | investigator, design, review |
 | Reconciled allowlisted object contract | `salesforce/review_object_contract` | investigator, design, review, QA |
 | Scoped enumeration of configured org aliases (requires `safety.allowScopedEnumeration`) | `salesforce/review_configured_orgs` | investigator |
-| Composed read-only SOQL incl. record reads (verbatim, facade REST transport, unredacted single-source rows) | `salesforce/review_soql_query` | investigator, design, review, development, knowledge curation |
+| Composed read-only SOQL incl. record reads (verbatim, facade REST transport, unredacted single-source rows) | `salesforce/review_soql_query` | investigator, design, review, development |
 | Salesforce metadata retrieve; dry-run validation only on `dev`/`uat`/`stage` | direct `sf`/`sfdx` terminal command | Developer |
 | Real metadata deployment, including quick and destructive, only on `dev`/`uat`/`stage` | direct `sf`/`sfdx`; global hook asks before every exact invocation with target, scope, and real-org-change warning | Developer |
 | Record create/update/upsert/delete and bulk data operations on `dev`/`uat`/`stage` | direct `sf data`/legacy `sfdx` terminal command | Developer |
@@ -60,7 +60,7 @@ Already dispatched requests cannot be recalled. The global hook rejects calls wi
 configured project or with a mismatched project/ADO URL. The vendor domains include write-capable
 tools. The existing connector's narrow publication adaptation and role/safety guards allow only
 the two Developer publication operations above. The server name `ado-readonly` is retained for
-compatibility. Search, Reviewer, handover, and Knowledge retain their existing read-only behavior.
+compatibility. Search, Reviewer, and handover retain their existing read-only behavior.
 
 Publication cannot use the sanitized wiki cache as a write base. The adapted page read returns
 full content and its ETag together. Conditional updates reject a changed page; conditional creates
@@ -86,7 +86,7 @@ commit-message syntax and matching IDs only, independently of Salesforce/ADO con
 The agent preserves unrelated work and follows the user's scope. Push, PR publication/update,
 merge, and destructive Git actions require an explicit instruction. Hooks do not attest chat
 authorization or remote checks. Native terminal approval remains separate. Reviewer does not
-edit source as part of a review; Knowledge authoring/approval and all editor, Salesforce, and
+edit source as part of a review; all editor, Salesforce, and
 ADO controls remain in place. `.cache/github/pr-body.md` remains Git Agent's only editor
 exception; Git availability does not grant general file-edit permission.
 
@@ -122,7 +122,7 @@ delivery-map lookup is a bounded local file search, not a remote call.
 
 QA test-plan authoring (`/prepare-qa-test-plan`, 2026-08-11) introduces **no new
 capability**: the Test Strategist authors `work-items/<id>-<slug>/qa-test-plan.md` with its
-existing grants — Knowledge tools, read-only ADO work-item tools (including relation and
+existing grants — read-only ADO work-item tools (including relation and
 linked-Test-Case Work Item reads), startup org identity proof, installed-package review, object-contract
 review, and interactive questions. It deliberately has **no** `review_soql_query`: when
 test-data shape would need a record read, the workflow asks the maintainer for a safe
@@ -131,7 +131,7 @@ unredacted non-production rows and is a separate owner decision.
 
 Policy (owner decision 2026-07-30, widened 2026-08-04): composed read-only SOQL is permitted —
 and recommended whenever a task depends on record data structure — through the governed facade's
-`review_soql_query` tool only, for the designer, reviewer, knowledge-curator, developer,
+`review_soql_query` tool only, for the designer, reviewer, developer,
 and config-investigator roles. The 2026-08-04 decision removed the statement
 blockade entirely: no grammar validation, no secret-adjacent object deny-set, no LIMIT
 policing, no value redaction. The statement executes verbatim over the facade's REST transport

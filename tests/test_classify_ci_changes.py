@@ -60,7 +60,7 @@ class ClassifyPathsTests(unittest.TestCase):
         self.assertFalse(result["content_only"])
 
     def test_pure_control_plane(self) -> None:
-        for path in ("README.md", "docs/x.md", "scripts/a.py", ".github/prompts/x.prompt.md", ".ai/knowledge/x.md"):
+        for path in ("README.md", "docs/x.md", "scripts/a.py", ".github/prompts/x.prompt.md", ".ai/contracts/x.md"):
             result = self.classify(entries(path))
             self.assertFalse(result["salesforce_changed"], path)
             self.assertTrue(result["full_harness_required"], path)

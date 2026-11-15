@@ -127,8 +127,7 @@ and runs the verification gates.
 
 > **Developer Edition orgs:** the script records them like any other non-production org
 > (host + organization ID; `IsSandbox=false` is expected there). A config entry is optional
-> for reading — an unlisted alias is proven live by the facade — but only configured entries
-> can anchor Knowledge org snapshots. To sanity-check an alias
+> for reading — an unlisted alias is proven live by the facade — To sanity-check an alias
 > up front, run `python scripts/verify_salesforce_org.py --org <alias>`.
 
 ```bash
@@ -151,8 +150,6 @@ python -m venv .venv
 python -m pip install --require-hashes -r requirements-dev.lock
 npm ci --ignore-scripts
 python scripts/validate_harness.py           # static repository structure and safety wiring
-python scripts/knowledge_store.py entry-check    # Knowledge entry integrity (CI runs this too)
-python scripts/knowledge_store.py feature-check  # Knowledge feature integrity (CI runs this too)
 python -m unittest discover -s tests -v      # unit tests
 python scripts/run_evals.py                  # deterministic safety evals
 npm run prettier:verify
@@ -174,9 +171,9 @@ tool call. To diagnose one org by hand, run
 1. Trust the cloned repository only after reviewing it; the single named workspace folder
    `brain-core` resolves to its root.
 2. Open **Chat: Open Customizations** / Chat Diagnostics.
-3. Confirm exactly seven agents, eighteen public prompts, twenty-two internal skills, three Principle
+3. Confirm exactly seven agents, fourteen public prompts, eighteen internal skills, three Principle
    files, the safety hook, and two read-only MCP servers without diagnostics.
-4. Confirm `/` shows the eighteen prompts once each and their argument hints.
+4. Confirm `/` shows the fourteen prompts once each and their argument hints.
 5. Run one harmless ADO read, then the three bounded Salesforce review calls against the configured
    synthetic/pilot component. Confirm no raw CLI/alias or sensitive payload appears in Chat.
 6. Use the controlled executor in `docs/production-policy-pilot.md` for denial/deploy canaries.
@@ -190,11 +187,8 @@ tool call. To diagnose one org by hand, run
 The workspace pre-approves its own guarded scripts so agents run them without a confirmation
 click, via `chat.tools.terminal.autoApprove` in `.vscode/settings.json`:
 
-- Auto-approved: `knowledge_store.py`
-  (except `entry-approve`/`feature-approve`/`entry-revoke`/`feature-revoke` — those stay on the
-  chat-confirmation lane), `knowledge_search.py` (read-only), and `force_app_knowledge.py`. The
-  regexes are anchored and reject shell metacharacters, so chained or redirected commands never
-  auto-run.
+- Auto-approved: read-only Git and file-read commands. The regexes are anchored and reject
+  shell metacharacters, so chained or redirected commands never auto-run.
 - Direct `sf`/`sfdx` has a terminal auto-approval rule, but policy still denies forbidden production
   operations, unresolved targets and identity errors before deployment confirmation. Nonprod real
   deploys return `ask`. One-use host approval binding needs destination verification; a saved
@@ -234,15 +228,6 @@ owner decision of 2026-07-14.)
 - The Developer receives direct `sf`/`sfdx`; other roles keep their narrower tool contracts.
   The read facade remains preferred for bounded, structured evidence. MCP/CLI agreement is
   transport corroboration from the same org, not independent package/business authority.
-- `knowledge` starts through `scripts/knowledge_mcp_server.mjs` and is the primary read
-  surface over governed Knowledge (context/search/impact/resolve/entry-status plus the
-  curator deep-dive set) — read-only by construction, binds no org, takes no secrets. VS Code
-  asks for one-time trust on first start. Copilot CLI reads the same server from
-  `.github/mcp.json` (it does not read `.vscode/mcp.json`). The server resolves its Python
-  interpreter at startup (`KNOWLEDGE_MCP_PYTHON` env override → repo `.venv` → `py -3` →
-  `python3` → `python`) and **refuses to start** when none can `import yaml` — run
-  `python scripts/first_launch.py` (or `pip install -r requirements-dev.txt`) and restart the
-  server; the terminal command menu in the search-knowledge skill is the operator fallback.
 - Record-level reads for design/development context run through the facade's
   `review_soql_query` tool (the CLI `salesforce_read.py` lane was retired 2026-08-04).
   There is no write-mode Salesforce MCP server in the first cutover. The Developer uses direct
@@ -263,19 +248,11 @@ owner decision of 2026-07-14.)
   to `main`, or pull/reset/stash as an automatic fix for a dirty or divergent checkout.
 - After a coherent permitted intake, design, code, test, plan, or documentation result and
   verification, the author stages exact files and commits locally without a separate request.
-  Git Agent is optional assistance; Reviewer is read-only and Knowledge keeps its existing lane.
-- Investigators draft Knowledge as one-file entries through the governed `knowledge_store.py`
-  lanes (`entry-draft`/`draft --component`; the v1 claim registry retired 2026-08-03). Approval
-  needs a human either way: the agent may request the digest-pinned
-  `knowledge_store.py entry-approve`/`feature-approve` and the safety hook stops it for your
-  confirmation click (recorded as `copilot-chat-entry-confirmation` with the
-  `knowledge.chatReviewer` name from local config). Raw cache and unreviewed `output/` remain
-  ignored.
+  Git Agent is optional assistance; Reviewer is read-only.
 - Durable scope lives in `work-items/<id>-<slug>/`: `ado-context.md` for the ADO requirement
   snapshot (ADO-backed work, written by `/fetch-ado-item`), `design.md` for intent and scope,
   `tasks.md` for the execution plan, `decisions.md` for deviations. Human review happens on the pull request
-  that carries those files next to the metadata; Knowledge approvals keep their own digest-pinned
-  chat confirmation.
+  that carries those files next to the metadata.
 
   The global Copilot hook always denies agent-originated invocation of this subcommand. Approval
   never comes from chat text, an agent confirmation, or a manually edited record. In the current

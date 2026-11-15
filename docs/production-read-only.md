@@ -2,7 +2,7 @@
 
 Status: approved policy, isolated release candidate. Destination host/live acceptance remains
 owner-side and NOT VERIFIED here. This backport applies the plan 01 production-policy changes to
-`0af14c1`; it does not adopt the intervening Knowledge architecture or implement plan 01a.
+`0af14c1`; it does not implement plan 01a.
 See [the release handoff](production-read-only-revision-handoff.md) for scope and test evidence.
 
 ## Channels
@@ -76,8 +76,7 @@ an extra configured environment and never grants non-retrieve CLI access.
 Test Strategist remains prohibited from all production targets, including read-only Salesforce
 MCP in both QA lanes. The owner accepts the agent instruction as sufficient for this release;
 additional MCP role/target runtime enforcement is not required or claimed. Other roles retain
-existing read permissions and limits. The existing Knowledge persistence/approval model stays
-unchanged; production MCP read permission does not widen its separate org-sampling containment.
+existing read permissions and limits.
 
 The plan 01 backport originally deferred unknown environments and latest-job compatibility.
 Plan 01a now adds a [native Developer operation tool](native-salesforce-operations.md) for these

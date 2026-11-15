@@ -1,7 +1,7 @@
 """Direct subprocess client for the read-only Salesforce review facade.
 
-The knowledge org-attach executor calls the facade this way — the executor observes;
-the agent never carries attested bytes, so it cannot mint digests.
+A trusted executor calls the facade this way — the executor observes; the agent never
+carries attested bytes, so it cannot mint digests.
 The returned envelope is schema-validated and digest-checked before anything trusts it.
 """
 
@@ -94,7 +94,7 @@ def call_salesforce_review_facade(
                     "params": {
                         "protocolVersion": "2025-06-18",
                         "capabilities": {},
-                        "clientInfo": {"name": "knowledge-org-attach", "version": "1.0.0"},
+                        "clientInfo": {"name": "review-client", "version": "1.0.0"},
                     },
                 }
             ),

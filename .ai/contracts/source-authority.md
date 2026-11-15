@@ -1,4 +1,4 @@
-# Knowledge Source Authority
+# Source Authority
 
 Status: normative
 Schema version: 2
@@ -6,22 +6,10 @@ Schema version: 2
 Source authority depends on the assertion being made. There is no universal ranking, and
 multiple records derived from the same underlying source are not independent corroboration.
 
-**Approved one-file Knowledge Entries** (`entryRef`, SAFE-CLAIM-001, owner-approved 2026-07-24;
-the sole governed Knowledge store since the claim registry retired, owner-approved 2026-08-03)
-carry `metadata-repository` authority only: they establish the intended
-repository-source state of a force-app artifact (positive presence, source-exact,
-fully-covered sections) and never deployed state, runtime behavior, business meaning,
-package limitations, vendor guarantees, or absence/completeness beyond the machine-emitted
-enumeration — see `docs/knowledge-one-file-contract.md` §8.
-
-Entry eligibility, source drift and citation handling follow the
-[Search Knowledge retrieval contract](../../.github/skills/search-knowledge/SKILL.md).
-The current runtime has no separate repository-receipt adapter. Do not invoke or recreate one,
-or manufacture its receipt. Ordinary repository reads support orientation and scoped source
-inspection; they do not become approved Knowledge. Label unsupported assertions `UNVERIFIED`
-with their source, bounds and consequence. A useful design draft may record such gaps without
-claiming the dependent behavior is ready to implement. Absence and completeness still require
-the evidence described below.
+Ordinary repository reads support orientation and scoped source inspection. Label unsupported
+assertions `UNVERIFIED` with their source, bounds and consequence. A useful design draft may record
+such gaps without claiming the dependent behavior is ready to implement. Absence and completeness
+still require the evidence described below.
 
 | Evidence source type       | Can establish                                                                              | Cannot establish alone                                                                 |
 | -------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -37,7 +25,7 @@ the evidence described below.
 | `human-sme-attestation`    | Business terminology or process meaning within the speaker's accountable scope             | Technical configuration without technical corroboration                                |
 | `controlled-sandbox-test`  | Behavior under the recorded scenario, data, metadata, and package version                  | Universal behavior outside that fingerprint                                            |
 
-Model output is not evidence. Existing Knowledge may lead to its underlying evidence, but it
+Model output is not evidence. An earlier report may lead to its underlying evidence, but it
 cannot provide independent corroboration of itself.
 
 ## Minimum provenance
@@ -58,13 +46,12 @@ Every evidence receipt records:
 - a bounded summary that contains no credentials or unnecessary record data.
 
 Only `public` and `internal-sanitized` evidence receipts may be committed. Confidential or
-restricted raw data remains outside committed Knowledge and is referenced only by a sanitized
+restricted raw data remains outside the repository and is referenced only by a sanitized
 digest/locator that an authorized reviewer can reproduce.
 
 ## Assertion-type guidance
 
-These bounds govern what an investigation report may assert and with how much confidence —
-none of them makes an assertion citable Knowledge:
+These bounds govern what an investigation report may assert and with how much confidence:
 
 - Schema, ownership, relation, and automation assertions require a complete technical source in
   the matching org scope. Repository metadata is corroborating evidence unless deployed state is

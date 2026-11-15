@@ -54,10 +54,10 @@ mode flag — classify the behavior as **custom** (subscriber-owned), **managed-
 a package surface). Namespace presence is an ownership signal, not proof. The classification
 selects evidence and questions; it is not persisted as state.
 
-- Custom: persisted requirement/design, repository source, applicable Knowledge, selective
+- Custom: persisted requirement/design, repository source, selective
   org evidence. Skip installed-package discovery when package context is irrelevant.
 - Managed-package: add the current installed-package version when available,
-  `docs/package-concept.md` and `docs/package-constraints.md`, package Knowledge, ownership
+  `docs/package-concept.md` and `docs/package-constraints.md`, ownership
   evidence, and maintainer/vendor confirmation for behavior no governed evidence establishes.
   Never infer package behavior, UI locations, or vendor guarantees from model memory.
 - Mixed: cover the package baseline, the subscriber extension, and their boundary separately;
@@ -69,14 +69,10 @@ Read durable local evidence first, identify the exact gaps, then make the smalle
 calls — never every tool mechanically. Source order:
 
 1. persisted requirement/design/decisions;
-2. effective Knowledge and its recorded limitations — ground touched-artifact behavior via
-   `knowledge_context` per the [search-knowledge](../search-knowledge/SKILL.md) retrieval
-   rules (same lane handling and citation mechanics; a `hydrated: false` row is re-read or
-   becomes a gap, never coverage);
-3. repository source for subscriber-owned behavior and to verify the actual implementation;
-4. read-only org evidence when the plan depends on live ownership/schema/package facts;
-5. formally linked ADO Test Case detail (below) when relevant;
-6. targeted maintainer questions for the remaining business, UI, vendor, access, or test-data
+2. repository source for subscriber-owned behavior and to verify the actual implementation;
+3. read-only org evidence when the plan depends on live ownership/schema/package facts;
+4. formally linked ADO Test Case detail (below) when relevant;
+5. targeted maintainer questions for the remaining business, UI, vendor, access, or test-data
    facts.
 
 A failed tool call becomes a named gap in the plan — never permission to invent the result.
@@ -104,8 +100,7 @@ fact, and why it changes QA execution — and never asks for anything a tool can
 safely. At most three tightly related questions per round, at most two rounds per invocation
 (`#tool:vscode/askQuestions`). If material gaps remain after that, save or preserve a useful
 draft and return `INCOMPLETE — NEEDS HUMAN`. Answers are evidence for this plan, labeled
-`Maintainer-confirmed`; they are never automatically promoted to Knowledge — list reusable
-facts as a separate curation recommendation (`consider /author-feature or /curate-knowledge`).
+`Maintainer-confirmed`.
 
 ## The document
 
@@ -134,7 +129,7 @@ Omit irrelevant optional material; keep a small change's plan small. Required se
    assumptions, deferred scope.
 10. **Evidence and retest guidance** — what QA should capture; minimum cases to repeat after
     a fix.
-11. **References** — work-item artifacts; ADO Test Case IDs/links and retrieval times used; Knowledge/source
+11. **References** — work-item artifacts; ADO Test Case IDs/links and retrieval times used; source
     references needed to explain the plan.
 
 Each Test Case carries a stable local ID (`TC-01`, `TC-02`, …) and, at minimum: title,
@@ -146,7 +141,7 @@ permissions/FLS, boundary, bulk, async, integration, UI, package baseline, subsc
 extension, regression, defect retest, configuration-off, data visibility, …).
 
 Material orientation claims are traceable as `Requirement-backed`, `Design-backed`,
-`Repository-verified`, `Org-verified`, `Knowledge-backed`, `ADO-Test-Case-backed`,
+`Repository-verified`, `Org-verified`, `ADO-Test-Case-backed`,
 `Maintainer-confirmed`, or `Unverified assumption` — grouped under shared source references,
 not a per-sentence citation ledger. An `Unverified assumption` that changes a test's
 executability prevents `READY FOR QA`.
@@ -189,8 +184,7 @@ Exactly one lane verdict, near the top of the file and in the return:
 
 Return: the path; created/updated/unchanged; the verdict; the evidence route used
 (custom/package/mixed); ACs covered and uncovered; Test Cases by origin; source/tool
-completeness; unresolved questions; whether implementation evidence was available; reusable
-Knowledge candidates, if any; and the exact next action. Never claim QA executed or passed
+completeness; unresolved questions; whether implementation evidence was available; and the exact next action. Never claim QA executed or passed
 anything. After a coherent new or updated durable QA plan and proportional verification,
 the active Test Strategist stages and commits it through [Git Workflow](../git-workflow/SKILL.md),
 without a separate commit request or Git Agent handoff. Inspect repository state before

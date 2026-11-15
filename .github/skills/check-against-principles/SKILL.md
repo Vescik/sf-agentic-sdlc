@@ -1,6 +1,6 @@
 ---
 name: check-against-principles
-description: Evaluate a scoped design or implementation using Principle rules, approved Knowledge Entries, repository/org reconciliation, and complete evidence. Read-only; never implement fixes.
+description: Evaluate a scoped design or implementation using Principle rules, repository/org reconciliation, and complete evidence. Read-only; never implement fixes.
 user-invocable: false
 ---
 
@@ -73,11 +73,9 @@ An implementation review is of one Work Item's exact diff, never a guessed one.
    instructions by planned metadata type as the solution-design skill requires; a Markdown
    filename does not exclude the engineering rules. Apply precedence only to competing prescriptions.
 3. Discover the baseline of facts the subject must address instead of relying only on citations
-   supplied by its author. Ground findings in Knowledge first, applying the
-   [search-knowledge](../search-knowledge/SKILL.md) retrieval rules verbatim — same tools, lane
-   handling, and citation mechanics; do not re-derive them here. Run `knowledge_context` for each
-   affected artifact. A row carrying `hydrated: false` is a gap and cannot be cited. Name every
-   generic-bucket type in scope as an unchecked class in the findings — silence about it reads as
+   supplied by its author. Ground findings in the repository-root `force-app/` source for each
+   affected artifact. Name every metadata type in scope you could not check as an unchecked
+   class in the findings — silence about it reads as
    a clean review it did not earn.
 4. Compare intended customer-owned repository state with the latest complete org-review evidence.
    Report drift instead of selecting one source.
@@ -85,13 +83,9 @@ An implementation review is of one Work Item's exact diff, never a guessed one.
    entry. Principles do not rewrite facts; observations do not weaken rules.
 6. Require complete environment proof, package/component ownership, version, supported extension
    point, role compliance, verification, coverage, and manual steps where relevant.
-7. Draft, revoked, not-effective, unhydrated, integrity-invalid, scope-mismatched, or materially
-   partial evidence cannot support `SAFE`. Approved-drifted remains effective and requires
-   disclosure only. An incomplete org review, an ungrounded component, a missing source/version,
+7. Integrity-invalid, scope-mismatched, or materially partial evidence cannot support `SAFE`.
+   An incomplete org review, an ungrounded component, a missing source/version,
    an unverified review claim, or an unresolved blocking question disqualifies `SAFE` the same way.
-   Before issuing the verdict, verify every supplied envelope with `python
-scripts/knowledge_store.py entry-verify-citations --envelope <path>`. Invalid citations block
-   `SAFE`; approved-drifted produces disclosure only.
 
 ## Design coverage and planned scope (design review)
 
@@ -211,7 +205,7 @@ When the reviewed delivery claims or otherwise shows that Salesforce was mutated
 4. recheck material current job/org state with scoped tools where available and disclose any
    drift, staleness, unavailable evidence, or unverified assertion; and
 5. refuse evidence laundering: an entry cannot establish deploy consent, current org state,
-   release approval, QA execution, Knowledge, or `SAFE` by itself.
+   release approval, QA execution, or `SAFE` by itself.
 
 Reads, retrieves, dry runs, tests, local edits, and commands blocked before execution require no
 entry. An asynchronous status call should update the original operation entry rather than create

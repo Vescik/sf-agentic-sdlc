@@ -22,7 +22,7 @@ evidence behavior can be tested without real business data.
 The bounded [handoff-quality fixtures](fixtures/handoff-quality/) contain three synthetic
 input documents and three independent evaluator oracles. They test the meaning of a
 design, the Developer's task lifecycle, and continuation from durable files. They are not
-production Work Items or approved Knowledge. No heading count or keyword score proves
+production Work Items or approved records. No heading count or keyword score proves
 that a design is implementable.
 
 | Case                     | Agent input                                           | Evaluator only                                          |
@@ -46,7 +46,7 @@ Start without an active live-org target. The operator's Designer request identif
 input and output design path and limits discovery to supplied synthetic repository facts.
 The later Developer request explicitly authorizes implementation of that identified design
 in the disposable repository. Neither request authorizes live Salesforce/ADO calls,
-deployment, publication, or production Knowledge writes.
+deployment, publication, or production record writes.
 
 Run the Designer in the supported VS Code Local host, then start a fresh Developer
 conversation with the persisted requirement/design, applicable decisions and repository.

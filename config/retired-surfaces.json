@@ -32,7 +32,6 @@
    "historicalAllowlist": [
     "config/retired-surfaces.json",
     ".ai/memory/decisions-log.md",
-    "docs/knowledge-one-file-contract.md",
     "docs/solution-design-product-goal.md",
     "tests/test_safety_hooks.py",
     "schemas/output-envelope.schema.json",
@@ -112,13 +111,12 @@
    "name": "knowledge-registry-claim-module",
    "retiredIn": "v1 retirement P2b",
    "retiredOn": "2026-07-27",
-   "replacement": "one-file Knowledge Entries (knowledge_store.py); canonical digest relocated to knowledge_digest.py",
+   "replacement": "none: the whole Knowledge subsystem was removed in sf-agentic-sdlc on 2026-11-15",
    "tokens": [
     "knowledge_registry"
    ],
    "historicalAllowlist": [
-    ".ai/memory/decisions-log.md",
-    "docs/knowledge-one-file-contract.md"
+    ".ai/memory/decisions-log.md"
    ]
   }
  ]

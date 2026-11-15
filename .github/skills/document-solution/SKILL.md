@@ -30,13 +30,11 @@ partial results, sanitized quotations, and API identifiers. Do not collect ADO r
 A missing Work Item or design does not block documentation of existing behavior. Do not create
 a substitute design, fictional ID, intake record, or lifecycle files.
 
-This workflow adds no required Knowledge lookup, authoring, or bootstrap. If the task already
-uses Knowledge, keep its existing read and reference-validation rules. Missing Knowledge does
-not block documentation from available sources. Org access is optional when those sources suffice.
+Org access is optional when those sources suffice.
 Any needed org read remains subject to the Developer's existing environment and role limits.
 
 Run only when requested. Do not make documentation a Story completion gate or require other
-roles to load the set. Do not invoke `/document-metadata-change`, handover, Knowledge authoring,
+roles to load the set. Do not invoke `/document-metadata-change`, handover,
 wiki publication, or ADO link updates. Existing delivery documentation remains in place.
 
 ## Find the stable destination
@@ -68,7 +66,7 @@ Keep the path after title changes and later Stories. A bug fix updates relevant 
 a refactor with no effect on the description needs no date-only edit. If a requested change
 affects several solutions, update their existing sets within that scope. Create a new set only
 for a distinct solution, never for each Story or release. Do not create copies in `output/`,
-Work Item folders, Knowledge, or separate business-domain folders. Wiki domains can link to
+Work Item folders, or separate business-domain folders. Wiki domains can link to
 one solution set through the separate publication workflow.
 
 ## Three-file content

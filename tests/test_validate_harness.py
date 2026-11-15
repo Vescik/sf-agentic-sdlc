@@ -63,7 +63,7 @@ class TestRunChecksWrapper(unittest.TestCase):
 class TestLazyScriptsImportsForbidden(unittest.TestCase):
     """C6: `from scripts.… import …` inside a function body resolves only when the repo
     root is on sys.path — it broke `python scripts/validate_harness.py` (the CI
-    invocation) as soon as .ai/knowledge/artifacts/ existed. Header imports carry the
+    invocation). Header imports carry the
     dual-mode fallback; function bodies must not import siblings at all."""
 
     def test_no_function_level_scripts_imports(self) -> None:
@@ -76,9 +76,6 @@ class TestLazyScriptsImportsForbidden(unittest.TestCase):
             if isinstance(inner, ast.ImportFrom) and (inner.module or "").startswith("scripts")
         ]
         self.assertEqual(offenders, [])
-
-    def test_canonical_digest_bound_at_module_level(self) -> None:
-        self.assertTrue(callable(validate_harness.canonical_digest))
 
 
 class TestGuardedReads(TempRootBase):
@@ -1017,7 +1014,7 @@ class TestSolutionDesignRoutingPrecedesDiscovery(unittest.TestCase):
         self.assertLess(stage2, self.skill.index("docs/package-concept.md"))
 
     def test_no_remote_call_decides_type_or_membership(self) -> None:
-        self.assertIn("Knowledge, Salesforce, or Feature Health call", self.skill)
+        self.assertIn("Salesforce, or Feature Health call", self.skill)
         self.assertIn("stop before any design context is loaded", self.skill)
 
     def test_prompt_pins_routing_before_docs_and_remote_discovery(self) -> None:
@@ -1047,7 +1044,7 @@ class TestDesignerScopedTerminalCapability(unittest.TestCase):
         self.assertEqual([], audit.errors)
         expected = {
             "read", "edit/editFiles", "execute/runInTerminal", "vscode/askQuestions",
-            "knowledge/*", "ado-readonly/*", "salesforce/review_org_identity",
+            "ado-readonly/*", "salesforce/review_org_identity",
             "salesforce/review_installed_packages", "salesforce/review_object_contract",
             "salesforce/review_soql_query",
         }

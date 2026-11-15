@@ -50,8 +50,5 @@
   "cache": {
     "wikiPageMaxAgeMinutes": 129600,
     "onStaleDefault": "ask"
-  },
-  "knowledge": {
-    "chatReviewer": "<FULL_NAME_OF_THE_HUMAN_WHO_APPROVES_KNOWLEDGE_IN_CHAT>"
   }
 }

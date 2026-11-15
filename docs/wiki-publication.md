@@ -3,7 +3,7 @@
 Use `/publish-wiki` with the Developer in VS Code Local when you want to publish existing
 repository documentation. The request includes the necessary page and navigation updates.
 For delivery documentation, it also includes the existing Story link. It does not start a
-Salesforce deployment or change handover and Knowledge contracts.
+Salesforce deployment or change handover contracts.
 
 ```text
 /publish-wiki docs/solutions/invoice-approval/

@@ -24,7 +24,6 @@
   "evidenceRefs": [
     "EV-EXAMPLE-VERIFICATION"
   ],
-  "knowledgeSnapshotAt": "2026-07-10T12:05:00Z",
   "reconciliation": {
     "status": "matched",
     "mismatches": [],
@@ -41,14 +40,5 @@
   "verification": [
     "Validated the independent review and persisted handoff hashes."
   ],
-  "artifactPath": "work-items/1201-example/design.md",
-  "entryRefs": [
-    {
-      "entryId": "Flow:c:DemoRouting",
-      "reviewedContentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-      "factsDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-      "sourceTreeDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
-      "profile": "salesforce.flow@1"
-    }
-  ]
+  "artifactPath": "work-items/1201-example/design.md"
 }

@@ -1,7 +1,7 @@
 {
   "agents": [
     {
-      "description": "Read-only evidence collector for allowlisted Salesforce components and package surfaces; creates sanitized observations, investigation reports, and Knowledge Entry drafts without self-verifying them.",
+      "description": "Read-only evidence collector for allowlisted Salesforce components and package surfaces; writes sanitized observations and investigation reports without self-verifying them.",
       "handoffs": [],
       "loads": {
         "contracts": [
@@ -14,18 +14,16 @@
         ],
         "skills": [
           "git-workflow",
-          "inventory-force-app",
           "investigate-config-records",
           "investigate-object",
-          "org-discovery",
-          "selected-files-knowledge"
+          "org-discovery"
         ]
       },
       "name": "config-investigator",
       "path": ".github/agents/config-investigator.agent.md"
     },
     {
-      "description": "Design subscriber-owned extensions of the VendorPkg managed package — discovery through org tools and knowledge first, then a written design in the work item.",
+      "description": "Design subscriber-owned extensions of the VendorPkg managed package — discovery through repository source and org tools first, then a written design in the work item.",
       "handoffs": [
         "developer",
         "reviewer"
@@ -79,27 +77,6 @@
       "path": ".github/agents/git-agent.agent.md"
     },
     {
-      "description": "Maintains governed Knowledge from repository source through the curate-knowledge procedure — health, entries, drafting, description, drift, and Feature lifecycle.",
-      "handoffs": [],
-      "loads": {
-        "contracts": [
-          "source-authority",
-          "writing-standard"
-        ],
-        "instructions": [
-          "managed-package"
-        ],
-        "skills": [
-          "approve-knowledge-drafts",
-          "curate-knowledge",
-          "git-workflow",
-          "search-knowledge"
-        ]
-      },
-      "name": "knowledge-curator",
-      "path": ".github/agents/knowledge-curator.agent.md"
-    },
-    {
       "description": "Challenge a design or implementation against the package constraints and house conventions. Read-only — no edit rights, no org mutations.",
       "handoffs": [],
       "loads": {
@@ -130,8 +107,7 @@
         "skills": [
           "check-feature-coverage",
           "git-workflow",
-          "prepare-qa-test-plan",
-          "search-knowledge"
+          "prepare-qa-test-plan"
         ]
       },
       "name": "test-strategist",
@@ -165,7 +141,7 @@
       "name": "source-authority",
       "path": ".ai/contracts/source-authority.md",
       "summary": "Source authority depends on the assertion being made. There is no universal ranking, and multiple records derived from the same underlying source are not independent corroboration.",
-      "title": "Knowledge Source Authority"
+      "title": "Source Authority"
     },
     {
       "name": "tool-capabilities",
@@ -183,15 +159,11 @@
   "directories": [
     {
       "path": ".ai",
-      "purpose": "Governed agent state: contracts, knowledge, memory"
+      "purpose": "Governed agent state: contracts, memory, templates"
     },
     {
       "path": ".ai/contracts",
-      "purpose": "Normative execution/writing/knowledge/workflow/tooling contracts, loaded as needed"
-    },
-    {
-      "path": ".ai/knowledge",
-      "purpose": "One-file Knowledge Entries + approval ledgers, feature entries, keyword taxonomy"
+      "purpose": "Normative execution/writing/workflow/tooling contracts, loaded as needed"
     },
     {
       "path": ".ai/memory",
@@ -305,32 +277,11 @@
       "path": ".github/prompts/adhoc-fix.prompt.md"
     },
     {
-      "agent": "knowledge-curator",
-      "argumentHint": "[identity=<MetadataType>:<ns|c>:<FullName>] [identity=...]",
-      "description": "Review and promote draft one-file Knowledge Entries; the executor renders the review surface and the human confirms the digest-pinned approval in chat.",
-      "name": "approve-drafts-knowledge",
-      "path": ".github/prompts/approve-drafts-knowledge.prompt.md"
-    },
-    {
-      "agent": "knowledge-curator",
-      "argumentHint": "feature slug or name (e.g. invoice-finance)",
-      "description": "Build or refine one Feature Knowledge document interactively — curated topology, claims with honest authority, artifact bindings — and route it to digest-pinned human approval.",
-      "name": "author-feature",
-      "path": ".github/prompts/author-feature.prompt.md"
-    },
-    {
       "agent": "reviewer",
       "argumentHint": "itemId=<ID> [scope=design|implementation] [base=<ref> head=<ref> | commits=<sha1>,<sha2>,...]",
       "description": "Ad-hoc read-only review of a persisted design or implementation against every applicable scoped Principle and its evidence.",
       "name": "check-against-principles",
       "path": ".github/prompts/check-against-principles.prompt.md"
-    },
-    {
-      "agent": "knowledge-curator",
-      "argumentHint": "health | entries | build <MetadataType> | describe | drafts | drift | feature <slug>",
-      "description": "Knowledge maintenance session - entry coverage, drafting, description, drift and feature boundaries, with human-approved promotion.",
-      "name": "curate-knowledge",
-      "path": ".github/prompts/curate-knowledge.prompt.md"
     },
     {
       "agent": "developer",
@@ -362,13 +313,6 @@
     },
     {
       "agent": "config-investigator",
-      "argumentHint": "(no arguments — repository inventory)",
-      "description": "Inventory the root force-app as sanitized Knowledge evidence candidates without drafting entries.",
-      "name": "inventory-force-app",
-      "path": ".github/prompts/inventory-force-app.prompt.md"
-    },
-    {
-      "agent": "config-investigator",
       "argumentHint": "objectApiName=<API name> [org=<alias>] [fields=<A,B,C>]",
       "description": "Snapshot the configuration records held in one allowlisted reference-data object (statuses, settings) and report it read-only with a recorded digest.",
       "name": "investigate-config-records",
@@ -377,16 +321,9 @@
     {
       "agent": "config-investigator",
       "argumentHint": "objectApiName=<API name>",
-      "description": "Collect bounded, sanitized, reconciled evidence for one Salesforce object or component and report it read-only; persist org numbers only via entry-org-attach.",
+      "description": "Collect bounded, sanitized, reconciled evidence for one Salesforce object or component and report it read-only.",
       "name": "investigate-object",
       "path": ".github/prompts/investigate-object.prompt.md"
-    },
-    {
-      "agent": "config-investigator",
-      "argumentHint": "[files=<path|name,...>]",
-      "description": "Turn a small pinned or named selection of force-app files into governed Knowledge — mechanical resolution, a human-approved plan, then per-lane draft/describe/propose with one approval pass.",
-      "name": "pin-knowledge",
-      "path": ".github/prompts/pin-knowledge.prompt.md"
     },
     {
       "agent": "designer",
@@ -424,13 +361,6 @@
       "path": ".github/prompts/search-ado.prompt.md"
     },
     {
-      "agent": "config-investigator",
-      "argumentHint": "keyword=<term> | text=<fragment> | subject=<identity> | anchor=<Identity> | error=<pasted message> [type=<MetadataType>] [namespace=<ns>]",
-      "description": "Search governed Knowledge - approved one-file Entries and their org-usage blocks; effective facts are reported separately from non-effective records.",
-      "name": "search-knowledge",
-      "path": ".github/prompts/search-knowledge.prompt.md"
-    },
-    {
       "agent": "designer",
       "argumentHint": "itemId=<ID> for ADO-backed work, or a written requirement",
       "description": "Design a work item with the designer agent — thin alias, no logic of its own.",
@@ -439,9 +369,7 @@
     }
   ],
   "resumeHere": [
-    "Knowledge coverage: `python scripts/force_app_knowledge.py inventory` then `entry-readiness` (derived, cannot drift).",
     "Decisions: `.ai/memory/decisions-log.md`.",
-    "Search Knowledge first: the `knowledge_context` / `knowledge_search` MCP tools over the entry index (`knowledge_resolve` maps names/paths to identities); terminal fallback lives in the search-knowledge skill's command menu.",
     "Deep tree: `docs/workspace-topology.md`; setup: `docs/setup-zero-to-first-prompt.md`.",
     "Resume work from work-items/<id>-<slug>/: ado-context.md is the ADO requirement (when ADO-backed), design.md the intent, tasks.md the state, decisions.md the deviations; optional qa-test-plan.md and technical-documentation.md are projections read only when the task needs them — chat is never workflow truth"
   ],
@@ -453,17 +381,7 @@
       "path": ".github/skills/adhoc-fix/SKILL.md"
     },
     {
-      "description": "Human-initiated promotion of draft one-file Knowledge Entries - renders the executor-authored review surface, presents the exact digest set, and runs the digest-pinned approval the human confirms in chat. Never approves content the human has not been shown.",
-      "name": "approve-knowledge-drafts",
-      "path": ".github/skills/approve-knowledge-drafts/SKILL.md"
-    },
-    {
-      "description": "Interactive Feature Knowledge authoring - staged conversation building curated topology, claims with honest authority classes, and digest-pinned artifact bindings; executor-owned IDs, validation and approval.",
-      "name": "author-feature",
-      "path": ".github/skills/author-feature/SKILL.md"
-    },
-    {
-      "description": "Evaluate a scoped design or implementation using Principle rules, approved Knowledge Entries, repository/org reconciliation, and complete evidence. Read-only; never implement fixes.",
+      "description": "Evaluate a scoped design or implementation using Principle rules, repository/org reconciliation, and complete evidence. Read-only; never implement fixes.",
       "name": "check-against-principles",
       "path": ".github/skills/check-against-principles/SKILL.md"
     },
@@ -471,11 +389,6 @@
       "description": "Compare a current Azure DevOps Feature and selected BRD requirements with full child Story content, producing a traceable coverage matrix, gaps, orphans, ambiguity, and package warnings before design.",
       "name": "check-feature-coverage",
       "path": ".github/skills/check-feature-coverage/SKILL.md"
-    },
-    {
-      "description": "Procedure for knowledge-curator — health sweep, entry coverage, drafting, description, drift maintenance, and Feature lifecycle, all through the governed executor commands.",
-      "name": "curate-knowledge",
-      "path": ".github/skills/curate-knowledge/SKILL.md"
     },
     {
       "description": "Implement a designed Salesforce work item, validate it, and execute required org changes with per-deploy chat confirmation.",
@@ -498,7 +411,7 @@
       "path": ".github/skills/generate-release-handover/SKILL.md"
     },
     {
-      "description": "Generate or update durable technical documentation for one Salesforce work item, with or without a design, using the repository-root SFDX project, manifest, source components, current ADO context, Knowledge, tests, and human manual steps.",
+      "description": "Generate or update durable technical documentation for one Salesforce work item, with or without a design, using the repository-root SFDX project, manifest, source components, current ADO context, tests, and human manual steps.",
       "name": "generate-technical-documentation",
       "path": ".github/skills/generate-technical-documentation/SKILL.md"
     },
@@ -508,17 +421,12 @@
       "path": ".github/skills/git-workflow/SKILL.md"
     },
     {
-      "description": "Inventory the repository-root Salesforce force-app into a sanitized, evidence-linked JSON artifact. Use before creating or refreshing Knowledge Entries from objects, fields, relations, Apex, Flows, Lightning components, or integration metadata.",
-      "name": "inventory-force-app",
-      "path": ".github/skills/inventory-force-app/SKILL.md"
-    },
-    {
       "description": "Take a bounded, sanitized snapshot of the configuration records held in one allowlisted reference-data object (statuses, settings, config tables) and report it read-only. Use when package behavior is driven by org records rather than metadata.",
       "name": "investigate-config-records",
       "path": ".github/skills/investigate-config-records/SKILL.md"
     },
     {
-      "description": "Collect bounded, sanitized evidence about a scoped Salesforce component or package question, report it read-only, and persist org observations only through the governed entry-org-attach lane.",
+      "description": "Collect bounded, sanitized evidence about a scoped Salesforce component or package question, and report it read-only.",
       "name": "investigate-object",
       "path": ".github/skills/investigate-object/SKILL.md"
     },
@@ -528,7 +436,7 @@
       "path": ".github/skills/maintain-workspace/SKILL.md"
     },
     {
-      "description": "The recipe for investigating the org through the read-only Salesforce MCP facade and knowledge search — what to call, in what order, and what to do when a tool fails.",
+      "description": "The recipe for investigating the org through the read-only Salesforce MCP facade — what to call, in what order, and what to do when a tool fails.",
       "name": "org-discovery",
       "path": ".github/skills/org-discovery/SKILL.md"
     },
@@ -553,82 +461,59 @@
       "path": ".github/skills/search-ado/SKILL.md"
     },
     {
-      "description": "Read-only search over governed Knowledge - approved one-file Knowledge Entries for repository-source artifact facts and their unexpired org-usage blocks - reporting effective facts separately from non-effective records with their citations. Never proposes, promotes, or edits Knowledge.",
-      "name": "search-knowledge",
-      "path": ".github/skills/search-knowledge/SKILL.md"
-    },
-    {
-      "description": "Convert an explicitly selected handful of force-app files (pinned to chat or named in the prompt) into governed Knowledge Entries - mechanical path/name resolution, a human-approved plan, then draft/describe with one approval pass. Mixed metadata types are legal; selections beyond one approval chunk are split or narrowed.",
-      "name": "selected-files-knowledge",
-      "path": ".github/skills/selected-files-knowledge/SKILL.md"
-    },
-    {
       "description": "How to design a subscriber-owned extension of the VendorPkg managed package — discovery first, a written design in the work item, package impact called out with org evidence.",
       "name": "solution-design",
       "path": ".github/skills/solution-design/SKILL.md"
     }
   ],
   "sourceDigests": {
-    ".ai/contracts/execution-contract.md": "sha256:c58ac885f65845e001c6bca17a9643f65761ef51a813784066a882f22799e8c3",
-    ".ai/contracts/source-authority.md": "sha256:04d89aff01b10a13130d4003ab1a219bea9146a535ff2816c7b8242e3c76e829",
-    ".ai/contracts/tool-capabilities.md": "sha256:29f595832ee64e8a17daea6daefc21f4c6122ebebee09503011b04662d6a11ab",
+    ".ai/contracts/execution-contract.md": "sha256:42ef87b85f54ce51b87598ec13ae39565fd89d8dadeb6b7dea08a44b6c69d2f8",
+    ".ai/contracts/source-authority.md": "sha256:a44ef511a496cf3634ffa097a214fad075a97c5e0ac57c8e9e901e94a0627ed9",
+    ".ai/contracts/tool-capabilities.md": "sha256:381ad29c1c06b8768b2cff0a3828e3ba8f9dbf8c1911a7656267e7cf36d72bfa",
     ".ai/contracts/writing-standard.md": "sha256:edf666b8198130c907f4f9bf52abc6572182dc1565025503870a0a54fdfa2b50",
-    ".github/agents/config-investigator.agent.md": "sha256:679280a58ed21e8b00eed8275979ec743bea05900be8c0c5874cfe94979e79d7",
-    ".github/agents/designer.agent.md": "sha256:36b24c52eb5895b9e10ffb26273151ae0bc180bbe4e81c59ec2fb59d17ae4e56",
-    ".github/agents/developer.agent.md": "sha256:4fe86c1b1c517fb2e9ac0dc3b1034da990db85bde874a66cbe604b3d8761e3e9",
-    ".github/agents/git-agent.agent.md": "sha256:a0920cb2343e65b3e0af270e9b609a904268be63431ed71dbaf619f515eda8c5",
-    ".github/agents/knowledge-curator.agent.md": "sha256:aeb9c2d87d8e31ae35f9d1f1e78d49f2c3d87f02c2d8f6443509753cb3e6d435",
-    ".github/agents/reviewer.agent.md": "sha256:cc263264fb8de5565e16b4325417783292151ff410b0486fc354a1f0747d4533",
-    ".github/agents/test-strategist.agent.md": "sha256:51d09ae86ebbfc3baf27727ed9f365696f807fafc87715d97a016a829d54f172",
-    ".github/agents/workspace-maintainer.agent.md": "sha256:52ee6a1016a7f081cc27bb17c73115e8a6b9c5bce99da3eaa0ab5c42e0d04375",
+    ".github/agents/config-investigator.agent.md": "sha256:81458cf422841cd5c6897e0a1e0c245749eebc1bc0347d3a6d9ec40d078352b0",
+    ".github/agents/designer.agent.md": "sha256:9ca4c835eb103a4644b7a065aad4061f91600ed99dc8a70b2244532290a306eb",
+    ".github/agents/developer.agent.md": "sha256:6b1140ac92cb70c2c3168c14199361eaf99ea9f4813cbb3b3473832b3e7a5d1e",
+    ".github/agents/git-agent.agent.md": "sha256:1497f5c7eaa6ce3420bd457cc87eb470b1d9bd443717712592aac11e59f20f12",
+    ".github/agents/reviewer.agent.md": "sha256:a3f8c49dba3ed7a8af04977da458cb5eeb91eac0581a1da80c49a5bc3e737cf5",
+    ".github/agents/test-strategist.agent.md": "sha256:1b656b909af6ecb631aea6f1efc5c989a4c86327e2e9bd8ce12c26c5f21f9539",
+    ".github/agents/workspace-maintainer.agent.md": "sha256:eb5a4689b09fc9b6a8ef20cc8677c21eb23b5038b7e93c591d208aaa95dd7a56",
     ".github/instructions/apex.instructions.md": "sha256:d28260c9247d670c71353f0cdaa22195f2490d4bb1b5bf11d403861602cda5b3",
     ".github/instructions/flows.instructions.md": "sha256:63c560e27041a9bf6e89342f0df491310f6a6fb3dc3d70d1a56f6c61d5788adc",
-    ".github/instructions/managed-package.instructions.md": "sha256:4b01d779baab059632fbe2604eb2b310e0c08b36388fefea0151daf399516d8c",
+    ".github/instructions/managed-package.instructions.md": "sha256:1a3b8da6776639eb296025b916df38d3c319be7d0b7e1c37b5d4d5553cbfcb4b",
     ".github/prompts/adhoc-fix.prompt.md": "sha256:3336c0924b0f169d82b17da70c832ef20696bf50b8a8ae3877a3bd038783f128",
-    ".github/prompts/approve-drafts-knowledge.prompt.md": "sha256:61e3e753c146c68150a1e9fa50b2a3da59563a72c66f73009cb25ce0af5038cb",
-    ".github/prompts/author-feature.prompt.md": "sha256:53131bf0cfa7ed19d149ab04c34ac3098628e8f480b5e055f74712bdd7bbc59f",
-    ".github/prompts/check-against-principles.prompt.md": "sha256:1686e08b323906bc42fd5bce3bdc179d30f8f675a1b9884d4ebd517ec4dc54ae",
-    ".github/prompts/curate-knowledge.prompt.md": "sha256:818076a6aefcff40a5620d74b946ebe72d3def5f0ae52302768346b870132fed",
-    ".github/prompts/document-metadata-change.prompt.md": "sha256:12d4239378b6d1886ffdb46d3d94095068fd5dcd0934a840a0684b300acef4c5",
-    ".github/prompts/document-solution.prompt.md": "sha256:bf4675735790942615579a42e86848db866ecee41e679694b2b949217dc93e4c",
+    ".github/prompts/check-against-principles.prompt.md": "sha256:a285300656ecff4607e40008c204104279d6353722b77ba99eafee82b656a7cd",
+    ".github/prompts/document-metadata-change.prompt.md": "sha256:ec6435bed27aab29f2190d6675baa3d1216eacd2c9d4e2efb93ffcc805667de5",
+    ".github/prompts/document-solution.prompt.md": "sha256:dfdb7fa3dc7673365b1d3f6fcbae338c89d617801a119b24de46e8d0956e66d7",
     ".github/prompts/feature-health.prompt.md": "sha256:c7c088352f0ac57905695c8d571152bddeef8dd6352a958ebe23e0cc0331e8e2",
-    ".github/prompts/fetch-ado-item.prompt.md": "sha256:657694a95239b85fe26a63952e34738b451527baa0be71d85a1bf37286e20ba5",
-    ".github/prompts/inventory-force-app.prompt.md": "sha256:6ced25c44d8b41fd537e0d72884e72c223ad4a0b566ef6bf217b9818c555a9ee",
-    ".github/prompts/investigate-config-records.prompt.md": "sha256:aacd6724e446dbb17a284c3cca59b61a27d19f34c8e2daaf54399e77663a7677",
-    ".github/prompts/investigate-object.prompt.md": "sha256:d371cbecf3ea17ee75dfcbc296b9145a0a35d1bfbc9cf1af54e1431254328111",
-    ".github/prompts/pin-knowledge.prompt.md": "sha256:3a507b159e273c425690df68f96f92c518598dfcf99c04755f92a5bc066a5f82",
-    ".github/prompts/prepare-delivery-feature.prompt.md": "sha256:87712a4fa14e7b429de7a66888550722b68a65daa134ceb39a9f6228a95554be",
-    ".github/prompts/prepare-qa-test-plan.prompt.md": "sha256:33e04c22736aaf341896e1a7379027ea0cd7626e5faaa8c0ae68b9e50452c185",
+    ".github/prompts/fetch-ado-item.prompt.md": "sha256:70a0cb1c54c62317a1136ba44dd2ef318fabaa9a1f8ea02f9632e4ebbd3c8256",
+    ".github/prompts/investigate-config-records.prompt.md": "sha256:99a35c457ee96d2c2f3269173da6313fda1fd531170320ae7fab8667f40543b1",
+    ".github/prompts/investigate-object.prompt.md": "sha256:65c205da8111d7cdd1f48ca226588df8d116261ab136aad8487d9b1467f2a359",
+    ".github/prompts/prepare-delivery-feature.prompt.md": "sha256:13a7d188f0059a657db3c80bae0d4deb66cf4b8bd07f9a32f73f20cc96a8807c",
+    ".github/prompts/prepare-qa-test-plan.prompt.md": "sha256:e962d5fba67694012c37f52c71ca3c58df4bf4696330070bdfae779e001a8ee1",
     ".github/prompts/publish-wiki.prompt.md": "sha256:97cea76b60027239a54f24f6c860f9fbc75195ef4dd8f66860637cc43511dc95",
     ".github/prompts/release-handover.prompt.md": "sha256:723b90811dac3acd2a604baaa9dc5c35ed00640a9920755fefaaecbb01c5f18c",
     ".github/prompts/search-ado.prompt.md": "sha256:2542fd8b73bb7241a547dceb6c317ceae8846c52b8aa1b07fa5c8bf95ed0ac8e",
-    ".github/prompts/search-knowledge.prompt.md": "sha256:4216ccfa6c977f0aa1c831c1b0d3c68d6a1de1e947a3819f9f8aadc672230b14",
     ".github/prompts/solution-design.prompt.md": "sha256:f54634c6181b204cd034917505f52d489f0dadb00b906eefbdf208243fbc57e3",
-    ".github/skills/adhoc-fix/SKILL.md": "sha256:dd897771db9ae74fc35bdbf7e7d25ccac4a306ca8285ebcca5825cf7c23e3fc7",
-    ".github/skills/approve-knowledge-drafts/SKILL.md": "sha256:9ce9376500f3dc7853dfe96ba4d4def2fc270368ea64e12f428c2e93eef27f38",
-    ".github/skills/author-feature/SKILL.md": "sha256:da52400d84f83de04429de21aa35503d91de0c5717160280cbd4df17934474bf",
-    ".github/skills/check-against-principles/SKILL.md": "sha256:1b906ed7a901dd8bcbd5de8d9aac6ec1a9a30afbd6d50921a3cab033c92f5795",
-    ".github/skills/check-feature-coverage/SKILL.md": "sha256:6c85754ef9eccdf94ab15cadcfa5cd1a5937aeff58a467e7de35ebb879731da2",
-    ".github/skills/curate-knowledge/SKILL.md": "sha256:a8cb40548103832468240a086c07bf5450f8e35aaaaeae9548fbbb26fab3387f",
-    ".github/skills/development/SKILL.md": "sha256:a0e04fefd4b8d8b653e5f773362acb95eb5b1fb29208fee686ca0417257c208d",
-    ".github/skills/document-solution/SKILL.md": "sha256:48a654a5b13ede23aeb4473a39b051695c40c2ba24f26bf2ea1943e31ffd10c4",
+    ".github/skills/adhoc-fix/SKILL.md": "sha256:3811b7bcbb2762511daeb182a4c683881bc4d2ffba1e4dae6e56e6b3330eb8a6",
+    ".github/skills/check-against-principles/SKILL.md": "sha256:82979b23dcdb62ffd4f0c51a89d5466a355278c902b74ac6d8b51257b9fd93be",
+    ".github/skills/check-feature-coverage/SKILL.md": "sha256:dadb77590f0f9644085c443a9648d16d040553c09e7e4a18f9ffa9c0ace3c3a6",
+    ".github/skills/development/SKILL.md": "sha256:e468c8d0675aed6f2687b7007b28f6091ab3d4c8139a804194e3cc4b8ea947eb",
+    ".github/skills/document-solution/SKILL.md": "sha256:ece46aba33a3c9442e6729a89e7a190f339664fb18e29c4f6491b7a3c9796e39",
     ".github/skills/fetch-ado-item/SKILL.md": "sha256:974c368daa869c5e42ad4936b349d4c432bb69151593b01f0eaaa5077fc52d37",
-    ".github/skills/generate-release-handover/SKILL.md": "sha256:f5a9cf38a5887743c0901c02a93ee61fe6a2057d6124197a8b33d735a89ee159",
-    ".github/skills/generate-technical-documentation/SKILL.md": "sha256:7fdd913770ace08aa904de7c158e990ee874f68f9465f36300084141c1015209",
-    ".github/skills/git-workflow/SKILL.md": "sha256:1bdfcdbb6ad2e91154d7d9aef705d1ef8a9fc2e65690a7909b4ba57d406a7051",
-    ".github/skills/inventory-force-app/SKILL.md": "sha256:07244b0172d27a4dedd417547c1cd8d7b64b6511f23cf4f9c9cd5dc4f92cf520",
-    ".github/skills/investigate-config-records/SKILL.md": "sha256:c56279b2121e54691f23502dc5c8807342261918dd8cf6ccde3c6dd9597f7c1e",
-    ".github/skills/investigate-object/SKILL.md": "sha256:6cbe89327669780f273e1f9c96923eabab422d9ea077ffa7e83d89fa8cdb6aa4",
-    ".github/skills/maintain-workspace/SKILL.md": "sha256:7c12223a0418c5435f83ae466b78253f756d80e49125c6aed5d257fe146b7314",
-    ".github/skills/org-discovery/SKILL.md": "sha256:9da77ab473b6480285545955c19df3c5e7d7720c16bd5298d3bc4df604952c3d",
-    ".github/skills/prepare-delivery-feature/SKILL.md": "sha256:3e865c1aef65e2a3c9356562176f6b213e0cf5edaae28d8465e37d1ed3374ffd",
-    ".github/skills/prepare-qa-test-plan/SKILL.md": "sha256:627c6c15a010af9d71dc82e18d41a399165d64d608ce5871e055461a03d5c18d",
-    ".github/skills/publish-wiki/SKILL.md": "sha256:eead81fb4071a18dcdcdd4f8fe855d9d98b1d4f1ac0afea5c6cc6eac519b2caf",
-    ".github/skills/search-ado/SKILL.md": "sha256:3e0b55b51aa64ea04d1e98a201fc903c4fe7d1ea8f9d5b62d771dbef79382dd3",
-    ".github/skills/search-knowledge/SKILL.md": "sha256:c526fa7f5435eb80f8064a59d147fd0c37ec714389cb197400d3d7d2b158cd07",
-    ".github/skills/selected-files-knowledge/SKILL.md": "sha256:414eebec8329142c45eab0bae4166a9a1e5ead894eaae82b8c697ff3bb7ec122",
-    ".github/skills/solution-design/SKILL.md": "sha256:76b0d387a7c6dbceda9bcd766c9e0b55bfc6c2c7da0866e746747375da745255",
-    "config/repo-map-seed.json": "sha256:22d858bffbd8464e2d64e07ea0162d9618597d3d19c3240c3778a73af98145e1"
+    ".github/skills/generate-release-handover/SKILL.md": "sha256:ba3c0b9a6de0f73cde229e707c7877b078ffdb451f978f32f59b045bceffdfc5",
+    ".github/skills/generate-technical-documentation/SKILL.md": "sha256:2cbc660ba01cf0a5e01a42d67d95dfd1eb277b79aaa1131b82b03e77633e8fce",
+    ".github/skills/git-workflow/SKILL.md": "sha256:850776624b15408d9387c9ae480ab039db89362613d14356f7792f3428c899d6",
+    ".github/skills/investigate-config-records/SKILL.md": "sha256:dce8d4abdb07f3fea63759d27d26b183a67ee5c5398540bb29ee934e4d03dfd3",
+    ".github/skills/investigate-object/SKILL.md": "sha256:e304a38b16d30a7d9ae16cf979b23ae460d8faa95170daab8e4c3c97d963687f",
+    ".github/skills/maintain-workspace/SKILL.md": "sha256:7b30335b32b741e522e9ada11bb31784b146516ae8701fe0975eef6d82ab0f8f",
+    ".github/skills/org-discovery/SKILL.md": "sha256:8a28ecfc658781afe0d1bae6284180cacd793ca430a0262e2484b21f7642b6fb",
+    ".github/skills/prepare-delivery-feature/SKILL.md": "sha256:9ecb725d293d9043d65e1afe06891e0ca54b93d1c156d33f0c3b88eaf0799b8c",
+    ".github/skills/prepare-qa-test-plan/SKILL.md": "sha256:76cc7d85bfa3af7742019e334fb8221183ca519d74962d02f7f68b465b857052",
+    ".github/skills/publish-wiki/SKILL.md": "sha256:7bd39686b5fa992ade3dc33a406b9bd74d9058988d2c62798a82989d8e7c07e6",
+    ".github/skills/search-ado/SKILL.md": "sha256:0479bf999a0969a4eadab293e71564745e66505633b960c67972e32dd9d65c75",
+    ".github/skills/solution-design/SKILL.md": "sha256:a0c79907b13682a02bd82a973cadb8adb303c1e387e22547edbccc3090ef07c2",
+    "config/repo-map-seed.json": "sha256:900d25d577d75b81254ab88bb141748a16c98096c26ab9467578580a2b0552dd"
   },
-  "wordCount": 897
+  "wordCount": 743
 }

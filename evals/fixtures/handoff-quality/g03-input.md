@@ -1,7 +1,7 @@
 # G3 input: resume, reuse and supersede
 
 This is a synthetic human-written requirement and in-progress repository state. It is
-not an ADO item, live org evidence, or production Knowledge. No live Salesforce/ADO
+not an ADO item, live org evidence, or production records. No live Salesforce/ADO
 calls, deployment or publication are authorized. Follow `evals/README.md` and use the
 full design path as identity.
 

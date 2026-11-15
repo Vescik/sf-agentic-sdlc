@@ -13,15 +13,12 @@ it.
 
 1. **Principles gate** — select applicable rule IDs and permitted evidence/action scope.
 2. **Claim inventory** — list the material factual propositions required by the task.
-3. **Knowledge lookup** — use scope-matched entries under the active
-   [retrieval contract](../.github/skills/search-knowledge/SKILL.md), including its disclosure
-   and citation rules. Source drift and missing evidence have different meanings.
-4. **Repository review** — inspect intended customer-owned metadata at a recorded commit.
-5. **Org review** — only for missing, stale, critical, or drift-sensitive facts, through the
+3. **Repository review** — inspect intended customer-owned metadata at a recorded commit.
+4. **Org review** — only for missing, stale, critical, or drift-sensitive facts, through the
    bounded Salesforce review facade.
-6. **Reconciliation** — classify agreement, incompleteness, mismatch, and repository/org drift.
-7. **Human promotion** — observations become trusted Knowledge only through an immutable review.
-8. **Durable artifacts** — scope, design and recorded decisions live in
+5. **Reconciliation** — classify agreement, incompleteness, mismatch, and repository/org drift.
+6. **Human review** — observations become trusted only through a recorded human review.
+7. **Durable artifacts** — scope, design and recorded decisions live in
    `work-items/<id>-<slug>/`, never in chat alone. A local checkpoint supports continuation and
    technical review; publication and PR review remain separate requested operations.
 
@@ -35,7 +32,7 @@ a separately cloned metadata repository.
 
 This shared root does not expand tool authority. Salesforce MCP filesystem inputs and role writes
 remain bounded to approved metadata/test subpaths such as `force-app/`, `manifest/`, and
-`tests/e2e/`. Changes to Principles, Knowledge, approvals, work items, configuration, or other
+`tests/e2e/`. Changes to Principles, approvals, work items, configuration, or other
 harness files remain governed by their role-specific mechanisms.
 
 ## Authority depends on claim type
@@ -82,20 +79,10 @@ listed. Results are `VERIFIED`, `MISMATCH`, `INCOMPLETE`, or `BLOCKED`.
 
 MCP and CLI agreement corroborates transport from the same org; it is not an independent source of
 business or vendor truth. Truncation, schema drift, target-check failure, or an unavailable
-required endpoint prevents Knowledge promotion and `SAFE`.
+required endpoint prevents `SAFE`.
 
-## Knowledge boundary
+## Evidence boundary
 
-Knowledge is the one-file entry model (the v1 claim registry retired 2026-08-03; see
-`docs/knowledge-one-file-contract.md` for the normative contract):
-
-- Agents may create and edit `draft` entries only; approval is digest-pinned and human
-  (`entry-approve`/`feature-approve` through the chat confirmation dialog, or a human terminal).
-- Entry citation and lifecycle follow the
-  [retrieval contract](../.github/skills/search-knowledge/SKILL.md). Source drift does not edit
-  the approved Entry content or reopen it as a draft; disclose the changed source as required.
-  Editing approved Entry content still uses its governed authoring and approval workflow.
-  A missing or unreadable source fragment is an evidence gap, not ordinary source drift.
 - Different environments, package versions, or repository lineages remain separate scopes.
 - Raw records, secrets, credentials, broad org payloads, and chain-of-thought are never committed.
 - Reference-data snapshots are the one governed record-value path: for a single human-allowlisted
@@ -117,7 +104,7 @@ revision); `tasks.md` the Developer's execution checklist, created before code e
 `decisions.md` the append-only log created for the first material deviation or development
 ruling; and, when qualifying Salesforce
 mutations were executed, `org-changes.md` the append-only operational history. The org-change log
-is an agent report and pointer for re-verification, not approval, Knowledge, QA evidence, or a
+is an agent report and pointer for re-verification, not approval, QA evidence, or a
 current-state guarantee. The absence of `decisions.md` means no deviations are recorded; review
 still compares the implementation with the design. Those files carry durable state in the
 repository and local checkpoints. Technical review can use the persisted design or exact diff
@@ -132,14 +119,12 @@ required for an explicitly authorized implementation.
 ## Acceptance gates
 
 - Ground material assertions according to their source type and scope under the
-  [source authority contract](../.ai/contracts/source-authority.md). Use the active
-  [retrieval contract](../.github/skills/search-knowledge/SKILL.md) for Knowledge eligibility;
+  [source authority contract](../.ai/contracts/source-authority.md);
   current org assertions require applicable org evidence. Unsupported assertions remain visible
   gaps, never verified facts.
-- Every trusted entry is schema-valid, human-approved at its current digest, and in scope.
-- No model-only inference is verified Knowledge.
+- No model-only inference is a verified fact.
 - Apply the [review procedure](../.github/skills/check-against-principles/SKILL.md) for `SAFE`.
-  Source drift has the retrieval contract's disclosure treatment. An incomplete or mismatched
+  An incomplete or mismatched
   org review, missing required evidence or unresolved material org drift is not cleared by that
   treatment; evaluate it against the actual reviewed claim and scope.
 - Follow the current

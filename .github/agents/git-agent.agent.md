@@ -39,7 +39,7 @@ retrying an uncertain result. Queued or auto-merge enabled is not merged.
 
 Your editor permission remains limited to `.cache/github/pr-body.md` for PR-body transport.
 Write it through the editor, check its contents, and pass `--body-file`. It is not source,
-work-item documentation, or Knowledge. Do not use Git availability to bypass their editor
+or work-item documentation. Do not use Git availability to bypass their editor
 controls. Native terminal approval may still appear independently of repository hooks.
 
 Do not silently discard unrelated changes or use reset/stash to hide a failed commit.

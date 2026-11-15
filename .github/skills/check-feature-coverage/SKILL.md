@@ -27,25 +27,10 @@ For BRD attachments:
    behavior from title alone.
 3. Build a two-way requirement↔Story matrix with `covered | partial | absent | ambiguous` and a
    rationale. Identify gaps and orphan Stories; an enabler is a review item, not an automatic error.
-4. Check every applicable scoped Principle and Known Limitation for affected package surfaces. Query both
-   layers for each affected object rather than only reading the static view:
-   - the `knowledge_context` tool — parts, dependents and
-     permission grants for the entry-homed types, with their coverage denominator. Count
-     coverage from `parts`, `permissions` and `incoming` only — the effective approved buckets;
-     the `*NonCurrent` siblings are opted-in non-effective lanes and belong in the gap list.
-     A row with `hydrated: false` failed re-reading and stays out of the coverage denominator
-     on either side of the matrix. Lane semantics, bucket rules and the citation boundary are
-     defined once in [search-knowledge](../search-knowledge/SKILL.md) — read them there;
-   - **Unprofiled-type dependents are an UNCOVERED class, and the matrix must say so** (owner
-     D-C, 2026-08-03): the generic-bucket types named in
-     [search-knowledge](../search-knowledge/SKILL.md) have no governed dependency lookup. The
-     coverage matrix MUST carry an explicit `not covered: <type list>` line naming every such
-     type present in the inventory — a result without that line reads as a clean bill of
-     health it did not earn.
-   Treat effective approved entries as facts — `approved-current` and `approved-drifted` alike,
-   the latter with its drift disclosed in the row. Drafts, revoked and not-effective entries are
-   never facts. An empty result is a recorded gap and is NEVER proof that nothing depends on the
-   component.
+4. Check every applicable scoped Principle and Known Limitation for affected package surfaces.
+   Read the affected components in the repository-root `force-app/` source and, where this
+   role may, through the read-only Salesforce review tools. An empty result is a recorded gap
+   and is NEVER proof that nothing depends on the component.
 5. Save all six mandatory sections using the
    [Feature Health template](../../../.ai/templates/feature-health-report.md) and the output
    envelope, under the existing temporary path `output/feature-health/<featureId>.md`.
@@ -64,23 +49,6 @@ For BRD attachments:
 
 Return `PASS`, `WARN`, `BLOCKED`, or `INCOMPLETE`. `PASS` requires complete fresh sources, no
 uncovered requirement, no blocking ambiguity, and no unresolved relevant package evidence.
-
-## Knowledge grounding: two layers
-
-Query both layers through the knowledge tools and read their envelopes by the
-[search-knowledge](../search-knowledge/SKILL.md) rules — authorities, lane handling and
-citation mechanics live there, once; do not re-derive them here. In short: approved
-entries ground intended repository-source facts, cited as `entryRef` via the
-`knowledge_entry_status` tool (a search result, a `context` pack and a generated view are
-never themselves citable); org usage grounds usage numbers cited with orgKey, observedAt
-and their age; runtime behavior, business meaning and vendor guarantees have no governed
-Knowledge surface — mark them `UNVERIFIED` with their source. A missing hit is never
-proof of absence. An approved entry can still refuse to ground a fact: contract §8.1
-grounds only `source-exact`, fully covered sections — check the entry's
-`extractionCoverage` and `assurance` (heuristic-derived facts, common across the Apex
-layer, are refused). Take the refusal as the answer: report the fact as inferred and name
-what would make it groundable — never retry with a different ref shape.
-
 
 ## Salesforce role boundary
 

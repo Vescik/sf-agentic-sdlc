@@ -162,11 +162,6 @@ class TemplateOnboardingTests(unittest.TestCase):
             config_path = Path(name) / 'harness.local.json'
             with patch.object(first_launch, 'CONFIG_PATH', config_path):
                 first_launch.prepare_config()
-                # The released base retains its independent human Knowledge reviewer setup.
-                # Supply that fixture value without changing onboarding's Knowledge behavior.
-                initial = json.loads(config_path.read_text())
-                initial['knowledge']['chatReviewer'] = 'Fixture Reviewer'
-                config_path.write_text(json.dumps(initial))
                 pending = {'ado.organization': 'example', 'ado.project': 'Demo',
                     'ado.releaseQueryId': '11111111-1111-1111-1111-111111111111',
                     'review.enabled': True, 'review.objects': ['Account'],

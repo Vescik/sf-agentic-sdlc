@@ -764,28 +764,6 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
     if command and private_native_invocation(command):
         return hook_response("deny", "Private Salesforce session/executor cannot be invoked from a terminal; use the native Developer tool.")
 
-    if is_terminal_tool(tool_name) and re.search(
-        r"knowledge_store\.py", dequote(command).replace("\\", "/")
-    ) and re.search(r"(?:^|\s)(?:entry|feature)-(?:approve|revoke)(?:\s|$)", dequote(command)):
-        # One alternation, one mechanism, one revocation path. A Feature approval is the same
-        # act as an entry approval -- a human binding their name to a digest -- so it goes
-        # through the same trap rather than a second one that could drift out of step.
-        feature = bool(re.search(r"(?:^|\s)feature-(?:approve|revoke)(?:\s|$)", dequote(command)))
-        subject = (
-            "feature boundary rule approval/revocation — you are approving WHERE the feature "
-            "ends and what it is, never a member list (membership is recomputed, so package "
-            "growth cannot change what you approved)"
-            if feature
-            else "Knowledge Entry approval/revocation"
-        )
-        return hook_response(
-                    "ask",
-                    f"SAFE-HUMAN-001: confirm this {subject} — the "
-                    "command is digest-pinned to the exact displayed content and your click is "
-                    "recorded as the copilot-chat-entry-confirmation review mechanism "
-                    "(docs/knowledge-one-file-contract.md §6, §13).",
-                )
-
     if has_recursive_force_rm(text) or any(pattern.search(text) for pattern in DESTRUCTIVE_PATTERNS):
         return hook_response("deny", "Destructive operation blocked by the global safety policy.")
 

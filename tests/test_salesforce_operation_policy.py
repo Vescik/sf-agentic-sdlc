@@ -182,7 +182,7 @@ class PolicyTests(unittest.TestCase):
 
     def test_role_still_owns_cli_authority(self):
         with patch.object(policy, '_read_json', return_value=self.config), patch.object(policy, 'local_authorizations', return_value=self.rows):
-            for role in ['reviewer', 'designer', 'knowledge-curator', 'config-investigator']:
+            for role in ['reviewer', 'designer', 'config-investigator']:
                 self.assertFalse(roles.allowed_role_command('sf project retrieve start -o team-alpha', self.root, role))
             self.assertTrue(roles.allowed_role_command('sf project retrieve start -o team-alpha', self.root, 'developer'))
             self.assertFalse(roles.allowed_role_command('sf project deploy start -o team-alpha', self.root, 'developer'))

@@ -44,13 +44,12 @@ Developer, subject to the global real-deploy confirmation hook:
 
 - **Always prefix the interpreter**: `python scripts/<name>.py …`. A bare `scripts/<name>.py` (no
   interpreter) is denied.
-- **Use forward slashes on every OS**, including Windows: `python scripts/knowledge_store.py …`,
-  never `scripts\knowledge_store.py`. Backslash paths are rejected by the command parser.
+- **Use forward slashes on every OS**, including Windows: `python scripts/validate_harness.py`,
+  never `scripts\validate_harness.py`. Backslash paths are rejected by the command parser.
 - **`python` must be the workspace `.venv` interpreter** so `jsonschema`/`PyYAML` are importable.
   Select it once via "Python: Select Interpreter" → `.venv`; the integrated terminal then activates
   it automatically. Running system Python fails with `ModuleNotFoundError`.
 - Run from the repository root. Harness Python commands are limited to
-  `knowledge_store.py`, `knowledge_search.py`, `force_app_knowledge.py`,
   `validate_handover_output.py` (read-only handover render check), `validate_harness.py`,
   `run_evals.py`, and the legacy optional `validate_salesforce_deploy.py` (`start`/`status`
   check-only validation), each with its allowlisted subcommands.
@@ -83,8 +82,7 @@ Install the local `commit-msg` hook as documented there to validate final editor
 
 Active authors commit coherent completed results after verification. Preserve unrelated staged
 and unstaged changes; choose a staging method appropriate to the requested scope. Reviewer
-continues to review without editing source unless the user changes the task. Knowledge
-lifecycle, editor permissions, Salesforce access, and ADO access remain unchanged.
+continues to review without editing source unless the user changes the task. Editor permissions, Salesforce access, and ADO access remain unchanged.
 
 Push, PR creation/update, merge, and destructive Git actions need an explicit human instruction
 covering the operation. One instruction can cover publication and merge without repeated
@@ -130,7 +128,7 @@ do not ask for a separate acceptance or task-plan approval. Honor earlier applic
 authorization too. An unresolved alternative or policy choice still needs resolution before
 dependent implementation; continue independent authorized work. Acceptance alone does not request
 implementation. Review findings and local commits do not themselves accept a design. PR review,
-Knowledge approval, push, merge and deployment keep their distinct authorization rules.
+push, merge and deployment keep their distinct authorization rules.
 
 For another specialist, prepare a manual request with the exact question, bounded scope, known
 sources, dependent decision and expected result. The owning author incorporates lasting findings
@@ -148,7 +146,7 @@ report that gap without publishing automatically or claiming local files are ava
   `docs/org-changes/<yyyy-mm-dd>-<slug>.md`.
 - Create the file lazily only after the first qualifying operation. Never duplicate the same
   command outcome across Work Item, Feature, standalone documentation, PR text, or chat.
-- The log is an agent-authored operational claim. It is not deploy consent, Knowledge, an
+- The log is an agent-authored operational claim. It is not deploy consent, an
   approval ledger, a release record, QA execution evidence, or proof that current org state
   still matches the result. Reviewers recheck material current state through scoped tools.
 - Never persist secrets, authentication material, raw CLI JSON, record values, selector values,
@@ -157,20 +155,12 @@ report that gap without publishing automatically or claiming local files are ava
   procedure is owned by `.github/skills/development/SKILL.md`. No wrapper, executor, schema,
   state machine, or automatic capture service is implied by this artifact contract.
 
-## Knowledge
+## Evidence
 
-- Ground each material factual assertion per SAFE-CLAIM-001: approved entries for
-  repository-source facts, fresh governed receipts or unexpired org-usage blocks for org
-  state, `UNVERIFIED` with source and bounds for everything else.
-- Follow the [Search Knowledge retrieval contract](../../.github/skills/search-knowledge/SKILL.md)
-  for effective lanes, source-drift disclosure, citation checks and org-usage freshness. Do not
-  replace that contract with a stricter lifecycle summary here.
-- Model inference and org observation may create drafts and reports only. Approval requires the
-  human's digest-pinned chat confirmation through the governed executor.
-- Delivery works best over a populated Knowledge store. On a fresh workspace,
-  bootstrap Knowledge first (inventory → entry-draft → describe → human approvals) so
-  designs can cite entries instead of guesses. Knowledge keeps its own human approval; it is
-  not implied by design or pull-request review.
+- Ground each material factual assertion per SAFE-CLAIM-001: repository source for intended
+  repository state, fresh governed receipts for org state, `UNVERIFIED` with source and bounds
+  for everything else.
+- Model inference and org observation may create drafts and reports only.
 - Principles constrain actions; they do not rewrite observations. The metadata repository describes
   intended customer-owned state; the org review describes deployed state at a timestamp.
 - Salesforce MCP and CLI agreement corroborates transport from the same org. It is not independent
@@ -206,7 +196,7 @@ report that gap without publishing automatically or claiming local files are ava
 ## Output envelope
 
 Apply the [writing standard](writing-standard.md) to new or changed prose. Keep the existing
-specialized artifact structures and governed Knowledge revision checks. ADO source metadata
+specialized artifact structures. ADO source metadata
 uses IDs/links, retrieval time, scope and completeness, without ADO revision numbers.
 
 For human-readable reports and documentation, state purpose and scope, the real Story ID and
@@ -230,17 +220,14 @@ below does not apply to this set. Do not add frontmatter, JSON envelopes, claims
 revision fields, freshness registries, or a fourth report. Follow the
 [Document Solution skill](../../.github/skills/document-solution/SKILL.md) for creation and updates.
 Work Item context and design are optional sources for this workflow; missing ones do not require
-intake or a substitute design. Repository sources can support the description without a new
-Knowledge lookup, bootstrap, or authoring step. If the current task already uses governed
-Knowledge, preserve its existing read and reference-validation rules. These exceptions apply
+intake or a substitute design. Repository sources can support the description. These exceptions apply
 to `/document-solution` and publication of that same set through `/publish-wiki`.
-Publication keeps the source format, requires no fictional Work Item/design or Knowledge
-authoring, and reports page and link outcomes without adding an envelope to the pages.
+Publication keeps the source format, requires no fictional Work Item/design, and reports page and link outcomes without adding an envelope to the pages.
 The [Publish Wiki skill](../../.github/skills/publish-wiki/SKILL.md) requires explicit publication
 scope and, for current solution pages, evidence of the deployed scope. Delivery documentation
 keeps its existing format and Work Item relation. Internal ETags and conditional relation
 revisions remain connector transport details; do not persist or report them as workflow gates.
-Other workflows retain their entry, Knowledge, and output contracts.
+Other workflows retain their entry and output contracts.
 
 Every generated report, draft, or returned structured context states:
 
@@ -252,8 +239,7 @@ Every generated report, draft, or returned structured context states:
 - completeness (`complete` or `partial`) and warnings;
 - review status (`draft`, `accepted`, `rejected`, or `promoted`);
 - files written and verification performed.
-- material `ruleRefs` and `entryRefs` (approved Knowledge Entries, SAFE-CLAIM-001 v2),
-  and `evidenceRefs`, including missing/drifted/expired refs.
+- material `ruleRefs` and `evidenceRefs`, including missing/drifted/expired refs.
 
 Never silently overwrite a human-reviewed artifact. Sanitize output names and keep writes inside
 the documented brain or named Salesforce workspace root.

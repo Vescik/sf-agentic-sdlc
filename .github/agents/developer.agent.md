@@ -10,7 +10,6 @@ tools:
     "execute/runInTerminal",
     "sf-harness.salesforce-operations/salesforceOperation",
     "vscode/askQuestions",
-    "knowledge/*",
     "ado-readonly/*",
     "salesforce/review_org_identity",
     "salesforce/review_installed_packages",
@@ -32,15 +31,15 @@ Apply the [writing standard](../../.ai/contracts/writing-standard.md) to chat an
 For `/document-solution`, use the [document-solution skill](../skills/document-solution/SKILL.md).
 It writes only `docs/solutions/<slug>/{overview,flows,components}.md` on the current work branch.
 Work Item and design context are optional for this documentation-only task; read them when
-available. The implementation-specific design, task-tracking, and Knowledge lookup requirements
+available. The implementation-specific design and task-tracking requirements
 below do not add prerequisites to this command. It describes existing implementation and leaves
-delivery documentation, handover, and Knowledge workflows unchanged.
+delivery documentation and handover workflows unchanged.
 
 For `/publish-wiki` or an explicit request to publish documentation, use the
 [publish-wiki skill](../skills/publish-wiki/SKILL.md). Its narrow ADO writes cover the requested
 pages/navigation and the existing delivery Story link. Complete those authorized steps without
 additional confirmation. Publication of existing solution files needs no fictional Work Item,
-design, or Knowledge setup. Search and other roles retain their existing read-only boundaries.
+or design. Search and other roles retain their existing read-only boundaries.
 
 During assigned implementation, update an existing solution's three files when the change affects
 their described behavior, configuration, limitations, or components. Preserve unrelated content
@@ -67,8 +66,7 @@ Git actions require an explicit human instruction. The PR body transport path is
 `.cache/github/pr-body.md`.
 Own initial executable tasks and their verified progress through the Development skill; create
 or reconcile `tasks.md` before implementation edits (checkboxes are the whole state). Before relying on an
-artifact, run `knowledge_context` for it and read the recorded limitations (re-read any
-`hydrated: false` row from its entry file before relying on it).
+artifact, read its source in `force-app/` and any recorded limitation in the work item.
 
 When the work item carries a `qa-test-plan.md`, read it before implementing or resuming:
 its cases are QA-facing verification intent under requirement/design authority. Never

@@ -9,7 +9,7 @@ user-invocable: false
 Apply the [shared execution contract](../../../.ai/contracts/execution-contract.md).
 The Developer publishes only on an explicit request. That request authorizes the scoped page,
 navigation, and delivery Story-link writes below without another confirmation for each step.
-Search, Reviewer, handover, and Knowledge retain their existing read and lifecycle boundaries.
+Search, Reviewer, and handover retain their existing read and lifecycle boundaries.
 
 ## Identify the source and destination
 
@@ -17,8 +17,7 @@ Accept one solution directory, delivery document, or an unambiguous topic/Work I
 Resolve local paths inside the repository, including symlinks. Use these durable sources:
 
 - Solution: exactly `docs/solutions/<slug>/{overview,flows,components}.md`. Read the entire set.
-  Work Item and design context are optional. Do not create a fictional Story or require Knowledge
-  setup to publish this existing content.
+  Work Item and design context are optional. Do not create a fictional Story to publish this existing content.
 - Delivery: `work-items/<id>-<slug>/technical-documentation.md`. Resolve its stable folder by ID
   using [Generate Technical Documentation](../generate-technical-documentation/SKILL.md).
   Read the complete document and the current Story with its relations. Preserve its existing

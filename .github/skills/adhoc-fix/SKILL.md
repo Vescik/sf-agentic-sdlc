@@ -39,29 +39,15 @@ confirmation rule.
    than assuming — preferred practice per the 2026-07-30/2026-08-04 owner decisions; probed numbers quoted
    in the fix note cite the org alias and observation time. If the retrieved state
    contradicts the diagnosis, stop and report instead of guessing.
-3. Consult Knowledge for dependents before touching the component, both layers:
-   - the `knowledge_context` tool — who reads, writes and
-     grants access to it today, with per-edge assurance (`knowledge_resolve` maps the
-     component's name or file path to its identity). `parts`, `permissions` and `incoming`
-     hold the effective approved rows; the `*NonCurrent` siblings are opted-in non-effective
-     lanes and are reported as unknowns in the fix note, never as dependents you have accounted
-     for. A row with `hydrated: false` failed re-reading — it is an unknown in the fix note,
-     never a dependent you have accounted for. Lane semantics, bucket rules and the
-     generic-bucket types are defined once in
-     [search-knowledge](../search-knowledge/SKILL.md); when a generic-bucket type sits in the
-     blast radius, name it as an unknown in the fix note.
-   An empty result from either layer is a recorded gap and is NEVER proof that nothing depends on
-   this component. When the fix note cites a repository fact, cite what the executor gives you,
-   not what the view shows: obtain the citable ref with `python scripts/knowledge_store.py
-   entry-status --identity <Identity>`; a `context` pack is never itself citable. Apex-layer
-   entries generally cannot be cited as positive grounding — contract §8.1 grounds only sections
-   marked `source-exact` with full coverage, and Apex facts are regex-derived — so for an Apex
-   defect quote the retrieved source you read in step 2 and report the entry as inferred.
+3. Find dependents before touching the component: search the repository-root `force-app/`
+   source for references to it (who reads, writes and grants access to it). An empty result
+   is a recorded gap and is NEVER proof that nothing depends on this component; name any
+   unchecked metadata type as an unknown in the fix note.
 4. Make the smallest coherent edit in `force-app/`. Match the existing metadata style; change the
    defective element, not the surrounding structure.
 5. Verify what can be verified locally: the XML parses, the changed element is the only
    difference against the retrieved copy, and any referenced fields/labels/subflows exist in the
-   local source or verified Knowledge.
+   local source.
 6. Write the fix note to `output/documentation/adhoc-fixes/<yyyy-mm-dd>-<component>.md`:
    diagnosis (verbatim), files changed, the exact before → after of the defective element,
    verification performed, the proposed deploy command and component list, and the rollback path.
@@ -74,8 +60,6 @@ confirmation rule.
    fix note; never duplicate the entry or leave the fix note as the sole durable record. Recommend an
    after-the-fact guardrail review — the human opens the reviewer role on the fix note
    and changed files; record the verdict by appending a `Review outcome` section to the note.
-8. If the defect or its fix reveals durable facts worth keeping (error surface, config meaning),
-   route them through `/pin-knowledge` afterwards; this skill itself writes no Knowledge.
 
 ## Prohibitions
 
@@ -84,7 +68,7 @@ confirmation rule.
   here" cleanups, no scope growth past the bounded-fix entry condition.
 - Never edit outside `force-app/`, `manifest/`, `tests/e2e/`, the fix note, and the single
   canonical org-change log; approvals,
-  Knowledge, Principles, and records remain out of reach.
+  Principles, and records remain out of reach.
 - Never present the repository edit as deployed, fixed-in-org, or verified-in-org without a
   successful deploy receipt and explicit verification.
 

@@ -1,7 +1,7 @@
 # Agent Compatibility Contract
 
 Follow `.github/copilot-instructions.md`. `docs/` explains the package;
-`.ai/knowledge/` holds facts; `work-items/` holds plans. `brain-core` (`.`) is the only SFDX root.
+`work-items/` holds plans. `brain-core` (`.`) is the only SFDX root.
 Load role contracts/skills and `.ai/repo-map.md`; never search another root for metadata.
 
 Developer uses reviewed CLI on `dev`/`uat`/`stage`. Production CLI permits only verified metadata

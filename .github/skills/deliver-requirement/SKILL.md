@@ -65,8 +65,11 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 | S7 draft PR | `git-agent` | Push `feat/<id>-<slug>` and open a draft PR with the delivery packet as its body. | the draft PR URL is known |
 | H3 | person | Reviews the draft PR; merges or closes it. | — |
 
-After S6, run the delivery check again when S6 caused a change. S7 starts only on a PASS for
-the HEAD commit.
+Every station runs as its own sub-agent, in this order. S3 and S6 are `reviewer` sub-agents
+and S7 is a `git-agent` sub-agent; never mark a station DONE or RETURNED without starting its
+sub-agent (live run 8 skipped all three). After S6, run the delivery check again when S6 caused
+a change. S7 starts only on a PASS for the HEAD commit and is not optional: a PASS without a draft
+PR is an unfinished run.
 
 ## S1: `requirements.md`
 

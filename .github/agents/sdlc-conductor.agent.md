@@ -41,6 +41,9 @@ the owner decisions behind it are in [plan 05](../../docs/plan05-w8-integration.
   [Git Workflow](../skills/git-workflow/SKILL.md) for local Git; only the git-agent station
   pushes and opens the draft PR.
 
+Run every station S1–S7 as its own sub-agent; S3 and S6 are the `reviewer`, S7 is the
+`git-agent`. A station that never started is not DONE or RETURNED.
+
 ## Return contract
 
 End with one line per station (status and evidence path), the attempt count, the final

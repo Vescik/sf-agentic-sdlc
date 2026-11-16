@@ -297,6 +297,14 @@ evidence gates, and real client data.
   final PASS on SC1–SC5. The conductor skipped S3, S6 and S7; S7 was then run alone with the
   git-agent, which pushed `feat/1-route-cases-by-priority` and opened draft PR #14 through the
   hook's PASS check. The skill now makes S3, S6 and S7 mandatory.
+- **Run 9 and the launcher finish step:** run 9 reached PASS on SC1–SC5 in 29 minutes but, like
+  run 8, never started the reviewer or git-agent stations, although the skill makes them
+  mandatory. With the only model the plan offers (`auto`), instructions do not hold S3, S6 and
+  S7. `scripts/sdlc.py` therefore finishes a prompt-mode run: when the `feat/*` branch has a PASS
+  `delivery-check.json` for HEAD, it starts S6 (`reviewer`, answer saved to
+  `.cache/delivery/<work item>-implementation-review.md` and added to the PR body) and S7
+  (`git-agent`, push and draft PR) itself. Every action still goes through the hooks;
+  `--no-finish` turns it off.
 - **Decided 2026-11-16 after phase 3:**
   - D-T1: the per-role terminal allowlist is removed. Every role may run any command except a
     Salesforce command the policy denies (the same policy for every role), a chained `sf`

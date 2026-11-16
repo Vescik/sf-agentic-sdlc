@@ -1,14 +1,10 @@
 # Route Cases by Priority — Acceptance Trace
 
-Source: `requirements.md`, acceptance criteria AC-1–AC-6. This trace records implementation verification separately from design coverage. These are Developer validation results, not QA execution records.
-
-| Criterion | Planned implementation | Observed verification evidence | Result |
-| --- | --- | --- | --- |
-| AC-1 | `Case.Routing_Tier__c` restricted picklist | Retrieved metadata from `devmp` shows exactly `Tier1` and `Tier2`, both with default=false, and a restricted value set. The live Case object contract lists the field as a picklist. | Verified |
-| AC-2 | Before-insert mapping in `CaseRoutingTrigger` and `CaseRoutingHandler` | `CaseRoutingHandlerTest.routesHighAndOtherPrioritiesOnInsert` passed: High mapped to Tier2; Medium, Low, and null mapped to Tier1. | Verified |
-| AC-3 | Handler recalculates on Priority change | `CaseRoutingHandlerTest.recalculatesWhenPriorityChanges` passed for High-to-Low and Medium-to-High updates. | Verified |
-| AC-4 | Collection-based handler | `CaseRoutingHandlerTest.routesTwoHundredCasesInOneTransaction` passed with 200 Cases inserted in one DML operation and every tier asserted. | Verified |
-| AC-5 | Existing Support layout plus read-only Support profile field permission | Retrieved Support layout shows `Routing_Tier__c` as Readonly. Retrieved Support profile shows readable=true and editable=false, and retains its Support Case layout assignment. An aggregate user query found zero active users assigned to that profile in `devmp` at 2026-11-16T11:59:21Z. | Configuration verified; active-user access unverified |
-| AC-6 | No backfill, Flow, integration, or permission change beyond read-only field access | Changed implementation paths contain no data migration, Flow, or integration. No data CRUD ran. The only field-level permission change is read-only access on `Custom: Support Profile`. | Verified |
-
-Observed in development org `devmp`: field, profile, and remaining components were deployed in scoped stages. The final job `0AfgL00000e8rZZSAY` completed at 2026-11-16T11:54:20Z with 3 passing tests and 0 failures. The Case object contract was verified through REST at 2026-11-16T11:54:45Z. Field, layout, and profile metadata were retrieved and inspected by 2026-11-16T11:55:03Z. These observations apply to `devmp`, not production. The direct MCP SOQL check in `devmp` at 2026-11-16T11:49:40Z returned INCOMPLETE/REST_SCHEMA_MISMATCH and was not used as confirmation. No active user assignment to the Support profile was found in the development org, so access for actual support users is not confirmed. No production deployment or production access observation was made. The initial combined deployment failure, implementation adaptations, and access limitation are recorded in `decisions.md` and `org-changes.md`.
+| Criterion | Covered by |
+| --- | --- |
+| AC-1 | CaseRoutingHandlerTest.routesHighAndOtherPrioritiesOnInsert |
+| AC-2 | CaseRoutingHandlerTest.routesHighAndOtherPrioritiesOnInsert |
+| AC-3 | CaseRoutingHandlerTest.recalculatesWhenPriorityChanges |
+| AC-4 | CaseRoutingHandlerTest.routesTwoHundredCasesInOneTransaction |
+| AC-5 | manual: inspect the Support page layout and field-level security for Case.Routing_Tier__c |
+| AC-6 | manual: confirm no data backfill, Flow, or integration changes were introduced |

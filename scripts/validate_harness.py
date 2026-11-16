@@ -1465,6 +1465,7 @@ def check_delivery_conductor(audit: Audit, root: Path = ROOT) -> None:
         ("draft PR", "the run ends with a draft PR, never a merge"),
         ("cannot be understood", "the person is asked only for a requirement that cannot be understood (D-D4)"),
         ("`AC-1`", "requirements.md carries stable acceptance-criterion IDs for SC1"),
+        ("is BLOCKED", "old org test failures stop the run for a person; the agent does not fix them"),
     ):
         audit.require(marker in skill, f"deliver-requirement skill: {reason} ({marker!r} missing)")
     for station in ("S1", "S2", "S3", "S4", "S5", "S6", "S7", "H3"):

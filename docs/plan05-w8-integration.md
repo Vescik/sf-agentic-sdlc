@@ -270,6 +270,24 @@ evidence gates, and real client data.
 - **Phase 5 (written, not run):** golden cases N1, E1, E2 and T1 with evaluator oracles in
   `evals/fixtures/delivery-golden/`, and four `conductor-` scenarios in
   `evals/agent-scenarios.yaml`. The live runs wait for Copilot CLI access and a developer org.
+- **Trial N1 without Copilot (2026-11-16):** the stations were done by hand on branch
+  `feat/0001-case-routing` (local only) against the developer org `devmp`, and
+  `check_delivery.py` ran live three times.
+  - SC4 had a defect: it compared the deploy with HEAD, but `deploy-job-id` is committed after
+    the deploy, so SC4 could never pass. Fixed: the deploy must follow the last source commit.
+  - The deploy report of this CLI version (2.151.7) has no file list; SC4 matched the 8 files by
+    component name, which worked.
+  - Check 1 failed SC1 and SC2: a new field without field access cannot be queried by the
+    tests. The fix was a permission set (`Case_Routing`) assigned in the org. The build station
+    now grants and assigns field access for new fields.
+  - Check 2 failed SC2 only on `TriggerHandlerTest`, a class in the org that had not compiled
+    since 2026-08 and is not part of the change. Owner rule 2026-11-16: a failing test outside
+    the delivery is a blocker for a person (status BLOCKED, the run stops); a failing test of
+    the delivery, or one whose message or stack trace names a changed component, is the agent's
+    to fix. In this trial org the owner allowed the fix: `TriggerHandlerTest` was rewritten for
+    the current `TriggerHandler` API and deployed to `devmp` (org only, not in this repository).
+  - Check 3: all five criteria PASS (63 Apex tests); the draft-PR hook admits the git-agent and
+    denies other roles.
 - **Decided 2026-11-16 after phase 3:**
   - D-T1: the per-role terminal allowlist is removed. Every role may run any command except a
     Salesforce command the policy denies (the same policy for every role), a chained `sf`

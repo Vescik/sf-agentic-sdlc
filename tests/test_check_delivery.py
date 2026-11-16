@@ -163,7 +163,7 @@ class CheckDeliveryTest(unittest.TestCase):
         self.sf.tests.append({"FullName": "OtherTest.breaks", "Outcome": "Fail"})
         sc2 = self.status(self.run_check(), "SC2")
         self.assertEqual(sc2["status"], "FAIL")
-        self.assertIn("othertest.breaks", " ".join(sc2["details"]))
+        self.assertIn("OtherTest.breaks", " ".join(sc2["details"]))
 
         self.sf = FakeSalesforce()
         self.sf.npm_code = 1
@@ -171,6 +171,30 @@ class CheckDeliveryTest(unittest.TestCase):
         sh(self.root, "git", "add", "-A")
         sh(self.root, "git", "commit", "-qm", "jest")
         self.assertEqual(self.status(self.run_check(), "SC2")["status"], "FAIL")
+
+    def test_sc2_unrelated_org_failures_block_and_delivery_failures_are_repaired(self):
+        # Owner rule 2026-11-16: an old failure outside the delivery is a blocker for a person;
+        # a failure of the delivery's own tests, or one that names a changed component, is the
+        # agent's to fix.
+        self.sf.outcome = "Failed"
+        self.sf.tests.append({"FullName": "LegacyTest.oldBreak", "ApexClass": {"Name": "LegacyTest"},
+                              "Outcome": "CompileFail", "Message": "Method does not exist", "StackTrace": ""})
+        report = self.run_check()
+        self.assertEqual("BLOCKED", report["status"])
+        self.assertEqual(["LegacyTest.oldBreak"], report["blockers"])
+        self.assertIn("BLOCKER", " ".join(self.status(report, "SC2")["details"]))
+
+        self.sf = FakeSalesforce()
+        self.sf.outcome = "Failed"
+        self.sf.tests[0]["Outcome"] = "Fail"
+        self.sf.tests.append({"FullName": "AccountTest.regression", "ApexClass": {"Name": "AccountTest"},
+                              "Outcome": "Fail", "Message": "System.DmlException",
+                              "StackTrace": "Class.CaseRouter.route: line 3, column 1"})
+        report = self.run_check()
+        self.assertEqual(("FAIL", []), (report["status"], report["blockers"]))
+        details = " ".join(self.status(report, "SC2")["details"])
+        self.assertIn("fix them in this delivery: AccountTest.regression, CaseRouterTest.routesHighToTier2", details)
+        self.assertNotIn("BLOCKER", details)
 
     def test_sc3_low_or_missing_coverage_fails_and_test_classes_are_exempt(self):
         self.sf.coverage = [{"name": "CaseRouter", "coveredPercent": 74}]

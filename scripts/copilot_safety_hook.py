@@ -295,6 +295,7 @@ def hook_response(decision: str | None = None, reason: str | None = None) -> dic
 # Copilot CLI: write_bash/write_powershell send raw keystrokes to a running shell session.
 # The input is not a reviewable command (it can answer a confirmation prompt or start a
 # command no rule has seen), so interactive shell input is denied for every role.
+SUBAGENT_TYPES = frozenset({"designer", "reviewer", "developer", "git-agent", "config-investigator", "test-strategist"})
 INTERACTIVE_SHELL_INPUT_TOOLS = frozenset({"write_bash", "write_powershell"})
 
 
@@ -693,6 +694,17 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
     )
     is_sf_dev = "salesforce-development" in lowered_name or bare_tool in SALESFORCE_DEV_TOOL_TOKENS
     tool_input = event.get("tool_input", {})
+    # Sub-agents (plan 05, live trial 2026-11-16): on Copilot CLI a conductor started the built-in
+    # `task`/`general-purpose` agents, which have every tool, instead of the station agents. Only
+    # the repository's station agents may be started as sub-agents.
+    if bare_tool == "task" and isinstance(tool_input, dict):
+        agent_type = str(tool_input.get("agent_type") or tool_input.get("agentType") or "")
+        if agent_type not in SUBAGENT_TYPES:
+            return hook_response(
+                "deny",
+                f"Sub-agent {agent_type or '(none)'!r} is not a station agent. Start one of "
+                f"{', '.join(sorted(SUBAGENT_TYPES))} with agent_type (plan 05).",
+            )
     if bare_tool in INTERACTIVE_SHELL_INPUT_TOOLS:
         return hook_response(
             "deny",

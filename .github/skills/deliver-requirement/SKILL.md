@@ -24,7 +24,10 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 
 ## Rules for every station
 
-1. Start the station as a sub-agent of the named custom agent. Give it a written request with
+1. Start the station as a sub-agent of the named custom agent: the `task` tool with
+   `agent_type` set to the agent name (`designer`, `reviewer`, `developer`, `git-agent`). The
+   hooks deny every other sub-agent, including the built-in `task` and `general-purpose`
+   agents. Do not set a `model`; the station inherits the session model. Give it a written request with
    the work-item folder, the station's skill, its inputs and its expected outputs. Never pass
    results only in the request text: the station reads its inputs from files.
 2. Ask the station to append one line to `run-log.md` when it ends: station, agent, UTC time,

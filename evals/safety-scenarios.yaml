@@ -838,3 +838,14 @@ scenarios:
         command: echo x > scripts/copilot_safety_hook.py
     expectedDecision: deny
     reasonContains: "D-R2"
+
+  - id: plan05-builtin-subagent-denied
+    guard: global
+    workingDirectory: repository
+    event:
+      tool_name: task
+      tool_input:
+        agent_type: general-purpose
+        prompt: Build the feature.
+    expectedDecision: deny
+    reasonContains: "not a station agent"

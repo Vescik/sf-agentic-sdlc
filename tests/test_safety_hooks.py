@@ -1508,3 +1508,14 @@ class LiveTrialFixesTests(unittest.TestCase):
         reason = run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "Bash",
                                                     "tool_input": {"command": "cd /tmp && sf org list"}})
         self.assertEqual("deny", hook_decision(reason))
+
+
+class SubagentGateTests(unittest.TestCase):
+    def test_only_station_agents_start_as_sub_agents(self) -> None:
+        for agent_type, expected in (("reviewer", "continue"), ("developer", "continue"), ("git-agent", "continue"),
+                                     ("task", "deny"), ("general-purpose", "deny"), ("explore", "deny"),
+                                     ("workspace-maintainer", "deny"), ("sdlc-conductor", "deny"), ("", "deny")):
+            with self.subTest(agent_type=agent_type):
+                output = run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "task",
+                                                             "tool_input": {"agent_type": agent_type, "prompt": "x"}})
+                self.assertEqual(expected, hook_decision(output))

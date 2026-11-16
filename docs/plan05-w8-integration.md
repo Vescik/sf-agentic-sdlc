@@ -267,6 +267,9 @@ evidence gates, and real client data.
   feedback iteration. Most of Phase 4 (S1 text intake, planning, check step, security list,
   packet) is written into this skill; Phase 4 now means testing and refining each station on a
   live run. The validator check `check_delivery_conductor` pins delegation and the budget.
+- **Phase 5 (written, not run):** golden cases N1, E1, E2 and T1 with evaluator oracles in
+  `evals/fixtures/delivery-golden/`, and four `conductor-` scenarios in
+  `evals/agent-scenarios.yaml`. The live runs wait for Copilot CLI access and a developer org.
 - **Found, not decided:**
   - The role guard keeps a per-role terminal allowlist (read-only commands, the harness scripts,
     `sf` for the developer). It was not on the hard-stop list. `check_delivery.py` was added

@@ -1566,3 +1566,13 @@ class DeployGrantHintTests(unittest.TestCase):
             import os
             os.environ.pop(safety.AUTONOMY_ENV, None)
             self.assertEqual("ask", safety.evaluate_event(event)["hookSpecificOutput"]["permissionDecision"])
+
+
+class DeployHelpTests(unittest.TestCase):
+    def test_deploy_help_is_not_a_deploy_under_the_grant(self) -> None:
+        # Live run 5: `sf project deploy start --help` was denied as a deploy without target.
+        allowed = safety.sf_policy.Decision("allow", "Local command help.")
+        event = {"cwd": str(ROOT), "tool_name": "Bash", "tool_input": {"command": "sf project deploy start --help"}}
+        with patch.dict("os.environ", {safety.AUTONOMY_ENV: "devmp"}), \
+                patch.object(safety.sf_policy, "evaluate", return_value=allowed), patch.object(safety, "_log_decision"):
+            self.assertTrue(safety.evaluate_event(event).get("continue"))

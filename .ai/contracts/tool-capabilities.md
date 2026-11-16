@@ -22,7 +22,7 @@ upgrade.
 | Local Git and read-only GitHub CLI commands | `git`/`git.exe` and `gh`/`gh.exe` on PATH; commit messages are not checked | every custom role |
 | Push of `feat/*` branches and draft PR creation | Same commands; the hook requires `--draft` and a PASS `scripts/check_delivery.py` result for HEAD | git-agent only (plan 05, B2) |
 | Merge, rebase, `reset --hard`, force push, `gh api`, release and repository settings | Denied by the hooks | a person only (plan 05, B1) |
-| End-of-run delivery check | `python scripts/check_delivery.py --work-item work-items/<id>-<slug>` | every custom role |
+| End-of-run delivery check | `python3 scripts/check_delivery.py --work-item work-items/<id>-<slug>` (standard library only; no virtual environment needed) | every custom role |
 | Interactive human confirmation | `vscode/askQuestions` | prompts and approval gates |
 | Manual role handoff | User selects a role and sends the bounded request; Designer also offers two optional `send: false` shortcuts | existing roles; Designer shortcuts target Reviewer or Developer |
 

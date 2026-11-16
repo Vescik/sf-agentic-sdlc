@@ -33,11 +33,14 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 2. Ask the station to append one line to `run-log.md` when it ends: station, agent, UTC time,
    status (`DONE`, `RETURNED`, `BLOCKED`), output paths, and the next step. After the station,
    read its outputs and the log line from the work-item folder. The log is a record, not a gate.
-3. Only `scripts/check_delivery.py` writes `delivery-check.json`; the hooks deny every agent
+3. Ask every station to write and change files with its editor tools, not with shell commands
+   such as `python3 -c` or heredocs; a shell command that mentions `sf` inside its text is denied
+   as a chained Salesforce command. Run each `sf` command on its own.
+4. Only `scripts/check_delivery.py` writes `delivery-check.json`; the hooks deny every agent
    edit of that file. Never ask a station to write or repair it by hand.
-4. A station that finds a problem fixes it inside the attempt budget, or records it for H3. It
+5. A station that finds a problem fixes it inside the attempt budget, or records it for H3. It
    does not stop the run.
-5. Stop early only for these reasons:
+6. Stop early only for these reasons:
    - the requirement cannot be understood, two requirements contradict each other, or an input
      is missing: ask the person one exact question, wait, record the answer in
      `requirements.md`, and continue;
@@ -57,7 +60,7 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 | S2 design | `designer` | Follow `solution-design` for the work item. The design lists the planned metadata components and traces each `AC-n` to the design. | `design.md` is committed |
 | S3 design review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=design`. | a review result exists; findings that block the design go back to S2 once, then to H3 as findings |
 | S4 build | `developer` | Follow `development` on branch `feat/<id>-<slug>`. The launcher granted deploy autonomy (`SF_AGENTIC_AUTONOMOUS_ORG`): deploy with `--target-org <agent org>` and do not ask for confirmation; the hooks enforce the limits. Plan tasks, write source and Apex tests; for a new field, add a permission set with field access and assign it in the agent org; commit the source, deploy to the agent org, then commit `acceptance-trace.md` and `deploy-job-id`. | the work is committed and deployed |
-| S5 check | `developer` | Run `python scripts/check_delivery.py --work-item <folder>`. On FAIL, fix the cause named in the failing details, commit, deploy, and run the check again. | `delivery-check.json` is PASS for HEAD, or the budget is spent |
+| S5 check | `developer` | Run `python3 scripts/check_delivery.py --work-item <folder>`. On FAIL, fix the cause named in the failing details, commit, deploy, and run the check again. | `delivery-check.json` is PASS for HEAD, or the budget is spent |
 | S6 implementation review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=implementation` with the security list below. | review findings are written; a finding that breaks SC1–SC5 goes back to S4 inside the budget, every other finding goes to H3 |
 | S7 draft PR | `git-agent` | Push `feat/<id>-<slug>` and open a draft PR with the delivery packet as its body. | the draft PR URL is known |
 | H3 | person | Reviews the draft PR; merges or closes it. | — |

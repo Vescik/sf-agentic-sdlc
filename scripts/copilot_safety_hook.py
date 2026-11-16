@@ -830,7 +830,7 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
         decision = sf_policy.evaluate(sf_parts, root)
         if not decision.allowed:
             return hook_response("deny", decision.reason)
-        if is_real_deploy_command(sf_parts):
+        if is_real_deploy_command(sf_parts) and not any(part in ("--help", "-h") for part in sf_parts):
             granted_org = autonomous_deploy_grant(sf_parts, decision.environment, root)
             if granted_org is not None:
                 return hook_response(

@@ -486,10 +486,10 @@
     }
   ],
   "sourceDigests": {
-    ".ai/contracts/delivery-success.md": "sha256:a2479b9cd28c3456d84277445aaee68b620785368728a9a6c538e9178b4de9f5",
+    ".ai/contracts/delivery-success.md": "sha256:8acc08e6b57ee943b94e6d40ebea74acfb3ae3f17698975d585e64802498aaa7",
     ".ai/contracts/execution-contract.md": "sha256:721ac145e0aa139d3bdef756326c9f31956ff6c5f52421b2830f22823ad0e4c5",
     ".ai/contracts/source-authority.md": "sha256:a44ef511a496cf3634ffa097a214fad075a97c5e0ac57c8e9e901e94a0627ed9",
-    ".ai/contracts/tool-capabilities.md": "sha256:c2824488e0ac5c3c79b6fbda4384def22289d07c90621f9b73a3fbe6a8ef1598",
+    ".ai/contracts/tool-capabilities.md": "sha256:d1b9225275abc8385b17dbf003f05fe54125b5798bb5bf87b73129c7bdc4d72f",
     ".ai/contracts/writing-standard.md": "sha256:edf666b8198130c907f4f9bf52abc6572182dc1565025503870a0a54fdfa2b50",
     ".github/agents/config-investigator.agent.md": "sha256:558e58cde469b1e3fc2771e624a6ccb0ff15de3f3c55f1dee4f114727b9ed178",
     ".github/agents/designer.agent.md": "sha256:a759392c49cf319ddcaf43d950f0aedc92565e8984aa894b7c5afdf46928f324",
@@ -519,7 +519,7 @@
     ".github/skills/adhoc-fix/SKILL.md": "sha256:0aebb2f3ae4e215d96399158db96a468e3e78bd54d8efeb7ed4a9c5904553ec9",
     ".github/skills/check-against-principles/SKILL.md": "sha256:9bca9e6125e0c5b29700ac4bb4b0404973eedbb7360dbbf04ee438fee9af64ee",
     ".github/skills/check-feature-coverage/SKILL.md": "sha256:f13b70a96c8924bd0609a748357bef63663c6118e39eef12bbcc6f95f901e99d",
-    ".github/skills/deliver-requirement/SKILL.md": "sha256:97b248e93715b3233f7dc489be243e7938cc52072db92e15ccee828b2218b2ab",
+    ".github/skills/deliver-requirement/SKILL.md": "sha256:c58f2d7a231e258b8a902436f49c35e6054008792e83a06892262a5bd8122d46",
     ".github/skills/development/SKILL.md": "sha256:ff5e2a883cc1b9e22400b2fecadb31c3c926025236ec98a46195ee9ef5d421fb",
     ".github/skills/document-solution/SKILL.md": "sha256:6512d342653de417eb1fbdb2b1eab0ae5332ce2b424cc9b85d4ee011f14eb388",
     ".github/skills/fetch-ado-item/SKILL.md": "sha256:b2e7c7de90df45932b495a1dfeda256c2966ecf3e89d748e9ba694dbfee4b84c",

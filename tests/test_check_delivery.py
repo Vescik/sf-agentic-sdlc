@@ -188,8 +188,23 @@ class CheckDeliveryTest(unittest.TestCase):
         self.sf = FakeSalesforce()
         self.sf.deploy.update(completedDate="2000-01-01T00:00:00.000Z", checkOnly=True)
         details = " ".join(self.status(self.run_check(), "SC4")["details"])
-        self.assertIn("before the HEAD commit", details)
+        self.assertIn("before the last source commit", details)
         self.assertIn("check-only", details)
+
+    def test_sc4_compares_with_the_last_source_commit_not_later_records(self):
+        import os
+        def commit_at(message, date):
+            env = {**os.environ, "GIT_COMMITTER_DATE": date, "GIT_AUTHOR_DATE": date}
+            subprocess.run(["git", "commit", "-qam", message], cwd=self.root, env=env, check=True, capture_output=True)
+        (self.root / "force-app/main/default/classes/CaseRouter.cls").write_text(HANDLER + "// v2\n")
+        commit_at("source v2", "2030-01-01T10:00:00Z")
+        (self.wi / "deploy-job-id").write_text(JOB + "\n")
+        (self.wi / "acceptance-trace.md").write_text(TRACE + "\n")
+        commit_at("record deploy job", "2030-01-03T10:00:00Z")
+        self.sf.deploy["completedDate"] = "2030-01-02T10:00:00.000Z"
+        self.assertEqual("PASS", self.status(self.run_check(), "SC4")["status"])
+        self.sf.deploy["completedDate"] = "2029-12-31T10:00:00.000Z"
+        self.assertIn("before the last source commit", self.status(self.run_check(), "SC4")["details"][0])
 
     def test_sc4_meta_and_bundle_files_match_their_component(self):
         self.sf.deploy["files"] = [

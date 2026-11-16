@@ -25,7 +25,7 @@ All five must pass for the same commit.
 | SC1 | Every acceptance criterion is covered              | Every `AC-n` in `requirements.md` has a row in `acceptance-trace.md`. Each `Class.method` in the row exists in the package source and has outcome `Pass` in the SC2 run. A `manual: <step>` entry is listed for H3. |
 | SC2 | All Salesforce tests are green                     | `sf apex run test --test-level RunLocalTests --code-coverage` against the agent org: outcome Passed, no failing test. When `package.json` has a `test:unit` script, `npm run test:unit` must exit 0.                |
 | SC3 | Coverage ≥ 75% for every changed class and trigger | Every non-test Apex class and trigger added or changed against the base branch has at least 75% coverage in the SC2 run. A class with no reported coverage fails.                                                   |
-| SC4 | Metadata deployed without missing components       | `sf project deploy report --job-id <id>` in the agent org: status Succeeded, not check-only, completed after the HEAD commit, and every source file changed on the branch is in the deployed file list.             |
+| SC4 | Metadata deployed without missing components       | `sf project deploy report --job-id <id>` in the agent org: status Succeeded, not check-only, completed after the last commit that changed package source, and every source file changed on the branch is in the deployed file list.             |
 | SC5 | Clean result                                       | The branch is `feat/*`, and the working tree has no uncommitted change except the check's own report.                                                                                                               |
 
 ## Files the agent writes
@@ -61,7 +61,8 @@ named in the failing details; repeating the same attempt does not count as repai
 
 - SC4 compares file paths when the deploy result lists files, and component names otherwise.
   A component that the name fallback cannot map is reported as missing, never as deployed.
-- The completion time in SC4 proves that the deploy happened after the HEAD commit, not that
-  it deployed exactly that commit. Deploy from a clean tree at HEAD.
+- The completion time in SC4 proves that the deploy happened after the last source commit, not
+  that it deployed exactly that commit. Deploy from a clean tree after committing the source;
+  commit `deploy-job-id` afterwards.
 - The script does not run a static scan. `sf code-analyzer` findings are a warning in the
   report (plan 05) once the command is on the Salesforce allowlist.

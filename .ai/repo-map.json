@@ -132,6 +132,12 @@
   ],
   "contracts": [
     {
+      "name": "delivery-success",
+      "path": ".ai/contracts/delivery-success.md",
+      "summary": "A delivery run succeeds only when `scripts/check_delivery.py` reports PASS for the HEAD commit of the feature branch. An agent's own statement that work is done, tested, or deployed is never success. Plan and decisions: [plan 05](../../docs/plan05-w8-integration.md).",
+      "title": "Delivery Success Contract"
+    },
+    {
       "name": "execution-contract",
       "path": ".ai/contracts/execution-contract.md",
       "summary": "Every skill must apply this contract in addition to its task-specific procedure.",
@@ -455,6 +461,7 @@
     }
   ],
   "sourceDigests": {
+    ".ai/contracts/delivery-success.md": "sha256:40ccddd2044c758f8bdf178fe72f19738d2dfdb0aed2133d9f93ce7b5ada8c7a",
     ".ai/contracts/execution-contract.md": "sha256:ae6fa65793c47d2fde0ddd8531958f1152be780e451d8954bb4389554c5c0c02",
     ".ai/contracts/source-authority.md": "sha256:a44ef511a496cf3634ffa097a214fad075a97c5e0ac57c8e9e901e94a0627ed9",
     ".ai/contracts/tool-capabilities.md": "sha256:ca22283a323a76022e628611dfe73af0d887a0f856970801731b4df8cb3c4151",
@@ -501,5 +508,5 @@
     ".github/skills/solution-design/SKILL.md": "sha256:5f551d49af7be40b432fbe588db36fb9479ece9fb393788b0f78ab6e0bad7169",
     "config/repo-map-seed.json": "sha256:900d25d577d75b81254ab88bb141748a16c98096c26ab9467578580a2b0552dd"
   },
-  "wordCount": 730
+  "wordCount": 739
 }

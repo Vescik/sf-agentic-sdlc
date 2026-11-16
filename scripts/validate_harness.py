@@ -248,6 +248,8 @@ def check_required_files(audit: Audit) -> None:
         ".ai/contracts/tool-capabilities.md",
         ".ai/contracts/source-authority.md",
         ".ai/contracts/writing-standard.md",
+        ".ai/contracts/delivery-success.md",
+        "scripts/check_delivery.py",
         ".ai/third-party/asd-ste100/README.md",
         ".ai/third-party/asd-ste100/LICENSE",
         "schemas/salesforce-org-review-evidence.schema.json",

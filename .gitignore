@@ -57,3 +57,6 @@ __pycache__/
 *.pyc
 .coverage
 htmlcov/
+
+# ── Delivery check report (scripts/check_delivery.py), regenerated per run ──
+work-items/*/delivery-check.json

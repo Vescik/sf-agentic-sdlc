@@ -17,6 +17,13 @@ results in the pull request; a textual answer that merely contains the expected 
 pass. Sanitized fixtures intentionally include complete and partial responses so incomplete
 evidence behavior can be tested without real business data.
 
+## Delivery golden cases
+
+[Delivery golden cases](fixtures/delivery-golden/README.md) (plan 05, phase 5) are end-to-end
+trials of the `sdlc-conductor` agent: N1 normal, E1 contradiction, E2 unclear term, T1 trap.
+Each has an agent input and an evaluator oracle; the scenarios with the `conductor-` prefix in
+`agent-scenarios.yaml` name the evidence to record.
+
 ## Handoff quality trials
 
 The bounded [handoff-quality fixtures](fixtures/handoff-quality/) contain three synthetic

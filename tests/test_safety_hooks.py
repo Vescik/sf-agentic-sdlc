@@ -1576,3 +1576,19 @@ class DeployHelpTests(unittest.TestCase):
         with patch.dict("os.environ", {safety.AUTONOMY_ENV: "devmp"}), \
                 patch.object(safety.sf_policy, "evaluate", return_value=allowed), patch.object(safety, "_log_decision"):
             self.assertTrue(safety.evaluate_event(event).get("continue"))
+
+
+class LiveTrialRunSixTests(unittest.TestCase):
+    def decide(self, command: str) -> str:
+        return hook_decision(run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "Bash",
+                                                                 "tool_input": {"command": command}}))
+
+    def test_unparseable_prose_is_not_a_private_helper_call(self) -> None:
+        self.assertFalse(safety.private_native_invocation("apply_patch <<'PATCH'\nit's a note\nPATCH"))
+        self.assertTrue(safety.private_native_invocation("python scripts/salesforce_job_executor.mjs 'x"))
+
+    def test_cli_lookups_are_not_salesforce_commands(self) -> None:
+        for command in ("command -v sf", "which sf", "git status --short && command -v sf || true"):
+            with self.subTest(command=command):
+                self.assertEqual("continue", self.decide(command))
+        self.assertEqual("deny", self.decide("command -v sf && sf project deploy start --target-org prod"))

@@ -125,10 +125,13 @@ def native_operation_input_error(tool_input: Any) -> str | None:
 
 def private_native_invocation(command: str) -> bool:
     """The installed native tool owns this protocol; terminal callers cannot feed replies."""
+    helper = re.compile(r"\b(?:salesforce_operation_session|salesforce_job_selection|salesforce_job_executor)\b")
     try:
         parts = shlex.split(command.replace("\\", "/"))
     except ValueError:
-        return True
+        # Unbalanced quotes (for example a heredoc with prose): judge the raw text instead of
+        # treating every unparseable command as a private-helper call (live run 6).
+        return bool(helper.search(command))
     if not parts:
         return False
     executable = Path(parts[0]).name.lower().removesuffix(".exe").removesuffix(".cmd")
@@ -496,8 +499,11 @@ def direct_sf_command(command: str) -> list[str] | None:
     # The shell collapses quote/backslash splices (`s''f`, `s""f`, `s\f`) back to `sf` before
     # execution, so a prefilter over the raw string alone misses them. Test a de-spliced copy
     # too; the metacharacter gate below still runs against the original command.
-    if not SF_TOKEN.search(command) and not SF_TOKEN.search(dequote(command)):
+    # `command -v sf`, `which sf`, `type sf` only look the CLI up (live run 6).
+    lookup = re.sub(r"(?<![\w.-])(?:command\s+-v|which|type|where)\s+(?:sf|sfdx)(?:\.cmd|\.exe)?(?![\w.-])", "cli-lookup", command)
+    if not SF_TOKEN.search(lookup) and not SF_TOKEN.search(dequote(lookup)):
         return None
+    command = lookup if SF_TOKEN.search(lookup) else command
     command = sf_pipeline_head(command)
     if re.search(r"[;&|`$<>\n\r]", command):
         raise ValueError("compound, redirected, or substituted Salesforce commands are forbidden")

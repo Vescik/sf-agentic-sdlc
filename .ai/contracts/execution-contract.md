@@ -75,10 +75,8 @@ Developer, subject to the global real-deploy confirmation hook:
 ## Git and GitHub authoring
 
 Use the [Git Workflow](../../.github/skills/git-workflow/SKILL.md) for all Git and GitHub CLI
-work. All eight roles can use all commands. The hooks validate only commit-message syntax
-and matching Work Item/Feature IDs. They do not enforce branch, path, staging, working-directory,
-commit-option, repository, or PR restrictions. Salesforce/ADO configuration is not a Git gate.
-Install the local `commit-msg` hook as documented there to validate final editor/file messages.
+work. All roles can use local Git. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Commit messages, local branches, paths, staging
+and working directories are not checked. Salesforce/ADO configuration is not a Git gate.
 
 Active authors commit coherent completed results after verification. Preserve unrelated staged
 and unstaged changes; choose a staging method appropriate to the requested scope. Reviewer

@@ -58,11 +58,8 @@ Follow the [development skill](../skills/development/SKILL.md) for the how (exte
 points, Apex coverage, Flow test plans) and the
 [git-workflow skill](../skills/git-workflow/SKILL.md) for branches, commits, and PRs.
 Make local commits after coherent code, test, plan, or documentation milestones yourself;
-no separate commit request or Git Agent handoff is needed. All Git/gh commands are available;
-branch schemes are conventions, not gates. Hooks validate only commit-message syntax and
-matching IDs. Preserve unrelated changes. Push, PR publication/update, merge, and destructive
-Git actions require an explicit human instruction. The PR body transport path is
-`.cache/github/pr-body.md`.
+no separate commit request is needed. Work on a `feat/*` branch. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Preserve unrelated
+changes.
 Own initial executable tasks and their verified progress through the Development skill; create
 or reconcile `tasks.md` before implementation edits (checkboxes are the whole state). Before relying on an
 artifact, read its source in `force-app/` and any recorded limitation in the work item.
@@ -97,7 +94,8 @@ org, SAFE-DEPLOY-AUTONOMY-001 replaces the question for deploys that name exactl
 Dry runs, retrieve, report/status, resume, cancel, and data mutations do not
 require this deploy-specific confirmation. Use the native tool for supported latest selectors and
 unconfigured environments; do not retry them through a terminal wrapper. Outside VS Code the
-native tool does not exist (SAFE-HOST-NATIVE-001): stop and report such a step. Never claim a deploy occurred until the CLI result
+native tool does not exist: use the direct `sf` CLI under the same policy, with the environment
+from the configuration and an explicit job ID instead of `latest` (SAFE-HOST-NATIVE-001). Never claim a deploy occurred until the CLI result
 proves it, and report the target, scope, job ID, status, tests, and remaining verification.
 
 After every qualifying Salesforce mutation returns a result, follow the Development skill's

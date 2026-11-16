@@ -1,22 +1,22 @@
-"""Git admission validates commit text only; it never probes repository state.
+"""Git admission: publication boundaries for agents (plan 05, boundaries B1 and B2).
 
-All Git and gh operations are available to every agent. Shell command separation
-keeps unrelated commands on their normal policy path. Final messages from an editor,
-stdin, a reused commit or expansion are validated by the optional commit-msg hook.
+Agents commit freely on their branch; commit messages are not checked (plan 05, D-R1).
+Denied for every agent: merge, rebase, `reset --hard`, force branch deletion, `gh api`,
+and the gh subcommands that merge, review, release or change repository settings.
+Push and `gh pr create` are for the git-agent only: pushes go to `feat/*` branches without
+force or deletion, and a pull request must be a draft with a PASS delivery check for HEAD.
+Shell command separation keeps unrelated commands on their normal policy path.
 """
 from __future__ import annotations
 
-import argparse
+import json
 import os
 import re
 import stat
-import sys
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-# These constants describe the separate PR-body editor grant, not Git permissions.
-AUTHOR_ROLES = frozenset({"designer", "developer", "test-strategist", "workspace-maintainer"})
-PUBLISH_ROLES = AUTHOR_ROLES | {"git-agent"}
 PR_BODY = ".cache/github/pr-body.md"
 SOLUTION_DOCUMENTATION_PATTERN = re.compile(
     r"docs/solutions/[a-z0-9]+(?:-[a-z0-9]+)*/(?:overview|flows|components)\.md"
@@ -212,40 +212,43 @@ def _unwrap(words: tuple[_Word, ...], cwd: Path | None) -> tuple[tuple[_Word, ..
     return words[index:], cwd
 
 
-def message_error(message: str) -> str | None:
-    """Validate the first-line subject exactly; body text is unconstrained."""
-    lines = message.splitlines()
-    subject = lines[0] if lines else ""
-    if re.fullmatch(r"\[(?:chore|docs)\] \S.*", subject):
-        return None
-    match = re.fullmatch(r"\[(WI|FEATURE)-([1-9][0-9]*)\] \S.*", subject)
-    if match:
-        references = set(re.findall(r"\bAB#([0-9]+)\b", subject))
-        if references == {match.group(2)}:
-            return None
-        return "Commit subject must contain AB#" + match.group(2) + " and no conflicting AB# ID."
-    return "Commit subject must use [chore], [docs], [WI-ID] or [FEATURE-ID] followed by a description; WI/FEATURE subjects also need the matching AB#ID."
+GIT_GLOBAL_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--exec-path"})
+PUSH_FORBIDDEN = frozenset({"--force", "--force-with-lease", "--force-if-includes", "--mirror", "--all",
+                            "--branches", "--delete", "--tags", "--prune", "--follow-tags"})
+PUSH_VALUE_OPTIONS = frozenset({"-o", "--push-option", "--repo", "--receive-pack", "--exec"})
+FEATURE_BRANCH = re.compile(r"feat/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*")
+PUBLISHER_ROLE = "git-agent"
+DELIVERY_CHECK_GLOB = "work-items/*/delivery-check.json"
+# gh command groups: subcommands an agent may never run (plan 05, boundary B1).
+GH_DENIED = {
+    "pr": frozenset({"merge", "review", "ready", "close", "reopen", "lock", "unlock"}),
+    "release": None,  # all but the read subcommands below
+    "repo": frozenset({"create", "delete", "edit", "rename", "archive", "unarchive", "fork", "sync", "set-default"}),
+    "secret": None,
+    "variable": None,
+    "workflow": frozenset({"run", "enable", "disable"}),
+    "run": frozenset({"cancel", "rerun", "delete"}),
+    "auth": None,
+    "ruleset": None,
+}
+GH_READ = frozenset({"list", "view", "status", "download", "diff", "checks"})
 
 
-def _read_message(path: Path) -> str | None:
+def _run_git(cwd: Path, *args: str) -> str | None:
     try:
-        if not stat.S_ISREG(path.stat().st_mode):
-            return None
-        # Prefixes and IDs use ASCII. Preserve undecodable bytes so a legacy Git
-        # message encoding does not become an additional commit restriction.
-        return path.read_text(encoding="utf-8", errors="surrogateescape")
-    except (OSError, UnicodeError, ValueError):
-        # Missing/dynamic inputs are handled by Git and its final commit-msg hook.
+        done = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, timeout=5, check=False)
+    except (OSError, subprocess.TimeoutExpired):
         return None
+    return done.stdout.strip() if done.returncode == 0 else None
 
 
-def _commit_error(words: tuple[_Word, ...], cwd: Path | None) -> str | None:
+def _skip_git_options(words: tuple[_Word, ...], cwd: Path | None) -> tuple[int | None, Path | None]:
     index = 1
     while index < len(words) and words[index].text.startswith("-"):
         token = words[index].text
-        if token in {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--exec-path"}:
+        if token in GIT_GLOBAL_VALUE_OPTIONS:
             if index + 1 >= len(words):
-                return None
+                return None, cwd
             if token == "-C":
                 cwd = _directory(cwd, words[index + 1])
             index += 2
@@ -253,57 +256,112 @@ def _commit_error(words: tuple[_Word, ...], cwd: Path | None) -> str | None:
             if token.startswith("-C") and len(token) > 2:
                 cwd = _directory(cwd, _Word(token[2:], words[index].dynamic))
             index += 1
-    if index == len(words) or words[index].text != "commit":
-        return None
-    args = words[index + 1:]
-    messages: list[str] = []
+    return (index if index < len(words) else None), cwd
+
+
+def _push_error(args: tuple[_Word, ...], cwd: Path | None, role: str | None) -> str | None:
+    if role is not None and role != PUBLISHER_ROLE:
+        return f"Only the {PUBLISHER_ROLE} pushes; {role} hands the branch to it (plan 05, B2)."
+    if any(word.dynamic for word in args):
+        return "git push needs literal arguments so the target branch can be checked."
+    positional: list[str] = []
     index = 0
     while index < len(args):
-        arg = args[index]
-        token = arg.text
+        token = args[index].text
         if token == "--":
+            positional.extend(word.text for word in args[index + 1:])
             break
-        # Git constructs/reuses these messages; validate their final text natively.
-        if token in {"-c", "-C", "--reedit-message", "--reuse-message", "--fixup", "--squash", "--edit", "-e"} or token.startswith(("--fixup=", "--squash=", "--reuse-message=", "--reedit-message=")):
-            return None
-        kind = value = None
-        dynamic = arg.dynamic
-        if token in {"-m", "--message", "-F", "--file"}:
-            if index + 1 == len(args):
-                return None
-            kind = "message" if token in {"-m", "--message"} else "file"
-            index += 1
-            value, dynamic = args[index].text, args[index].dynamic
-        elif token.startswith(("--message=", "--file=")):
-            kind = "message" if token.startswith("--message=") else "file"
-            value = token.split("=", 1)[1]
-        elif token.startswith("-") and not token.startswith("--"):
-            # Combined common flags (-am, -aqm, -mTEXT, -Ffile) retain Git syntax.
-            short = re.fullmatch(r"-[aqvsn]*(m|F)(.*)", token)
-            if short:
-                kind = "message" if short.group(1) == "m" else "file"
-                value = short.group(2)
-                if not value:
-                    if index + 1 == len(args):
-                        return None
-                    index += 1
-                    value, dynamic = args[index].text, args[index].dynamic
-        if kind:
-            if dynamic:
-                return None
-            if kind == "file":
-                if value == "-":
-                    return None
-                path = _directory(cwd, _Word(value))
-                value = _read_message(path) if path is not None else None
-                if value is None:
-                    return None
-            messages.append(value)
+        if token in PUSH_VALUE_OPTIONS:
+            index += 2
+            continue
+        if token.startswith("--"):
+            if token.split("=", 1)[0] in PUSH_FORBIDDEN:
+                return f"git push {token} is not allowed: no force, delete, mirror or tag pushes (plan 05, B2)."
+        elif token.startswith("-"):
+            if any(flag in token[1:] for flag in "fd"):
+                return f"git push {token} is not allowed: no force or delete pushes (plan 05, B2)."
+        else:
+            positional.append(token)
         index += 1
-    return message_error("\n\n".join(messages)) if messages else None
+    refspecs = positional[1:]
+    if not refspecs:
+        if cwd is None:
+            return "git push without a refspec needs a known working directory."
+        branch = _run_git(cwd, "rev-parse", "--abbrev-ref", "HEAD")
+        refspecs = [branch or ""]
+    for refspec in refspecs:
+        if refspec.startswith("+") or refspec.startswith(":"):
+            return f"git push {refspec} forces or deletes a branch (plan 05, B2)."
+        destination = refspec.split(":", 1)[-1].removeprefix("refs/heads/")
+        if destination == "HEAD" and cwd is not None:
+            destination = _run_git(cwd, "rev-parse", "--abbrev-ref", "HEAD") or ""
+        if not FEATURE_BRANCH.fullmatch(destination):
+            return f"Agents push only feat/* branches, never {destination or 'an unknown branch'!r} (plan 05, B2)."
+    return None
 
 
-def inspect_command(command: str, cwd: Path | None, *, windows: bool | None = None) -> GitAdmission:
+def _git_error(words: tuple[_Word, ...], cwd: Path | None, role: str | None) -> str | None:
+    index, cwd = _skip_git_options(words, cwd)
+    if index is None:
+        return None
+    sub = words[index].text
+    args = words[index + 1:]
+    texts = [word.text for word in args]
+    if sub in {"merge", "rebase"} and texts not in (["--abort"], ["--quit"]):
+        return f"git {sub} is reserved for a person; agents commit on their feature branch (plan 05, B1)."
+    if sub == "reset" and any(text == "--hard" for text in texts):
+        return "git reset --hard discards work; agents never run it (plan 05, B1)."
+    if sub == "branch" and ("-D" in texts or ({"-d", "--delete"} & set(texts) and {"-f", "--force"} & set(texts))):
+        return "Force-deleting a branch is reserved for a person (plan 05, B1)."
+    if sub == "push":
+        return _push_error(args, cwd, role)
+    return None
+
+
+def delivery_check_passed(cwd: Path | None) -> bool:
+    """A delivery-check.json in some work item reports PASS for the current HEAD commit."""
+    if cwd is None:
+        return False
+    top = _run_git(cwd, "rev-parse", "--show-toplevel")
+    head = _run_git(cwd, "rev-parse", "HEAD")
+    if not top or not head:
+        return False
+    for path in Path(top).glob(DELIVERY_CHECK_GLOB):
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(report, dict) and report.get("status") == "PASS" and report.get("commit") == head:
+            return True
+    return False
+
+
+def _gh_error(words: tuple[_Word, ...], cwd: Path | None, role: str | None) -> str | None:
+    texts = [word.text for word in words[1:]]
+    if not texts:
+        return None
+    group = texts[0]
+    sub = texts[1] if len(texts) > 1 else ""
+    if group == "api":
+        return "gh api can change anything on GitHub; agents never call it (plan 05, B1)."
+    if group == "pr" and sub == "create":
+        if role is not None and role != PUBLISHER_ROLE:
+            return f"Only the {PUBLISHER_ROLE} opens pull requests (plan 05, B2)."
+        if "--draft" not in texts and "-d" not in texts:
+            return "Agents open draft pull requests only: add --draft (plan 05, B2)."
+        if not delivery_check_passed(cwd):
+            return ("No PASS delivery check for HEAD: run scripts/check_delivery.py and fix every "
+                    "failing criterion before the draft PR (plan 05, D-B1).")
+        return None
+    if group in GH_DENIED:
+        denied = GH_DENIED[group]
+        if (denied is None and sub not in GH_READ) or (denied is not None and sub in denied):
+            return f"gh {group} {sub} is reserved for a person (plan 05, B1)."
+    return None
+
+
+def inspect_command(command: str, cwd: Path | None, *, windows: bool | None = None,
+                    role: str | None = None) -> GitAdmission:
     """Admit Git segments and return other shell commands for their existing policy."""
     windows = os.name == "nt" if windows is None else windows
     try:
@@ -329,8 +387,8 @@ def inspect_command(command: str, cwd: Path | None, *, windows: bool | None = No
             continue
         if exe in {"git", "gh"} and not words[0].dynamic:
             has_git = True
-            if exe == "git":
-                error = error or _commit_error(words, command_cwd)
+            check = _git_error if exe == "git" else _gh_error
+            error = error or check(words, command_cwd, role)
         else:
             shell_options = {"sh": "-c", "bash": "-c", "zsh": "-c", "dash": "-c",
                              "cmd": "/c", "powershell": "-command", "pwsh": "-command"}
@@ -338,14 +396,14 @@ def inspect_command(command: str, cwd: Path | None, *, windows: bool | None = No
             body = next((words[index + 1] for index in range(1, len(words) - 1)
                          if words[index].text.lower() == shell_option), None) if shell_option else None
             if body is not None and not body.dynamic:
-                nested = inspect_command(body.text, command_cwd, windows=exe in {"cmd", "powershell", "pwsh"})
+                nested = inspect_command(body.text, command_cwd, windows=exe in {"cmd", "powershell", "pwsh"}, role=role)
                 has_git = has_git or nested.has_git
                 error = error or (nested.reason if nested.decision == "deny" else None)
                 remaining.extend(" && ".join([*navigation, residual]) for residual in nested.remaining_commands)
             else:
                 remaining.append(" && ".join([*navigation, item.raw]))
     for substitution in substitutions:
-        nested = inspect_command(substitution, current, windows=windows)
+        nested = inspect_command(substitution, current, windows=windows, role=role)
         has_git = has_git or nested.has_git
         error = error or (nested.reason if nested.decision == "deny" else None)
         remaining.extend(" && ".join([*navigation, residual]) for residual in nested.remaining_commands)
@@ -391,19 +449,3 @@ def pr_body_path(root: Path, raw: str, *, must_exist: bool = False) -> bool:
         return stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1
     except (ValueError, OSError):
         return False
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate the final Git commit message format.")
-    parser.add_argument("--message-file", type=Path, required=True)
-    args = parser.parse_args()
-    message = _read_message(args.message_file)
-    error = message_error(message) if message is not None else "Could not read the final commit message file."
-    if error:
-        print(error, file=sys.stderr)
-        return 1
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

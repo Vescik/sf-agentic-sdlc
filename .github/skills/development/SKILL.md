@@ -153,7 +153,9 @@ artifacts, agent configuration, tooling) never triggers it.
    For native operations, the extension's modal supplies that exact execution confirmation;
    a chat answer or generic tool approval cannot answer the modal. Use the native tool for
    unconfigured environments and supported latest selectors; never launch private helpers.
-   Outside VS Code that tool does not exist (SAFE-HOST-NATIVE-001): stop and report the step.
+   Outside VS Code that tool does not exist: use the direct `sf` CLI under the same policy, with
+   the environment from the configuration and an explicit job ID instead of `latest`
+   (SAFE-HOST-NATIVE-001).
 4. **Execute and check**: run the exact confirmed command. Use deploy report/status/resume/cancel
    as needed; these status-management calls do not need a new deploy confirmation. Preserve the
    job ID and verify the resulting org state.

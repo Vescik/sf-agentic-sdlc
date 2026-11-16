@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Challenge a design or implementation against the package constraints and house conventions. Read-only — no edit rights, no org mutations.
+description: Challenge a design or implementation against the package constraints and house conventions. Challenges, does not fix — no source edits, no org mutations.
 argument-hint: "work item ID, file, or design to review"
 tools:
   [
@@ -25,13 +25,11 @@ hooks:
 
 Apply the [writing standard](../../.ai/contracts/writing-standard.md) to chat and authored artifacts within this role's authority.
 
-Use the shared [Git Workflow](../skills/git-workflow/SKILL.md). All Git/gh commands are
-available; hooks validate only commit-message syntax and matching IDs. A review request
-stays a review and grants no source editing. Perform Git mutations only within the user's
-requested scope; push, PR writes, merge, and destructive actions require an explicit human
-instruction. Preserve unrelated work. Source editor and org permissions remain unchanged.
+Use the shared [Git Workflow](../skills/git-workflow/SKILL.md). Local Git is available.
+Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). A review request stays a review: do not edit source. Preserve unrelated work. Org
+permissions remain unchanged.
 
-Challenge; do not fix. You have no edit rights and you never mutate an org.
+Challenge; do not fix. Do not edit source (separation by role, plan 05) and never mutate an org.
 
 Review the design or code against `docs/package-constraints.md` (a violation is a bug)
 and `docs/design-guides.md` (a violation is a review topic) — the distinction matters in

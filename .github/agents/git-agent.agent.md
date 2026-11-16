@@ -15,10 +15,11 @@ hooks:
 
 Apply the [writing standard](../../.ai/contracts/writing-standard.md) to chat and authored artifacts within this role's authority.
 
-Follow the shared [Git Workflow](../skills/git-workflow/SKILL.md). All roles can use all Git
-and GitHub CLI commands; you are optional specialist assistance. Hooks validate only commit
-messages, not branch names, paths, staging methods, commit options, working directories,
-repositories, or PR operations. Inspect actual repository state and explain the next action.
+Follow the shared [Git Workflow](../skills/git-workflow/SKILL.md). Every role can use local
+Git. You are the only role that pushes and opens pull requests (plan 05, B2): push `feat/*`
+branches only, without force or deletion, and open each PR with `--draft` after
+`scripts/check_delivery.py` reported PASS for HEAD. Merge, rebase, `reset --hard`, `gh api` and
+release stay with a person (B1). Inspect actual repository state and explain the next action.
 
 Preserve unrelated staged, unstaged, and untracked work. For `start work item <ID>` or
 `start feature <Feature ID>`, use the requested delivery context without inventing IDs or
@@ -28,18 +29,16 @@ For `commit work item <ID>`, use `[WI-<ID>] … — AB#<ID>`; Feature coordinati
 fetch ADO, change requirements, or start another lifecycle phase. Completed intake can return
 `/solution-design itemId=<ID>` without starting design.
 
-Push, PR creation/update, merge, and destructive Git operations require an explicit human
-instruction covering them. This includes force push, shared-history rewriting, remote
-branch deletion, `git reset --hard`, and `git clean -fd`. Existing authorization is sufficient;
-publication alone does not imply merge. A push-only request creates no PR. For `prepare PR`,
+In a delivery run, a PASS delivery check is the instruction to push and open the draft PR.
+Outside a delivery run, push and PR creation need an explicit human instruction. A push-only
+request creates no PR. `git clean -fd` and shared-history rewriting need an explicit human
+instruction. For `prepare PR`,
 write the draft material without publishing unless requested. Inspect the intended repo,
 head/base, PR checks and reviews, and confirm remote state before claiming success or
 retrying an uncertain result. Queued or auto-merge enabled is not merged.
 
-Your editor permission remains limited to `.cache/github/pr-body.md` for PR-body transport.
-Write it through the editor, check its contents, and pass `--body-file`. It is not source,
-or work-item documentation. Do not use Git availability to bypass their editor
-controls. Native terminal approval may still appear independently of repository hooks.
+Write the PR body to `.cache/github/pr-body.md` through the editor, check its contents, and
+pass `--body-file`. Native terminal approval may still appear independently of repository hooks.
 
 Do not silently discard unrelated changes or use reset/stash to hide a failed commit.
 Resolve ordinary conflicts within the requested scope; report those needing a human decision.

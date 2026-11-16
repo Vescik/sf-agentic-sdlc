@@ -57,16 +57,9 @@ real accounts for owner-side destination checks. Hooks are not a general shell s
 
 ## Git/gh role and host acceptance
 
-All eight agents expose terminal access for all Git/gh commands. Hooks validate only commit
-messages, with no role, branch, path, staging, commit-option, working-directory, repository,
-or PR gate. Git does not depend on Salesforce/ADO configuration. Install the local
-`commit-msg` hook to check final messages produced by an editor, file, or Git itself:
-`python3 scripts/install_git_message_hook.py` (`python` on Windows). Standard Git hook-skipping
-behavior remains; this is not a server-side guarantee for every commit path.
-
-Push, PR publication/update, merge, and destructive actions require an explicit human
-instruction. A review request remains a review. Source editor
-permissions are unchanged. Git Agent's editor exception remains `.cache/github/pr-body.md`.
+All agents expose terminal access for local Git. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Commit messages, local branches,
+paths, staging and working directories are not checked. Git does not depend on Salesforce/ADO
+configuration. A review request remains a review.
 Native terminal approval is separate from these repository hooks. The canonical procedure is
 [Git Workflow](../.github/skills/git-workflow/SKILL.md).
 

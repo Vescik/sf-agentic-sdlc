@@ -13,6 +13,5 @@ Before a real deploy, identify target/scope and warn that changes reach the org;
 invocation. Native execution requires its modal confirmation.
 
 Governed Salesforce/ADO and protected non-Git edits need a custom agent's role guard
-(VS Code or Copilot CLI); default Agent mode lacks it. Git/gh work independently, with only
-commit-message validation. Preserve unrelated work; publication, merge,
-and destructive actions require explicit instructions.
+(VS Code or Copilot CLI); default Agent mode lacks it. Merge and force push stay human; only
+the git-agent pushes `feat/*` and opens draft PRs (plan 05).

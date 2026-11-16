@@ -12,7 +12,6 @@ the deep directory tree lives in `docs/workspace-topology.md`.
 | `.ai/memory` | Human-curated decisions-log.md |
 | `.ai/templates` | Document templates |
 | `.cache` | Ignored transient caches, drafts, receipts |
-| `.githooks` | Git commit-message hook |
 | `.github` | Copilot surface: kernel, agents, prompts, skills, hooks, CI |
 | `.github/agents` | Role agents with tools, handoffs, role-guard hooks |
 | `.github/instructions` | Tiered Principle instruction files, loaded per role |

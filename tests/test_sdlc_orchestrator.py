@@ -225,14 +225,20 @@ class TestAutonomyGrantInSafetyHook(unittest.TestCase):
         self.assertIsNone(self.grant("sf project deploy start -o dev_sbx", env_value=None))
         self.assertIsNone(self.grant("sf project deploy start -o dev_sbx", env_value="other"))
 
-    def test_grant_never_covers_other_targets_defaults_prod_or_quick_deploys(self):
+    def test_grant_never_covers_other_targets_defaults_or_non_developer_orgs(self):
         self.assertIsNone(self.grant("sf project deploy start -d force-app"))
         self.assertIsNone(self.grant("sf project deploy start -o other -d force-app"))
         self.assertIsNone(self.grant("sf project deploy start -o dev_sbx -o other"))
-        self.assertIsNone(self.grant("sf project deploy start -o dev_sbx", environment="prod"))
-        self.assertIsNone(self.grant("sf project deploy start -o dev_sbx", environment=None))
-        self.assertIsNone(self.grant("sf project deploy quick -o dev_sbx --job-id 0Af"))
-        self.assertIsNone(self.grant("sf project delete source -o dev_sbx -m ApexClass:X"))
+        # Plan 05, D-A2: the agent org is always a developer org; uat, stage and prod never qualify.
+        for environment in ("prod", "uat", "stage", None):
+            self.assertIsNone(self.grant("sf project deploy start -o dev_sbx", environment=environment))
+            self.assertIsNone(self.grant("sf project delete source -o dev_sbx -m ApexClass:X", environment=environment))
+
+    def test_grant_covers_quick_deploy_and_source_delete_in_the_developer_org(self):
+        # Plan 05, P-A3.
+        self.assertEqual("dev_sbx", self.grant("sf project deploy quick -o dev_sbx --job-id 0Af"))
+        self.assertEqual("dev_sbx", self.grant("sf project delete source -o dev_sbx -m ApexClass:X"))
+        self.assertIsNone(self.grant("sf project deploy quick --job-id 0Af"))
 
     def test_grant_requires_the_configured_agent_org(self):
         config = {"salesforce": {"orgs": [], "review": {}}}

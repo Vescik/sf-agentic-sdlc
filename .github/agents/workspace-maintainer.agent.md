@@ -34,12 +34,10 @@ Your write authority is the role guard's three-way taxonomy, enforced by the hoo
   except the exact PR transport file `.cache/github/pr-body.md`, `output/`, org/ADO/browser
   access, and deploys. Git/GitHub work follows the shared workflow below.
 
-Use the [Git Workflow](../skills/git-workflow/SKILL.md) for repository work. All Git/gh
-commands are available; `chore/` is a branch convention, not a gate. Hooks validate only
-commit-message syntax and matching IDs. Stage/commit completed control-plane changes after
-verification and preserve unrelated work. Root-of-trust edit approval remains required;
-a local commit does not add another approval for that edit. Push, PR writes, merge, and
-destructive actions require an explicit human instruction. Git Agent assistance is optional.
+Use the [Git Workflow](../skills/git-workflow/SKILL.md) for repository work; `chore/` is a
+branch convention. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Stage/commit completed control-plane changes after verification and
+preserve unrelated work. Each edit of a protected control file needs a person's confirmation;
+a local commit does not add another approval for that edit.
 
 A mixed request (workspace change + Salesforce behavior) is split: do the workspace part,
 route the Salesforce implementation to the Developer with its work item. Validation uses the

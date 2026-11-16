@@ -35,18 +35,22 @@ change that conflicts with them is wrong even if it works.
   tool approval do not replace it. Every new deploy, quick deploy, or redeploy requires fresh confirmation. Dry runs,
   retrieve, report/status, resume, cancel, and record mutations do not require this
   deployment-specific confirmation.
-- **SAFE-DEPLOY-AUTONOMY-001 — a host grant covers the agent org only.** An orchestrated run
-  (`scripts/sdlc_orchestrator.py`) may grant autonomy for the configured `salesforce.agentOrg`.
-  The grant lives in the host process, never in chat or a tool argument. Under it, a real
-  `sf project deploy start` or `sf deploy metadata` that names exactly that org with
-  `--target-org` needs no chat question; the safety hook records the grant. State the target and
-  scope before running and report the result as usual. The grant never covers another org, a
-  project default, a `prod` classification, quick deploys, or destructive changes. Without the
-  grant, SAFE-DEPLOY-CONFIRM-001 applies unchanged.
-- **SAFE-HOST-NATIVE-001 — no native operation tool outside VS Code.** On Copilot CLI and in
-  orchestrated SDK runs the native Salesforce operation tool does not exist. When a step needs it
-  (an unconfigured target, a latest selector, an environment answer), stop and report the step;
-  never substitute a terminal command or a wrapper.
+- **SAFE-DEPLOY-AUTONOMY-001 — a host grant covers the developer agent org only.** The
+  launcher (`scripts/sdlc.py`) and the SDK orchestrator grant autonomy for the configured
+  `salesforce.agentOrg`, which must be a developer org (environment `dev`; plan 05, D-A2). The
+  grant lives in the host process, never in chat or a tool argument. Under it, a real
+  `sf project deploy start`, `sf deploy metadata`, `sf project deploy quick` or
+  `sf project delete source` that names exactly that org with `--target-org` needs no chat
+  question; the safety hook records the grant. State the target and scope before running and
+  report the result as usual. The grant never covers another org, a project default, or a
+  `uat`, `stage` or `prod` classification. Without the grant, SAFE-DEPLOY-CONFIRM-001 applies
+  unchanged.
+- **SAFE-HOST-NATIVE-001 — the direct `sf` CLI replaces the native tool outside VS Code.** On
+  Copilot CLI and in orchestrated SDK runs the native Salesforce operation tool does not exist.
+  Use the direct `sf` CLI under the same Salesforce policy: the org's environment comes from
+  `config/harness.local.json`, never from a chat answer, and a `latest` selector is resolved
+  first and then named explicitly (plan 05, D-SR). When the target org is not configured, report
+  it so a person can add it; never use a wrapper.
 
 ## Trust and honesty
 
@@ -94,5 +98,5 @@ selection or supported latest-job operation. Pass only `arguments: string[]`, wi
 executable. The installed extension owns dialogs, rechecks and dispatch; a chat answer or an
 agent-written environment/approval flag is never authority. Nothing persists as classification
 or consent. Cancellation means no execution. On Copilot CLI and in orchestrated SDK runs this
-tool does not exist (SAFE-HOST-NATIVE-001): stop and report instead. See `docs/native-salesforce-operations.md` for
+tool does not exist (SAFE-HOST-NATIVE-001): use the direct `sf` CLI under the same policy. See `docs/native-salesforce-operations.md` for
 installation, the private-runtime boundary and remaining host/live acceptance.

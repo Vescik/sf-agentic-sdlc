@@ -74,9 +74,8 @@ checkpoints. For Git commands and preservation of unrelated changes, use
 
 These are delivery conventions, not Git preconditions. All roles can use all Git/gh commands
 on any branch and from any working directory, including partial staging and other commit
-options. The only Git-specific validation is commit-message syntax and matching IDs. No ADO
-configuration, context file, delivery map, synchronized base, or index equality gates Git.
-The local `commit-msg` installation is described in [setup](setup-zero-to-first-prompt.md).
+options. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). No ADO configuration, context file, delivery map, synchronized base, or
+index equality gates Git.
 
 The conventional branch describes the delivery container; the commit describes its result.
 
@@ -527,8 +526,8 @@ feature/5000-<slug> → final PR to main: AB#5000 + included AB#5001, AB#5002, A
 ## Automation boundary
 
 All eight roles can use all Git/gh commands. Active authors commit coherent durable results
-after verification; the hook validates only commit-message syntax and matching IDs. Branch,
-path, staging, working-directory, repository, and PR conventions are not technical gates.
+after verification. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Local branch, path, staging and working-directory conventions
+are not technical gates.
 A review request remains a review. Source editor permissions
 are unchanged. Git Agent is optional assistance.
 

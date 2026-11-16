@@ -1,7 +1,8 @@
 # Plan 05: W8 SDLC chain as instructions, judged by a few success criteria
 
-Status: plan, 2026-11-16. Nothing in this plan is implemented yet. Owner decisions recorded in
-[Decisions](#decisions-2026-11-16) are binding for the work below.
+Status: plan, 2026-11-16. Phase 1 (delivery check) and Phase 2 (boundaries) are implemented;
+Phase 0 (live spike) is blocked, see [Implementation notes](#implementation-notes). Owner
+decisions recorded in [Decisions](#decisions-2026-11-16) are binding for the work below.
 
 ## Goal
 
@@ -244,3 +245,27 @@ Runtime:
 
 Wiki publication, release handover, Knowledge, production deploys, merges by an agent, mid-chain
 evidence gates, and real client data.
+
+## Implementation notes
+
+- **Phase 0 (2026-11-16):** Copilot CLI 1.0.112 authenticates through `gh` but every session
+  fails with "Access denied by policy settings": the account has no Copilot CLI access. The
+  only result: the CLI ignores the agent frontmatter fields `argument-hint` and `handoffs` with
+  a warning.
+- **Phase 1:** `scripts/check_delivery.py` and `.ai/contracts/delivery-success.md`. The trace
+  table is the file `acceptance-trace.md`; the deploy job ID is the file `deploy-job-id`.
+- **Phase 2, deviation from D-R3:** the draft-PR hook reads `delivery-check.json` and requires
+  PASS for the current HEAD commit. It does not run `check_delivery.py` itself, because the
+  check runs the Apex tests (minutes) and a CLI hook that exceeds its 10 s timeout fails open.
+  An agent could therefore write a false report; H3 sees the report in the draft PR and can run
+  the check again.
+- **Phase 2, launcher:** `scripts/sdlc.py` (D-A2, D-SR). The SDK orchestrator keeps its own
+  push and PR ban (Phase 6 decides its future); its autonomy grant is now `dev` only.
+- **Found, not decided:**
+  - The role guard keeps a per-role terminal allowlist (read-only commands, the harness scripts,
+    `sf` for the developer). It was not on the hard-stop list. `check_delivery.py` was added
+    for every role; other commands (for example `npm`, `sf` for roles other than the developer)
+    stay denied.
+  - A Dev Hub classified `prod` blocks `sf org create scratch` (production allows only
+    metadata retrieve). A scratch org as the agent org needs a decision on this rule.
+

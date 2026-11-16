@@ -67,7 +67,7 @@ class WikiPolicyTests(unittest.TestCase):
                     self.assert_admitted(prefix + name, payload)
 
     def test_all_non_developer_roles_are_denied_publication(self):
-        for role in roles.ALLOWED_PREFIXES:
+        for role in roles.ROLES:
             if role == "developer":
                 continue
             for prefix in ("", "ado-readonly/"):
@@ -88,7 +88,7 @@ class WikiPolicyTests(unittest.TestCase):
             ("wiki_list_wikis", {"project": "Example Project"}),
             ("core_list_project_teams", {"project": "Example Project"}),
         )
-        for role in roles.ALLOWED_PREFIXES:
+        for role in roles.ROLES:
             for prefix in ("", "ado-readonly/"):
                 for name, payload in examples:
                     with self.subTest(role=role, name=prefix + name):
@@ -110,10 +110,13 @@ class WikiPolicyTests(unittest.TestCase):
         self.assert_denied("ado-readonly/unknown_tool", {"project": "Example Project"})
         self.assert_denied("another-server/wiki_create_or_update_page", PAGE)
 
-    def test_global_scope_checks_still_govern_both_write_tools(self):
+    def test_selector_checks_still_govern_both_write_tools(self):
+        # Plan 05, D-R1: no hard stop for a missing config or another project; the write tools
+        # keep their selector and payload rules (D-R3).
         for name, original in (("wiki_create_or_update_page", PAGE), ("wit_add_artifact_link", LINK)):
+            self.assertNotIn("deny", self.run_hooks(name, {**original, "project": "Other Project"}))
             for extra in (
-                {"project": "Other Project"}, {"project": ["Example Project", "Other Project"]},
+                {"project": ["Example Project", "Other Project"]},
                 {"project": None}, {"project": []}, {"project": " Example Project"},
                 {"organization": "other-org"}, {"projectId": "OTHER-GUID"},
                 {"options": {"project": "Other Project"}},
@@ -123,8 +126,6 @@ class WikiPolicyTests(unittest.TestCase):
             ):
                 with self.subTest(name=name, extra=extra):
                     self.assertEqual("deny", self.run_hooks(name, {**original, **extra})[0])
-            self.assert_denied(name, original, config=None)
-            self.assert_denied(name, original, config={"ado": None})
             payload = {key: value for key, value in original.items() if key != "project"}
             self.assert_denied(name, payload)
 

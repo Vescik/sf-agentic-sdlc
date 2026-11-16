@@ -487,70 +487,32 @@ class GlobalSafetyHookTests(unittest.TestCase):
 
 
 class RoleGuardTests(unittest.TestCase):
-    def test_investigator_can_edit_only_its_report_directories(self) -> None:
-        allowed = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {
-                    "path": "output/investigations/account-contract.md"
-                },
-            },
-            "--role",
-            "config-investigator",
-        )
-        denied = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {
-                    "path": "force-app/main/default/flows/Fake.flow-meta.xml"
-                },
-            },
-            "--role",
-            "config-investigator",
-        )
-        self.assertEqual(hook_decision(allowed), "continue")
-        self.assertEqual(hook_decision(denied), "deny")
+    def test_roles_edit_the_repository_except_protected_files(self) -> None:
+        # Plan 05, D-R2: one shared protected list replaces the per-role edit allowlists.
+        from scripts import copilot_role_guard as role_guard
 
-    def test_designer_cannot_edit_decision_log_directly(self) -> None:
-        output = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": ".ai/memory/decisions-log.md"},
-            },
-            "--role",
-            "designer",
-        )
-        self.assertEqual(hook_decision(output), "deny")
-
-    def test_designer_can_write_ado_cache_only(self) -> None:
-        allowed = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": ".cache/ado-items/1201.json"},
-            },
-            "--role",
-            "designer",
-        )
-        denied = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": ".cache/test-cases/701.json"},
-            },
-            "--role",
-            "designer",
-        )
-        self.assertEqual(hook_decision(allowed), "continue")
-        self.assertEqual(hook_decision(denied), "deny")
+        free = ("force-app/main/default/classes/X.cls", "work-items/1-a/design.md",
+                "work-items/1-a/qa-test-plan.md", ".ai/memory/decisions-log.md",
+                ".cache/ado-items/1.json", "output/investigations/r.md", "docs/org-changes/x.md",
+                "tests/test_safety_hooks.py", ".github/skills/development/SKILL.md")
+        protected = (".github/hooks/safety.json", ".github/agents/developer.agent.md",
+                     ".github/instructions/apex.instructions.md", ".github/mcp.json",
+                     ".vscode/settings.json", "config/harness.example.json", "schemas/x.json",
+                     "scripts/copilot_safety_hook.py", "scripts/git_workflow_policy.py",
+                     "scripts/start_salesforce_mcp.mjs", "scripts/check_delivery.py",
+                     "extensions/salesforce-operations/package.json")
+        for role in role_guard.ROLES:
+            for path in free:
+                with self.subTest(role=role, path=path):
+                    self.assertEqual("continue", hook_decision(run_hook(
+                        "copilot_role_guard.py",
+                        {"cwd": str(ROOT), "tool_name": "edit/editFiles", "tool_input": {"path": path}},
+                        "--role", role)))
+            for path in protected:
+                with self.subTest(role=role, path=path):
+                    expected = "ask" if role == role_guard.MAINTAINER_ROLE else "deny"
+                    self.assertEqual(expected, role_guard.edit_decision(path, role))
+            self.assertEqual("deny", role_guard.edit_decision("config/harness.local.json", role))
 
     def test_every_skill_instructed_command_passes_the_role_guard(self) -> None:
         # Regression for the live "agents flail through 5-8 denied commands" incident
@@ -648,88 +610,9 @@ class RoleGuardTests(unittest.TestCase):
         from scripts import copilot_role_guard as role_guard
 
         command = "python scripts/salesforce_read.py records --org dev-sbx --object ExampleManagedObject__c --fields Id,Name"
-        for role in role_guard.ALLOWED_PREFIXES:
+        for role in role_guard.ROLES:
             with self.subTest(role=role):
                 self.assertFalse(role_guard.allowed_role_command(command, ROOT, role))
-
-    def test_designer_writes_work_items_and_not_retired_lanes(self) -> None:
-        # Both durable designer artifacts: the requirement snapshot written on the
-        # /fetch-ado-item intake turn and the design written on the /solution-design turn.
-        for artifact in (
-            "work-items/242850-approval-notifications/ado-context.md",
-            "work-items/242850-approval-notifications/design.md",
-        ):
-            with self.subTest(path=artifact):
-                allowed = run_hook(
-                    "copilot_role_guard.py",
-                    {
-                        "cwd": str(ROOT),
-                        "tool_name": "edit/editFiles",
-                        "tool_input": {"path": artifact},
-                    },
-                    "--role",
-                    "designer",
-                )
-                self.assertEqual(hook_decision(allowed), "continue")
-        # Retired lanes must not come back as free writes: the record-free
-        # output/solution-design lane (Design Case rebuild P2) and the deleted
-        # .ai/change-records tree (phase 5) are no designer surface.
-        for retired_path in (
-            "output/solution-design/12345-design.md",
-            ".ai/change-records/SD-2026-08-05-routing/design.md",
-            "output/handover/x.md",
-        ):
-            with self.subTest(path=retired_path):
-                retired = run_hook(
-                    "copilot_role_guard.py",
-                    {
-                        "cwd": str(ROOT),
-                        "tool_name": "edit/editFiles",
-                        "tool_input": {"path": retired_path},
-                    },
-                    "--role",
-                    "designer",
-                )
-                self.assertNotEqual(hook_decision(retired), "continue")
-
-    def test_designer_cannot_edit_metadata(self) -> None:
-        output = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": "force-app/classes/X.cls"},
-            },
-            "--role",
-            "designer",
-        )
-        self.assertEqual(hook_decision(output), "deny")
-
-    def test_file_allowlist_does_not_allow_a_suffix(self) -> None:
-        output = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": ".ai/memory/decisions-log.md.backup"},
-            },
-            "--role",
-            "designer",
-        )
-        self.assertEqual(hook_decision(output), "deny")
-
-    def test_role_policy_remains_enforced_from_single_root(self) -> None:
-        output = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": ".ai/memory/fake.md"},
-            },
-            "--role",
-            "config-investigator",
-        )
-        self.assertEqual(hook_decision(output), "deny")
 
     def test_ambiguous_edit_requires_approval(self) -> None:
         output = run_hook(
@@ -777,79 +660,6 @@ class RoleGuardTests(unittest.TestCase):
         )
         self.assertEqual(hook_decision(output), "deny")
 
-    def test_strategist_qa_test_plan_write_boundary_is_exact(self) -> None:
-        # D18 (2026-08-11): the only tracked work-item write for test-strategist is the
-        # exact per-item qa-test-plan.md. Everything else in and around the work item —
-        # the sibling authorities, arbitrary files, invalid folders, traversal — stays
-        # denied, and no other role inherits the grant.
-        cases = (
-            ("work-items/242850-approval-notifications/qa-test-plan.md", "continue"),
-            ("work-items/7-x/qa-test-plan.md", "continue"),
-            ("work-items/242850-approval-notifications/ado-context.md", "deny"),
-            ("work-items/242850-approval-notifications/design.md", "deny"),
-            ("work-items/242850-approval-notifications/tasks.md", "deny"),
-            ("work-items/242850-approval-notifications/decisions.md", "deny"),
-            ("work-items/242850-approval-notifications/notes.md", "deny"),
-            ("work-items/242850-approval-notifications/sub/qa-test-plan.md", "deny"),
-            ("work-items/qa-test-plan.md", "deny"),
-            ("work-items/0-zero/qa-test-plan.md", "deny"),
-            ("work-items/242850-/qa-test-plan.md", "deny"),
-            ("work-items/README.md", "deny"),
-            ("qa-test-plan.md", "deny"),
-            ("output/qa-test-plan.md", "deny"),
-            ("work-items/242850-approval-notifications/../../.github/copilot-instructions.md", "deny"),
-        )
-        for path, expected in cases:
-            with self.subTest(path=path):
-                output = run_hook(
-                    "copilot_role_guard.py",
-                    {
-                        "cwd": str(ROOT),
-                        "tool_name": "edit/editFiles",
-                        "tool_input": {"path": path},
-                    },
-                    "--role",
-                    "test-strategist",
-                )
-                self.assertEqual(hook_decision(output), expected)
-
-    def test_qa_test_plan_grant_is_strategist_only(self) -> None:
-        # The developer keeps its existing broad work-items authority; the exact-path QA
-        # rule itself must not leak to roles without a work-items grant.
-        output = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": "work-items/242850-approval-notifications/qa-test-plan.md"},
-            },
-            "--role",
-            "reviewer",
-        )
-        self.assertEqual(hook_decision(output), "deny")
-
-    def test_strategist_can_write_bounded_caches(self) -> None:
-        # The Test Case cache lane retired 2026-08-11: only the ADO caches remain writable,
-        # and the old .cache/test-cases/ grant must stay a deny.
-        for path, expected in (
-            (".cache/ado-items/1201.json", "continue"),
-            (".cache/ado-wiki/wiki-page.json", "continue"),
-            (".cache/test-cases/701.json", "deny"),
-            (".ai/qa/test-cases/1-suite.md", "deny"),
-        ):
-            with self.subTest(path=path):
-                output = run_hook(
-                    "copilot_role_guard.py",
-                    {
-                        "cwd": str(ROOT),
-                        "tool_name": "edit/editFiles",
-                        "tool_input": {"path": path},
-                    },
-                    "--role",
-                    "test-strategist",
-                )
-                self.assertEqual(hook_decision(output), expected)
-
     def test_developer_metadata_edit_is_allowed(self) -> None:
         output = run_hook(
             "copilot_role_guard.py",
@@ -865,43 +675,6 @@ class RoleGuardTests(unittest.TestCase):
         )
         self.assertEqual(hook_decision(output), "continue")
 
-    def test_developer_can_edit_salesforce_e2e_but_not_harness_tests(self) -> None:
-        allowed = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": "tests/e2e/example.spec.ts"},
-            },
-            "--role",
-            "developer",
-        )
-        denied = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": "tests/test_safety_hooks.py"},
-            },
-            "--role",
-            "developer",
-        )
-        self.assertEqual(hook_decision(allowed), "continue")
-        self.assertEqual(hook_decision(denied), "deny")
-
-    def test_developer_policy_edit_is_denied(self) -> None:
-        output = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": ".github/copilot-instructions.md"},
-            },
-            "--role",
-            "developer",
-        )
-        self.assertEqual(hook_decision(output), "deny")
-
     def test_developer_documentation_output_is_allowed(self) -> None:
         output = run_hook(
             "copilot_role_guard.py",
@@ -914,28 +687,6 @@ class RoleGuardTests(unittest.TestCase):
             "developer",
         )
         self.assertEqual(hook_decision(output), "continue")
-
-    def test_story_documentation_preserves_role_write_boundaries(self) -> None:
-        # Plan 02 changes the durable documentation path, not role capabilities.
-        for role, expected in (
-            ("developer", "continue"),
-            ("reviewer", "deny"),
-            ("test-strategist", "deny"),
-        ):
-            with self.subTest(role=role):
-                output = run_hook(
-                    "copilot_role_guard.py",
-                    {
-                        "cwd": str(ROOT),
-                        "tool_name": "edit/editFiles",
-                        "tool_input": {
-                            "path": "work-items/242850-approval-notifications/technical-documentation.md"
-                        },
-                    },
-                    "--role",
-                    role,
-                )
-                self.assertEqual(hook_decision(output), expected)
 
     def test_developer_documentation_cannot_escape_through_traversal(self) -> None:
         for path in (
@@ -978,93 +729,12 @@ class RoleGuardTests(unittest.TestCase):
             stdout = StringIO()
             with (
                 patch.object(role_guard, "HARNESS_ROOT", root),
-                patch.object(role_guard, "METADATA_ROOT", root),
                 patch("sys.argv", ["copilot_role_guard.py", "--role", "developer"]),
                 patch("sys.stdin", StringIO(json.dumps(event))),
                 patch("sys.stdout", stdout),
             ):
                 self.assertEqual(role_guard.main(), 0)
             self.assertEqual(hook_decision(json.loads(stdout.getvalue())), "deny")
-
-    def test_org_change_log_write_authority_is_bounded(self) -> None:
-        developer_paths = (
-            "work-items/242850-approval-notifications/org-changes.md",
-            "docs/org-changes/2026-08-31-standalone-maintenance.md",
-        )
-        for path in developer_paths:
-            with self.subTest(role="developer", path=path):
-                output = run_hook(
-                    "copilot_role_guard.py",
-                    {
-                        "cwd": str(ROOT),
-                        "tool_name": "edit/editFiles",
-                        "tool_input": {"path": path},
-                    },
-                    "--role",
-                    "developer",
-                )
-                self.assertEqual(hook_decision(output), "continue")
-
-        denied_paths = (
-            "work-items/242850-approval-notifications/org-changes.md",
-            "docs/org-changes/2026-08-31-standalone-maintenance.md",
-        )
-        for role in ("designer", "reviewer", "config-investigator", "test-strategist"):
-            for path in denied_paths:
-                with self.subTest(role=role, path=path):
-                    output = run_hook(
-                        "copilot_role_guard.py",
-                        {
-                            "cwd": str(ROOT),
-                            "tool_name": "edit/editFiles",
-                            "tool_input": {"path": path},
-                        },
-                        "--role",
-                        role,
-                    )
-                    self.assertEqual(hook_decision(output), "deny")
-
-        for path in (
-            "docs/org-changes/README.md",
-            "docs/org-changes/standalone.md",
-            "docs/org-changes/2026-08-31-.md",
-        ):
-            with self.subTest(role="developer", path=path):
-                output = run_hook(
-                    "copilot_role_guard.py",
-                    {
-                        "cwd": str(ROOT),
-                        "tool_name": "edit/editFiles",
-                        "tool_input": {"path": path},
-                    },
-                    "--role",
-                    "developer",
-                )
-                self.assertEqual(hook_decision(output), "deny")
-
-    def test_developer_can_write_ado_cache_but_not_test_cache(self) -> None:
-        allowed = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": ".cache/ado-items/1201.json"},
-            },
-            "--role",
-            "developer",
-        )
-        denied = run_hook(
-            "copilot_role_guard.py",
-            {
-                "cwd": str(ROOT),
-                "tool_name": "edit/editFiles",
-                "tool_input": {"path": ".cache/test-cases/701.json"},
-            },
-            "--role",
-            "developer",
-        )
-        self.assertEqual(hook_decision(allowed), "continue")
-        self.assertEqual(hook_decision(denied), "deny")
 
     def test_developer_terminal_is_guarded_scripts_only(self) -> None:
         denied = run_hook(
@@ -1289,10 +959,10 @@ class SafetyClassificationTests(unittest.TestCase):
                 output = run_hook("copilot_safety_hook.py", {"tool_name": name, "tool_input": tool_input})
                 self.assertEqual(hook_decision(output), expected)
 
-    def test_unknown_prefixed_server_tool_fails_closed_to_ask(self) -> None:
-        # Only a tool from an UNKNOWN server (has a "/") is fail-closed; bare names are not.
+    def test_unknown_prefixed_server_tool_is_not_a_question(self) -> None:
+        # Plan 05, D-R1: an unrecognized MCP tool no longer asks; known servers keep their rules.
         output = run_hook("copilot_safety_hook.py", {"tool_name": "some_server/unknown_tool", "tool_input": {}})
-        self.assertEqual(hook_decision(output), "ask")
+        self.assertEqual(hook_decision(output), "continue")
 
     def test_builtin_tools_including_snake_case_pass(self) -> None:
         # VS Code built-ins are snake_case; they must not be caught by the MCP fail-closed.
@@ -1332,30 +1002,6 @@ class SafetyClassificationTests(unittest.TestCase):
                     "config-investigator",
                 )
                 self.assertEqual(hook_decision(output), want)
-
-    def test_ado_scope_requires_matching_org_and_project(self) -> None:
-        # Plan 03a removes env authority; preserve project and URL isolation proof.
-        config = {"ado": {
-            "organization": "example-org", "project": "Example Project",
-            "allowedHttpsOrigins": ["https://dev.azure.com/example-org"],
-        }}
-        for payload, allowed in (
-            ({"project": "Example Project", "id": 1201}, True),
-            ({"project": ["Example Project"], "searchText": "invoice"}, True),
-            ({"project": "Other Project", "id": 1201}, False),
-            ({"id": 1201}, False),
-            ({"project": "Example Project", "organization": "other-org"}, False),
-            ({"extra": {"project": "Example Project"}}, False),
-            ({"projectName": "Example Project"}, False),
-            ({"project": "Example Project", "url":
-              "https://dev.azure.com/other-org/Other%20Project/_apis/wit/workitems/1"}, False),
-            ({"project": "Example Project", "url":
-              "https://example-org.visualstudio.com/OtherProject/_wiki/wikis/wiki/12/Page"}, False),
-            ({"project": "Example Project", "url":
-              "https://dev.azure.com/example-org/Example%20Project/_apis/wit/workitems/1"}, True),
-        ):
-            with self.subTest(payload=payload):
-                self.assertEqual(allowed, safety.ado_scope_error(config, payload) is None)
 
     def test_sandbox_origin_recognition_is_strict(self) -> None:
         self.assertTrue(
@@ -1603,21 +1249,28 @@ class StandaloneGitIsolationTests(unittest.TestCase):
             'git commit -m "[FEATURE-9] Update delivery AB#9"',
             "git switch -c arbitrary/branch",
             "git -C ../another-repo checkout main",
-            "git reset --hard",
             "git clean -fdx",
-            "git push --force-with-lease origin main",
-            "git push origin --delete arbitrary/branch",
             "git pull --rebase",
             "git stash pop",
             "git log --output=history.txt",
+            'git commit -m "Save changes"',
             'git add . && git commit -m "[docs] Explain sf deploy and git reset --hard"',
-            "gh api repos/owner/other-repo/issues --method POST",
-            "gh pr merge 5 --squash --admin --repo owner/other-repo",
+            "gh pr view 5 --repo owner/other-repo",
         )
         for role in (None, *self.ROLES):
             for command in commands:
                 with self.subTest(role=role, command=command):
                     self.assert_decision(self.terminal(command), "continue", role)
+
+    def test_every_role_and_global_hook_deny_publication_reserved_for_a_person(self) -> None:
+        # Plan 05, boundaries B1 and B2, through real hook startup.
+        for role in (None, *self.ROLES):
+            for command in ("git reset --hard", "git push --force-with-lease origin main",
+                            "git push origin --delete arbitrary/branch",
+                            "gh api repos/owner/other-repo/issues --method POST",
+                            "gh pr merge 5 --squash --admin --repo owner/other-repo"):
+                with self.subTest(role=role, command=command):
+                    self.assert_decision(self.terminal(command), "deny", role)
 
     def test_git_command_does_not_admit_unrelated_destructive_or_role_restricted_commands(self) -> None:
         self.assert_decision(self.terminal("git status && rm -rf output"), "deny")
@@ -1626,17 +1279,11 @@ class StandaloneGitIsolationTests(unittest.TestCase):
             "deny", "reviewer",
         )
 
-    def test_every_role_and_global_hook_reject_invalid_explicit_commit_messages(self) -> None:
-        for role in (None, *self.ROLES):
-            for message in ("Save changes", "[docs]", "[WI-42] Save changes AB#7"):
-                with self.subTest(role=role, message=message):
-                    self.assert_decision(self.terminal(f'git commit -m "{message}"'), "deny", role)
-
     def test_missing_or_broken_external_modules_do_not_block_git_or_local_reads(self) -> None:
         events = (
             self.terminal("git status"),
             self.terminal('git commit -m "[docs] Save local notes"'),
-            self.terminal("gh pr merge 3 --merge"),
+            self.terminal("gh pr view 3"),
             {"tool_name": "read_file", "tool_input": {"path": "README.md"}},
             {"cwd": str(self.root), **self.terminal("cat README.md")},
         )
@@ -1693,18 +1340,21 @@ class StandaloneGitIsolationTests(unittest.TestCase):
 
 
 class WorkspaceMaintainerTests(unittest.TestCase):
-    """Protected control plane + workspace-maintainer (plan 2026-08-11).
+    """Protected control files + workspace-maintainer (plan 05, D-R2).
 
-    The taxonomy is three-way: standard control plane allows, root of trust asks, and
-    everything else — delivery source, work items, governed Knowledge, local config,
-    caches — denies. These tests also pin non-escalation: no other role gains a path, and
-    the maintainer cannot silently edit the files that define permissions.
+    Every role edits the repository except the protected control files. Other roles are denied
+    those files; the maintainer gets a question for each. Local config and paths outside the
+    repository are denied to every role.
     """
 
     ROOT_OF_TRUST = (
         ".githooks/commit-msg",
-        "scripts/install_git_message_hook.py",
         "scripts/copilot_role_guard.py",
+        "scripts/check_delivery.py",
+        "scripts/git_workflow_policy.py",
+        ".github/instructions/apex.instructions.md",
+        "schemas/output-envelope.schema.json",
+        "config/repo-map-seed.json",
         "scripts/copilot_safety_hook.py",
         "scripts/ado_config.py",
         "scripts/start_ado_mcp.mjs",
@@ -1732,14 +1382,11 @@ class WorkspaceMaintainerTests(unittest.TestCase):
         for path in (
             ".github/prompts/adhoc-fix.prompt.md",
             ".github/skills/maintain-workspace/SKILL.md",
-            ".github/instructions/apex.instructions.md",
             ".github/pull_request_template.md",
             "docs/ways-of-working.md",
             "evals/agent-scenarios.yaml",
             "tests/test_safety_hooks.py",
-            "schemas/output-envelope.schema.json",
             "scripts/render_repo_map.py",
-            "config/repo-map-seed.json",
             ".ai/contracts/tool-capabilities.md",
             ".ai/repo-map.md",
             "README.md",
@@ -1753,20 +1400,19 @@ class WorkspaceMaintainerTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual("ask", self.decide("workspace-maintainer", {"path": path}))
 
-    def test_maintainer_denied_out_of_scope_paths(self) -> None:
+    def test_maintainer_edits_delivery_paths_and_only_local_config_is_denied(self) -> None:
+        # Plan 05, D-R2: no per-role allowlist; only local config and outside paths are denied.
         for path in (
             "force-app/main/default/classes/X.cls",
             "manifest/package.xml",
-            "tests/e2e/example.spec.ts",
             "work-items/242850-approval-notifications/design.md",
-            "work-items/242850-approval-notifications/qa-test-plan.md",
             ".ai/memory/decisions-log.md",
             ".cache/ado-items/1201.json",
             "output/feature-health/report.md",
-            "config/harness.local.json",
-            ".sf/config.json",
-            ".sfdx/sfdx-config.json",
         ):
+            with self.subTest(path=path):
+                self.assertEqual("continue", self.decide("workspace-maintainer", {"path": path}))
+        for path in ("config/harness.local.json", "/etc/hosts", "../outside.md"):
             with self.subTest(path=path):
                 self.assertEqual("deny", self.decide("workspace-maintainer", {"path": path}))
 
@@ -1786,7 +1432,7 @@ class WorkspaceMaintainerTests(unittest.TestCase):
                 "paths": [
                     ".github/prompts/adhoc-fix.prompt.md",
                     ".vscode/mcp.json",
-                    "force-app/main/default/classes/X.cls",
+                    "config/harness.local.json",
                 ]
             },
         )
@@ -1803,13 +1449,13 @@ class WorkspaceMaintainerTests(unittest.TestCase):
             "ask", self.decide("workspace-maintainer", {"path": "SCRIPTS/COPILOT_ROLE_GUARD.PY"})
         )
         self.assertEqual(
-            "deny", self.decide("workspace-maintainer", {"path": "Force-App/Main/X.cls"})
+            "deny", self.decide("workspace-maintainer", {"path": "Config/Harness.Local.JSON"})
         )
         self.assertEqual(
-            "deny",
+            "ask",
             self.decide(
                 "workspace-maintainer",
-                {"path": ".github/prompts/../../scripts/../force-app/x.cls"},
+                {"path": ".github/prompts/../../force-app/../.github/hooks/safety.json"},
             ),
         )
 
@@ -1820,20 +1466,17 @@ class WorkspaceMaintainerTests(unittest.TestCase):
         second = self.decide("workspace-maintainer", {"path": "scripts/copilot_safety_hook.py"})
         self.assertEqual(("ask", "ask"), (first, second))
 
-    def test_no_existing_role_gains_control_plane_write(self) -> None:
-        for role in (
-            "designer",
-            "developer",
-            "test-strategist",
-            "reviewer",
-            "config-investigator",
-            "git-agent",
-        ):
-            for path in ("scripts/render_repo_map.py", "scripts/copilot_role_guard.py",
-                         ".github/agents/developer.agent.md", ".vscode/mcp.json",
-                         ".github/skills/maintain-workspace/SKILL.md"):
+    def test_no_other_role_writes_protected_control_files(self) -> None:
+        # Plan 05, D-R2: every other role edits the repository freely except protected files.
+        for role in ("designer", "developer", "test-strategist", "reviewer",
+                     "config-investigator", "git-agent"):
+            for path in self.ROOT_OF_TRUST:
                 with self.subTest(role=role, path=path):
                     self.assertEqual("deny", self.decide(role, {"path": path}))
+            for path in ("scripts/render_repo_map.py", ".github/skills/maintain-workspace/SKILL.md",
+                         "force-app/main/default/classes/X.cls", "work-items/1-a/design.md"):
+                with self.subTest(role=role, path=path):
+                    self.assertEqual("continue", self.decide(role, {"path": path}))
 
     def test_maintainer_terminal_allowlist_is_exact(self) -> None:
         from scripts import copilot_role_guard as role_guard
@@ -1946,7 +1589,7 @@ class DeployValidationWrapperTests(unittest.TestCase):
         from scripts import copilot_role_guard as role_guard
 
         command = "sf project deploy start --dry-run --async --target-org dev-sbx --json"
-        for role in sorted(role_guard.ALLOWED_PREFIXES):
+        for role in sorted(role_guard.ROLES):
             with self.subTest(role=role):
                 self.assertEqual(
                     role_guard.allowed_role_command(command, ROOT, role), role == "developer"

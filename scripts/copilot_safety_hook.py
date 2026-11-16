@@ -181,38 +181,17 @@ def safety_toggle(config: dict[str, Any] | None, name: str) -> bool:
 
 # MCP tool classification. VS Code may hand the hook either a "server/tool" name or a BARE "tool"
 # name (observed live: `core_list_orgs`). Server-prefix matching alone therefore leaks — classify by
-# the unqualified tool token too, and fail-closed on unrecognized MCP-shaped tools.
+# the unqualified tool token too.
 # This fallback only identifies calls that must fail when the ADO module is broken.
 ADO_TOOL_PREFIXES = (
     "core_", "wit_", "wiki", "testplan", "build_", "repo_", "release_",
     "pipelines_", "search_", "advsec_", "work_item",
 )
-ENUMERATION_TOOLS = frozenset({"list_all_orgs", "core_list_orgs", "core_list_projects"})
 SALESFORCE_DEV_TOOL_TOKENS = frozenset({
     "run_soql_query", "list_all_orgs", "deploy_metadata", "retrieve_metadata",
     "run_apex_test", "run_apex_tests", "run_agent_test", "resume_tool_operation",
     "create_scratch_org", "delete_org", "assign_permission_set", "run_code_analyzer",
     "get_username", "deploy", "quick_deploy", "quick_deploy_metadata", "retrieve",
-})
-# Built-in editor/agent tools that are safe to pass through (edits are governed by the role guard;
-# terminal/sf commands and browser-automation shapes are handled by the dedicated checks below).
-# VS Code's built-ins are snake_case (list_dir, read_file, grep_search, …), so this set uses
-# their real names.
-BUILTIN_TOOL_NAMES = frozenset({
-    # camel/slash and short forms
-    "read", "search", "codebase", "usages", "edit", "editfiles", "createfile",
-    "new", "insert", "replace", "applypatch", "runinterminal", "runcommands",
-    "terminal", "execute", "fetch", "fetchwebpage", "opensimplebrowser",
-    "askquestion", "askquestions", "agent", "think", "todos", "problems",
-    "changes", "testfailure", "findtestfiles", "runtests", "extensions",
-    "githubrepo", "vscodeapi",
-    # real VS Code snake_case tool names
-    "read_file", "list_dir", "file_search", "grep_search", "semantic_search",
-    "run_in_terminal", "get_terminal_output", "create_file", "create_directory",
-    "insert_edit_into_file", "replace_string_in_file", "apply_patch", "get_errors",
-    "list_code_usages", "test_search", "run_tests", "get_changed_files", "run_task",
-    "get_task_output", "fetch_webpage", "open_simple_browser", "run_vscode_command",
-    "get_search_view_results", "test_failure", "get_project_setup_info",
 })
 # Shell tools named after the binary they run. Matched EXACTLY (see is_terminal_tool):
 # Copilot CLI sends `Bash`, and short names like "sh" cannot be substring-matched safely.
@@ -528,12 +507,17 @@ def _flag_enabled(parts: list[str], *flags: str) -> bool:
     return False
 
 
-# SAFE-DEPLOY-AUTONOMY-001 (owner decision 2026-11-15). The orchestrator host process sets this
-# variable to the configured salesforce.agentOrg; the hook process inherits it from the host,
-# and no model command can change the hook's environment. Only then does a real deploy to that
-# exact org skip the per-deploy question. Validate and retrieve already run without one.
+# SAFE-DEPLOY-AUTONOMY-001 (owner decisions 2026-11-15 and 2026-11-16, plan 05 D-A2 and P-A3).
+# The launcher (scripts/sdlc) or the SDK orchestrator sets this variable to the configured
+# salesforce.agentOrg; the hook process inherits it from the host, and no model command can
+# change the hook's environment. Only then does a real deploy, quick deploy or source delete to
+# that exact developer org skip the per-deploy question. Validate and retrieve never needed one.
 AUTONOMY_ENV = "SF_AGENTIC_AUTONOMOUS_ORG"
-AUTONOMOUS_DEPLOY_WORDS = frozenset({("project", "deploy", "start"), ("deploy", "metadata")})
+AUTONOMOUS_DEPLOY_WORDS = frozenset({
+    ("project", "deploy", "start"), ("deploy", "metadata"),
+    ("project", "deploy", "quick"), ("project", "delete", "source"),
+})
+AUTONOMOUS_ENVIRONMENTS = frozenset({"dev"})
 
 
 def autonomous_deploy_grant(parts: list[str], environment: str | None, root: Path) -> str | None:
@@ -553,7 +537,7 @@ def autonomous_deploy_grant(parts: list[str], environment: str | None, root: Pat
     targets = target_orgs(parts)
     if not targets or any(target != agent_org for target in targets):
         return None
-    if environment not in {"dev", "uat", "stage"}:
+    if environment not in AUTONOMOUS_ENVIRONMENTS:
         return None
     return agent_org
 
@@ -661,73 +645,6 @@ def collect_named_values(value: Any, names: set[str]) -> list[str]:
     return found
 
 
-def ado_scope_error(
-    config: dict[str, Any],
-    tool_input: Any,
-) -> str | None:
-    error = ado_config_error(config)
-    if error:
-        return error
-    ado = config["ado"]
-    configured_org = ado["organization"]
-    configured_project = ado["project"]
-    organizations = collect_named_values(tool_input, {"organization", "organizationname", "organization_name", "org"})
-    if any(org != configured_org for org in organizations):
-        return "ADO tool call targets an organization outside local policy"
-    # The pinned vendor reads this top-level field. A nested project or an alias
-    # such as projectName cannot prove that a search will use a project filter.
-    project = tool_input.get("project") if isinstance(tool_input, dict) else None
-    projects = project if isinstance(project, list) else [project]
-    if not projects or any(not isinstance(value, str) or not value for value in projects):
-        return "ADO tool call does not prove its configured project scope"
-    # Other vendor tools consume projectId or pullRequestProjectId instead of
-    # project. A matching extra field must not mask a different consumed scope.
-    project_keys = {
-        "project", "projectid", "project_id", "projectname", "project_name",
-        "pullrequestprojectid", "pull_request_project_id", "pullrequestproject_id",
-    }
-    pending = [tool_input]
-    while pending:
-        value = pending.pop()
-        if isinstance(value, dict):
-            for key, child in value.items():
-                if key.lower().replace("-", "_") in project_keys:
-                    selectors = child if isinstance(child, list) else [child]
-                    if not selectors or any(not isinstance(item, str) or not item for item in selectors):
-                        return "ADO tool call does not prove its configured project scope"
-                    if any(item != configured_project for item in selectors):
-                        return "ADO tool call targets a project outside local policy"
-                pending.append(child)
-        elif isinstance(value, list):
-            pending.extend(value)
-    urls = extract_urls(flatten(tool_input)) + collect_named_values(tool_input, {"url"})
-    for raw_url in urls:
-        url = raw_url.rstrip(".,);]")
-        try:
-            parsed = urlparse(url)
-            if (parsed.scheme != "https" or parsed.username is not None
-                    or parsed.password is not None or parsed.port is not None
-                    or "\\" in url):
-                return "ADO URL is outside configured HTTPS origins"
-        except ValueError:
-            return "ADO URL is malformed"
-        if not any(url == origin or url.startswith(origin.rstrip("/") + "/")
-                   for origin in ado["allowedHttpsOrigins"]):
-            return "ADO URL is outside configured HTTPS origins"
-        if parsed.hostname == "dev.azure.com":
-            raw_parts = [part for part in parsed.path.split("/") if part]
-            parts = [unquote(part) for part in raw_parts]
-            if len(parts) < 2 or parts[0] != configured_org or parts[1] != configured_project:
-                return "ADO URL is outside the configured organization/project"
-            if any(part in {".", ".."} or "/" in part or "\\" in part for part in parts):
-                return "ADO URL contains an ambiguous path"
-            # The vendor resolves a wiki project from the segment immediately
-            # before _wiki, not necessarily the second segment of the URL.
-            if "_wiki" in raw_parts and (raw_parts.index("_wiki") != 2 or len(raw_parts) < 5 or raw_parts[3] != "wikis"):
-                return "ADO wiki URL must use the configured organization/project path"
-    return None
-
-
 def within_root(raw: str, root: Path) -> bool:
     if not raw or raw.startswith(("http://", "https://")):
         return True
@@ -829,18 +746,11 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
     if has_recursive_force_rm(text) or any(pattern.search(text) for pattern in DESTRUCTIVE_PATTERNS):
         return hook_response("deny", "Destructive operation blocked by the global safety policy.")
 
-    config = load_config(root) if is_ado or is_sf_review else None
-    if bare_tool in ENUMERATION_TOOLS:
-        return hook_response("deny", "Org/project enumeration is disabled; the harness is bound to one org.")
+    config = load_config(root) if is_sf_review else None
+    # Org/project enumeration and the ADO config/scope blocks were removed (plan 05, D-R1). ADO
+    # stays limited to its read tools and the two narrow writes (D-R3).
     if is_ado:
-        # Retain the existing read diagnostic for read/unknown tool names. The
-        # same configuration and scope authority governs the two narrow writes.
         operation = "publication" if ado_policy.bare_tool_name(tool_name) in ado_policy.WRITE_TOOLS else "read"
-        if config is None:
-            return hook_response("deny", f"ADO {operation} blocked: local harness configuration is missing.")
-        scope_error = ado_scope_error(config, checked_input)
-        if scope_error:
-            return hook_response("deny", f"ADO {operation} blocked: {scope_error}.")
         capability_error = ado_policy.tool_error(tool_name, tool_input)
         if capability_error:
             return hook_response("deny", f"ADO {operation} blocked: {capability_error}.")
@@ -890,27 +800,8 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
                     "Direct browser tooling is disabled; the browser automation lane was removed from this harness.",
                 )
 
-    # Fail-closed backstop: an MCP-shaped tool the hook did not positively classify (a new server
-    # tool, or a bare name the guards above did not recognize) must not silently auto-run.
-    recognized = (
-        is_ado
-        or is_sf_review
-        or is_sf_dev
-        or is_terminal_tool(tool_name)
-        or bare_tool in BUILTIN_TOOL_NAMES
-        or lowered_name in BUILTIN_TOOL_NAMES
-    )
-    # Only a server-PREFIXED tool from an unknown server is fail-closed. Bare tool names are left
-    # to the explicit token guards above (enumeration deny, ADO/SF classification) — matching bare
-    # names by shape ("_") wrongly caught VS Code's snake_case built-ins (list_dir, read_file, …).
-    mcp_shaped = "/" in tool_name
-    if tool_name and not recognized and mcp_shaped:
-        return hook_response(
-                    "ask",
-                    f"Unrecognized tool '{tool_name}' is not an allowlisted capability; "
-                    "confirm before running (SAFE-TOOL-001 fail-closed).",
-                )
-
+    # An unrecognized MCP tool is no longer a question (plan 05, D-R1): MCP servers come only from
+    # the repository and user configuration, and every recognized server keeps its rules above.
     return hook_response()
 
 

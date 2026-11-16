@@ -611,9 +611,9 @@ class TestGitBootstrapBeforeSolutionDesign(unittest.TestCase):
 
     def test_git_has_no_branch_path_index_or_external_context_gate(self) -> None:
         text = squash(self.git_skill)
-        self.assertIn("All eight roles can use all Git", text)
+        self.assertIn("Every role can use local Git", text)
         self.assertIn("including partial staging or `git add -A`", text)
-        self.assertIn("Other branches, including `main`, are permitted", text)
+        self.assertIn("Local work on other branches is permitted", text)
         self.assertIn("index/working-tree equality is a Git prerequisite", text)
         self.assertIn("Salesforce/ADO configuration does not gate Git", text)
         self.assertIn("Preserve unrelated staged, unstaged, and untracked work", text)
@@ -653,15 +653,13 @@ class TestGitPostPushPRHandoff(unittest.TestCase):
 
     def test_gh_publication_and_merge_require_their_own_instruction(self) -> None:
         text = squash(self.git_skill)
-        self.assertIn("gh`/`gh.exe", text)
-        self.assertIn("A push-only request does not create a PR", text)
-        self.assertIn("A publication request does not authorize merge", text)
-        self.assertIn("One instruction can cover both publication and merge", text)
-        self.assertIn("do not ask again for steps it already covers", text)
-        self.assertIn("--match-head-commit", text)
-        self.assertIn("not hook-enforced command restrictions", text)
-        self.assertIn("All roles can use all Git and GitHub CLI commands", squash(self.git_agent))
-        self.assertIn("destructive Git operations require an explicit human instruction", text)
+        # Plan 05, B1 and B2: publication boundaries are hook rules, stated in the skill.
+        self.assertIn("Only the `git-agent` pushes, and only to `feat/*` branches", text)
+        self.assertIn("always with `--draft`", text)
+        self.assertIn("`scripts/check_delivery.py` reported PASS for the current HEAD commit", text)
+        self.assertIn("Merge, ready-for-review, approval and release always stay with a person", text)
+        self.assertIn("a PASS delivery check is the instruction to push", text)
+        self.assertIn("You are the only role that pushes and opens pull requests", squash(self.git_agent))
 
     def test_failed_or_unknown_remote_is_not_misrepresented(self) -> None:
         text = squash(self.git_skill)
@@ -1102,11 +1100,11 @@ class TestWorkItemFeatureBranchModel(unittest.TestCase):
         )
 
     def test_branch_names_are_conventions(self) -> None:
-        self.assertIn("work-item/<work-item-id>-<slug>", self.git_skill)
-        self.assertIn("feature/<feature-id>-<slug>", self.git_skill)
+        self.assertIn("feat/<work-item-id>-<slug>", self.git_skill)
+        self.assertIn("feat/<feature-id>-<slug>", self.git_skill)
         self.assertIn("chore/<short-description>", self.git_skill)
         self.assertIn("These names are conventions, not requirements", squash(self.git_skill))
-        self.assertIn("Other branches, including `main`, are permitted", squash(self.git_skill))
+        self.assertIn("Only `feat/*` branches can be pushed by an agent", squash(self.git_skill))
 
     def test_feature_delivery_choice_remains_human_owned_without_git_gates(self) -> None:
         text = squash(self.git_skill)
@@ -1115,16 +1113,14 @@ class TestWorkItemFeatureBranchModel(unittest.TestCase):
         self.assertIn("A parent relation alone does not select combined Feature delivery", text)
         self.assertIn("Feature membership is a planning decision, not a Git gate", text)
 
-    def test_commit_validation_checks_syntax_and_matching_ids_only(self) -> None:
+    def test_commit_messages_are_a_convention_not_a_hook(self) -> None:
+        # Plan 05, D-R1: no commit-message validation in the hooks or a commit-msg hook.
         text = squash(self.git_skill)
-        self.assertIn("[WI-<work-item-id>]", text)
-        self.assertIn("[FEATURE-<feature-id>]", text)
-        self.assertIn("subject's `AB#` number must match the prefix number", text)
-        self.assertIn("No ADO, branch state, task files, or delivery maps are inspected", text)
-        self.assertIn("The body is unrestricted and may reference other Work Items", text)
+        self.assertIn("[WI-123] Add account validation — AB#123", text)
         self.assertIn("nonempty descriptive subject", text)
-        self.assertIn("scripts/install_git_message_hook.py", text)
-        self.assertIn("not a server-side guarantee for every commit path", text)
+        self.assertIn("recommended, not checked by a hook", text)
+        self.assertNotIn("install_git_message_hook", text)
+        self.assertFalse((ROOT / "scripts/install_git_message_hook.py").exists())
 
     def test_commits_and_prs_never_use_state_transition_keywords(self) -> None:
         for keyword in ("Fixes", "Resolves", "Closes"):
@@ -1204,8 +1200,7 @@ class TestSolutionDesignProcedureOwnership(unittest.TestCase):
         self.assertIn("skills/solution-design/SKILL.md", self.agent)
         self.assertIn("skills/git-workflow/SKILL.md", self.agent)
         text = squash(self.agent)
-        self.assertIn("No Git Agent handoff is required", text)
-        self.assertIn("Push, PR writes, merge, and destructive actions require an explicit human instruction", text)
+        self.assertIn("only the git-agent pushes `feat/*` branches and opens draft PRs", text)
         self.assertIn("You never mutate an org and never edit `force-app/`", text)
         for restated in ("work-item/<id>-<slug>", "feature/<feature-id>-<slug>",
                          "git-agent: start work item", "docs/package-concept.md", "exactly one"):

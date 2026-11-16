@@ -75,7 +75,7 @@ scenarios:
         path: README.md
     expectedDecision: continue
 
-  - id: designer-decision-log-direct-edit-denied
+  - id: designer-decision-log-edit-allowed
     guard: role
     role: designer
     workingDirectory: repository
@@ -83,10 +83,9 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: .ai/memory/decisions-log.md
-    expectedDecision: deny
-    reasonContains: may not edit
+    expectedDecision: continue
 
-  - id: designer-metadata-write-denied
+  - id: designer-metadata-write-allowed
     guard: role
     role: designer
     workingDirectory: repository
@@ -94,10 +93,9 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: force-app/main/default/classes/X.cls
-    expectedDecision: deny
-    reasonContains: may not edit
+    expectedDecision: continue
 
-  - id: strategist-generated-test-write-denied
+  - id: strategist-generated-test-write-allowed
     guard: role
     role: test-strategist
     workingDirectory: repository
@@ -105,8 +103,7 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: output/generated-tests/example.spec.ts
-    expectedDecision: deny
-    reasonContains: may not edit
+    expectedDecision: continue
 
   - id: developer-salesforce-e2e-edit-allowed
     guard: role
@@ -118,7 +115,7 @@ scenarios:
         path: tests/e2e/example.spec.ts
     expectedDecision: continue
 
-  - id: developer-harness-test-edit-denied
+  - id: developer-harness-test-edit-allowed
     guard: role
     role: developer
     workingDirectory: repository
@@ -126,8 +123,7 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: tests/test_safety_hooks.py
-    expectedDecision: deny
-    reasonContains: may edit only
+    expectedDecision: continue
 
   - id: role-ambiguous-edit-asks
     guard: role
@@ -236,7 +232,7 @@ scenarios:
     expectedDecision: deny
     reasonContains: outside the terminal allowlist
 
-  - id: release-role-policy-edit-denied
+  - id: strategist-kernel-instructions-edit-allowed
     guard: role
     role: test-strategist
     workingDirectory: repository
@@ -244,17 +240,7 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: .github/copilot-instructions.md
-    expectedDecision: deny
-    reasonContains: may not edit
-
-  - id: global-bare-enumeration-still-denied
-    guard: global
-    workingDirectory: repository
-    event:
-      tool_name: list_all_orgs
-      tool_input: {}
-    expectedDecision: deny
-    reasonContains: enumeration
+    expectedDecision: continue
 
   - id: global-production-retrieve-allowed
     guard: global
@@ -275,17 +261,14 @@ scenarios:
     expectedDecision: deny
     reasonContains: Direct browser tooling is disabled
 
-  - id: search-wiki-without-project-denied
+  - id: search-wiki-without-project-allowed
     guard: global
     workingDirectory: repository
     event:
       tool_name: ado-readonly/search_wiki
       tool_input:
         searchText: revenue adjustment
-    expectedDecision: deny
-    # Missing local config and missing project scope proof share this prefix, so the assertion
-    # holds with or without a developer's config/harness.local.json present.
-    reasonContains: "ADO read blocked"
+    expectedDecision: continue
 
   - id: ado-call-without-runtime-policy-denied
     guard: global
@@ -316,33 +299,35 @@ scenarios:
     # is therefore pinned with an inline config in tests/test_safety_hooks.py instead.
     reasonContains: "Salesforce org review blocked"
 
-  - id: global-git-force-push-allowed
+  - id: global-git-force-push-denied
     guard: global
     workingDirectory: repository
     event:
       tool_name: execute/runInTerminal
       tool_input:
         command: git push origin main --force
-    expectedDecision: continue
+    expectedDecision: deny
+    reasonContains: "plan 05"
 
-  - id: global-git-force-with-lease-push-allowed
-    # User authorization is an agent instruction, not a hook confirmation gate.
+  - id: global-git-force-with-lease-push-denied
     guard: global
     workingDirectory: repository
     event:
       tool_name: execute/runInTerminal
       tool_input:
         command: git push --force-with-lease origin work-item/242850-approval-notifications
-    expectedDecision: continue
+    expectedDecision: deny
+    reasonContains: "plan 05"
 
-  - id: global-git-short-force-push-allowed
+  - id: global-git-short-force-push-denied
     guard: global
     workingDirectory: repository
     event:
       tool_name: execute/runInTerminal
       tool_input:
         command: git push -f
-    expectedDecision: continue
+    expectedDecision: deny
+    reasonContains: "plan 05"
 
   - id: global-plain-git-push-not-destructive
     # All Git operations are admitted independently of the active role.
@@ -351,10 +336,10 @@ scenarios:
     event:
       tool_name: execute/runInTerminal
       tool_input:
-        command: git push origin main
+        command: git push origin feat/242850-approval-notifications
     expectedDecision: continue
 
-  - id: designer-forceapp-edit-denied
+  - id: designer-forceapp-edit-allowed
     guard: role
     role: designer
     workingDirectory: repository
@@ -362,10 +347,9 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: force-app/main/default/classes/NotificationService.cls
-    expectedDecision: deny
-    reasonContains: may not edit
+    expectedDecision: continue
 
-  - id: reviewer-edit-denied
+  - id: reviewer-edit-allowed
     guard: role
     role: reviewer
     workingDirectory: repository
@@ -373,8 +357,7 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: work-items/242850-approval-notifications/design.md
-    expectedDecision: deny
-    reasonContains: may not edit
+    expectedDecision: continue
 
   - id: git-agent-push-allowed
     guard: role
@@ -383,10 +366,10 @@ scenarios:
     event:
       tool_name: execute/runInTerminal
       tool_input:
-        command: git push origin work-item/242850-approval-notifications
+        command: git push origin feat/242850-approval-notifications
     expectedDecision: continue
 
-  - id: git-agent-remote-branch-delete-allowed
+  - id: git-agent-remote-branch-delete-denied
     guard: role
     role: git-agent
     workingDirectory: repository
@@ -394,7 +377,8 @@ scenarios:
       tool_name: execute/runInTerminal
       tool_input:
         command: git push origin --delete work-item/242850-approval-notifications
-    expectedDecision: continue
+    expectedDecision: deny
+    reasonContains: "plan 05"
 
   - id: git-agent-non-git-command-denied
     guard: role
@@ -437,11 +421,11 @@ scenarios:
       tool_input:
         paths:
           - .github/skills/maintain-workspace/SKILL.md
-          - force-app/main/default/classes/X.cls
+          - config/harness.local.json
     expectedDecision: deny
-    reasonContains: denied
+    reasonContains: D-R2
 
-  - id: developer-control-plane-script-denied
+  - id: developer-unprotected-script-edit-allowed
     guard: role
     role: developer
     workingDirectory: repository
@@ -449,8 +433,7 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: scripts/render_repo_map.py
-    expectedDecision: deny
-    reasonContains: may edit only
+    expectedDecision: continue
 
   - id: maintainer-terminal-arbitrary-python-denied
     guard: role
@@ -698,14 +681,15 @@ scenarios:
         command: gh --version
     expectedDecision: continue
 
-  - id: git-gh-api-allowed
+  - id: git-gh-api-denied
     guard: global
     workingDirectory: temporary
     event:
       tool_name: execute/runInTerminal
       tool_input:
         command: gh api repos/owner/repo/issues --method POST
-    expectedDecision: continue
+    expectedDecision: deny
+    reasonContains: "plan 05"
 
   - id: git-gh-auth-options-allowed
     guard: global
@@ -735,16 +719,16 @@ scenarios:
         command: git add -- docs/ways-of-working.md
     expectedDecision: continue
 
-  - id: git-global-invalid-message-denied
+  - id: git-global-any-commit-message-allowed
     guard: global
     workingDirectory: temporary
     event:
       tool_name: run_in_terminal
       tool_input:
         command: git commit -m "Save all changes"
-    expectedDecision: deny
+    expectedDecision: continue
 
-  - id: git-reviewer-mismatched-work-item-message-denied
+  - id: git-reviewer-any-commit-message-allowed
     guard: role
     role: reviewer
     workingDirectory: temporary
@@ -752,7 +736,7 @@ scenarios:
       tool_name: run_in_terminal
       tool_input:
         command: git commit -m "[WI-42] Save changes AB#43"
-    expectedDecision: deny
+    expectedDecision: continue
 
   - id: git-reviewer-valid-commit-without-repository-preconditions
     guard: role
@@ -784,7 +768,7 @@ scenarios:
         path: .cache/github/pr-body.md
     expectedDecision: continue
 
-  - id: plan03-reviewer-pr-body-edit-denied
+  - id: plan03-reviewer-pr-body-edit-allowed
     guard: role
     role: reviewer
     workingDirectory: repository
@@ -792,4 +776,58 @@ scenarios:
       tool_name: edit/editFiles
       tool_input:
         path: .cache/github/pr-body.md
+    expectedDecision: continue
+
+  # Plan 05 boundaries (B1, B2, D-R2) and the end-of-run delivery check.
+  - id: plan05-global-git-merge-denied
+    guard: global
+    workingDirectory: repository
+    event:
+      tool_name: execute/runInTerminal
+      tool_input:
+        command: git merge main
     expectedDecision: deny
+    reasonContains: "plan 05, B1"
+
+  - id: plan05-developer-push-denied
+    guard: role
+    role: developer
+    workingDirectory: repository
+    event:
+      tool_name: execute/runInTerminal
+      tool_input:
+        command: git push origin feat/242850-approval-notifications
+    expectedDecision: deny
+    reasonContains: "plan 05, B2"
+
+  - id: plan05-git-agent-non-draft-pr-denied
+    guard: role
+    role: git-agent
+    workingDirectory: repository
+    event:
+      tool_name: execute/runInTerminal
+      tool_input:
+        command: gh pr create --title Routing --body-file .cache/github/pr-body.md
+    expectedDecision: deny
+    reasonContains: "--draft"
+
+  - id: plan05-developer-protected-hook-edit-denied
+    guard: role
+    role: developer
+    workingDirectory: repository
+    event:
+      tool_name: edit/editFiles
+      tool_input:
+        path: .github/hooks/safety.json
+    expectedDecision: deny
+    reasonContains: "D-R2"
+
+  - id: plan05-reviewer-delivery-check-allowed
+    guard: role
+    role: reviewer
+    workingDirectory: repository
+    event:
+      tool_name: execute/runInTerminal
+      tool_input:
+        command: python scripts/check_delivery.py --work-item work-items/242850-approval-notifications
+    expectedDecision: continue

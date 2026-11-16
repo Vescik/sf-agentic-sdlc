@@ -646,7 +646,7 @@ def main(argv: list[str] | None = None) -> int:
             kind, requirement = "text", args.requirement_file.read_text(encoding="utf-8").strip()
         else:
             parser.error("give --item, --requirement-file, or --resume")
-        autonomy = not args.no_autonomy and environment in {"dev", "uat", "stage"}
+        autonomy = not args.no_autonomy and environment == "dev"  # plan 05, D-A2
         if not args.no_autonomy and not autonomy:
             print(f"No autonomy grant: salesforce.agentOrg is {agent_org or 'unset'} "
                   f"(environment {environment or 'unclassified'}); deploys will stop for a person.")

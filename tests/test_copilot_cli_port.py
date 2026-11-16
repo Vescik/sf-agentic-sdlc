@@ -77,7 +77,7 @@ class InteractiveShellInput(unittest.TestCase):
         for tool in ("write_bash", "write_powershell"):
             event = {"tool_name": tool, "tool_input": {"shellId": "1", "input": "y"}, "cwd": str(ROOT)}
             self.assertEqual("deny", decision(safety.evaluate_event(event)), tool)
-            for role in sorted(roles.ALLOWED_PREFIXES):
+            for role in sorted(roles.ROLES):
                 self.assertEqual("deny", decision(roles.evaluate_event(event, role)), f"{tool} {role}")
 
 

@@ -16,7 +16,8 @@ SC5  clean working tree, `feat/*` branch, all work committed
 
 The script runs the Apex tests itself and reads the deploy result from the org; it never
 trusts a result file an agent wrote. It writes <work-item>/delivery-check.json (ignored by
-Git) and exits 0 for PASS, 1 for FAIL, 2 for a usage or configuration error.
+Git) and exits 0 for PASS, 1 for FAIL, 2 for a usage or configuration error, 3 for BLOCKED
+(failing tests outside the delivery: a person fixes the org, the agent does not).
 """
 from __future__ import annotations
 
@@ -230,8 +231,40 @@ def check_trace(root: Path, work_item: Path, tests: dict[str, str], classes: dic
     return criterion, manual
 
 
-def run_tests(runner: Runner, root: Path, org: str) -> tuple[Criterion, dict[str, str], dict[str, float]]:
+def delivery_names(changed: list[str], work_item: Path) -> set[str]:
+    """Lower-case names that tie a test failure to this delivery: changed components and the
+    test classes named in the acceptance trace."""
+    names: set[str] = set()
+    for path in changed:
+        name = full_name(path)
+        names.add(name.lower())
+        names.add(name.split(".")[-1].lower())
+    trace = work_item / TRACE_FILE
+    if trace.is_file():
+        for entries in parse_trace(trace.read_text(encoding="utf-8")).values():
+            for entry in entries:
+                ref = TEST_REF.match(entry)
+                if ref:
+                    names.add(ref.group(1).lower())
+    return {name for name in names if name}
+
+
+def is_delivery_failure(test: dict[str, Any], names: set[str]) -> bool:
+    """A failing test belongs to the delivery when its class is part of the delivery, or when
+    its message or stack trace names a changed component (a regression the change caused)."""
+    test_class = str((test.get("ApexClass") or {}).get("Name") or str(test.get("FullName", "")).split(".")[0]).lower()
+    if test_class in names:
+        return True
+    text = f"{test.get('Message') or ''} {test.get('StackTrace') or ''}".lower()
+    return any(re.search(rf"\b{re.escape(name)}\b", text) for name in names)
+
+
+def run_tests(runner: Runner, root: Path, org: str, names: set[str] | None = None
+              ) -> tuple[Criterion, dict[str, str], dict[str, float], list[str]]:
+    """Returns the criterion, outcomes, coverage and the blockers: failing tests outside the
+    delivery, which the agent does not fix (a person fixes the org first)."""
     criterion = Criterion("SC2", "All Salesforce tests are green")
+    names = names or set()
     result = sf_json(runner, root, ["sf", "apex", "run", "test", "--test-level", "RunLocalTests",
                                     "--code-coverage", "--wait", str(TEST_WAIT_MINUTES), "--target-org", org])
     summary = result.get("summary") or {}
@@ -245,12 +278,23 @@ def run_tests(runner: Runner, root: Path, org: str) -> tuple[Criterion, dict[str
             coverage[str(item.get("name"))] = float(item.get("coveredPercent"))
         except (TypeError, ValueError):
             continue
-    failed = sorted(name for name, outcome in outcomes.items() if outcome not in ("Pass", "Skip"))
+    delivery_failed: list[str] = []
+    blockers: list[str] = []
+    for test in result.get("tests") or []:
+        if str(test.get("Outcome")) in ("Pass", "Skip"):
+            continue
+        name = str(test.get("FullName") or f"{(test.get('ApexClass') or {}).get('Name')}.{test.get('MethodName')}")
+        (delivery_failed if is_delivery_failure(test, names) else blockers).append(name)
     problems = []
     if str(summary.get("outcome", "")).lower() not in ("passed", "pass"):
         problems.append(f"Apex test outcome {summary.get('outcome')!r}")
-    if failed:
-        problems.append(f"{len(failed)} Apex test(s) not passing: " + ", ".join(failed[:15]))
+    if delivery_failed:
+        problems.append(f"{len(delivery_failed)} delivery test(s) not passing; fix them in this delivery: "
+                        + ", ".join(sorted(delivery_failed)[:15]))
+    if blockers:
+        problems.append(f"BLOCKER: {len(blockers)} test(s) outside this delivery fail and do not name a "
+                        "changed component; the agent does not fix them, a person fixes the org first: "
+                        + ", ".join(sorted(blockers)[:15]))
     if not outcomes:
         problems.append("the Apex test run returned no test results")
     package = json.loads((root / "package.json").read_text(encoding="utf-8")) if (root / "package.json").is_file() else {}
@@ -264,7 +308,7 @@ def run_tests(runner: Runner, root: Path, org: str) -> tuple[Criterion, dict[str
         criterion.failed(*problems)
     else:
         criterion.passed(f"{summary.get('testsRan', len(outcomes))} Apex tests passed in {org}", lwc_note)
-    return criterion, outcomes, coverage
+    return criterion, outcomes, coverage, sorted(blockers)
 
 
 def check_coverage(changed: list[str], classes: dict[str, str], coverage: dict[str, float]) -> Criterion:
@@ -400,7 +444,7 @@ def check(work_item: Path, *, root: Path = ROOT, base: str = "main", org: str | 
     head_time = datetime.fromtimestamp(int(source_time or git(runner, root, "show", "-s", "--format=%ct", "HEAD").strip()), timezone.utc)
     changed = changed_source_files(runner, root, base, dirs)
     classes = apex_methods(root, dirs)
-    sc2, outcomes, coverage = run_tests(runner, root, alias)
+    sc2, outcomes, coverage, blockers = run_tests(runner, root, alias, delivery_names(changed, work_item))
     sc1, manual = check_trace(root, work_item, outcomes, classes)
     sc3 = check_coverage(changed, classes, coverage)
     sc4 = check_deploy(runner, root, alias, deploy_job_id, changed, head_time)
@@ -415,7 +459,10 @@ def check(work_item: Path, *, root: Path = ROOT, base: str = "main", org: str | 
         "agentOrg": alias,
         "deployJobId": deploy_job_id,
         "changedSourceFiles": changed,
-        "status": "PASS" if all(c.status == "PASS" for c in criteria) else "FAIL",
+        # BLOCKED: failures outside the delivery; the run stops for a person (owner rule
+        # 2026-11-16). FAIL: the agent repairs within its attempt budget.
+        "status": "BLOCKED" if blockers else "PASS" if all(c.status == "PASS" for c in criteria) else "FAIL",
+        "blockers": blockers,
         "criteria": [{"id": c.id, "title": c.title, "status": c.status, "details": c.details} for c in criteria],
         "manualSteps": manual,
     }
@@ -441,7 +488,7 @@ def main(argv: list[str] | None = None) -> int:
         for detail in item["details"]:
             print(f"    {detail}")
     print(f"{report['status']}: delivery check for {report['commit'][:12]} -> {output}")
-    return 0 if report["status"] == "PASS" else 1
+    return {"PASS": 0, "BLOCKED": 3}.get(report["status"], 1)
 
 
 if __name__ == "__main__":

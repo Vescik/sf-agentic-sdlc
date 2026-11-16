@@ -38,6 +38,9 @@ a new attempt budget. When an argument is missing or both are given, ask once an
      `requirements.md`, and continue;
    - the attempt budget is spent (6 delivery checks in one iteration): end the run with the
      last `delivery-check.json` and the failing criteria, without push or PR;
+   - `delivery-check.json` is BLOCKED: tests outside the delivery fail in the org. Do not fix
+     them. End the run, list the `blockers`, and ask the person to fix the org and start the
+     next iteration;
    - a hook denies an action that the run needs and no permitted way exists: report the
      denial and its reason, and end the run.
 

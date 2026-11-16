@@ -13,8 +13,15 @@ success. Plan and decisions: [plan 05](../../docs/plan05-w8-integration.md).
 
 The script runs the Apex tests itself and reads the deploy result from the org. It writes
 `work-items/<id>-<slug>/delivery-check.json` (ignored by Git) and exits 0 for PASS, 1 for FAIL,
-and 2 when it cannot run (configuration or tool error). A run that exits 2 has no result: fix the
-cause and run the check again; never report it as PASS or FAIL.
+2 when it cannot run (configuration or tool error), and 3 for BLOCKED. A run that exits 2 has no
+result: fix the cause and run the check again; never report it as PASS or FAIL.
+
+**FAIL or BLOCKED** (owner rule 2026-11-16). A failing test belongs to the delivery when its
+class is changed on the branch or named in `acceptance-trace.md`, or when its message or stack
+trace names a changed component (a regression the change caused). The agent fixes those (FAIL).
+Every other failing test is an old failure in the org: the report lists it under `blockers`, the
+status is BLOCKED, and the run stops. The agent does not fix tests outside the delivery; a
+person fixes the org and starts the next iteration.
 
 ## Criteria
 

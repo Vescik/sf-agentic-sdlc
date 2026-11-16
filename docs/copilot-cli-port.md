@@ -43,6 +43,19 @@ base for an SDK orchestrator.
 4. Always start the CLI **from the repository root**. With `-p --trust-folder` from a
    subdirectory, the root hooks do not load (CLI 1.0.111 prints a warning).
 5. Check that the servers load: `copilot mcp list`.
+6. For delivery runs (plan 05), let the review facade read the objects a delivery checks:
+
+   ```json
+   "allowedObjectApiNames": ["Case", "Account", "ApexTrigger", "ApexClass", "FieldPermissions",
+     "ObjectPermissions", "PermissionSet", "PermissionSetAssignment", "Profile", "User", "Flow",
+     "FlowDefinitionView", "ValidationRule", "Layout"]
+   ```
+
+   Add the objects your requirements touch. On a developer-org-only setup `["*"]` is also
+   allowed. Without these, agents cannot confirm automation or field access and record the gap
+   as an assumption (SAFE-DELIVERY-RUN-001).
+7. Run the delivery check with `node scripts/check-delivery.mjs …` on every OS; Windows has no
+   `python3` command.
 
 ## Known gaps on the CLI
 

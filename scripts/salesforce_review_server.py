@@ -165,10 +165,30 @@ EXPECTED_QUERIES = {
 
 
 class ReviewError(Exception):
-    def __init__(self, code: str, status: str = "BLOCKED") -> None:
+    def __init__(self, code: str, status: str = "BLOCKED", detail: str = "") -> None:
         super().__init__(code)
         self.code = code
         self.status = status
+        # Salesforce's own error code and message for a rejected request (plan 05, Windows run:
+        # agents saw only REST_SCHEMA_MISMATCH and could not fix their query). Never a body.
+        self.detail = detail
+
+
+def salesforce_error_detail(body: bytes) -> str:
+    """`INVALID_FIELD: No such column ...` from a Salesforce REST error body, bounded."""
+    try:
+        payload = json.loads(body.decode("utf-8", errors="replace"))
+    except (ValueError, UnicodeDecodeError):
+        return ""
+    first = payload[0] if isinstance(payload, list) and payload else payload
+    if not isinstance(first, dict):
+        return ""
+    def clean(value: object, limit: int) -> str:
+        return re.sub(r"[\x00-\x1f\x7f]+", " ", str(value or "")).strip()[:limit]
+
+    code = clean(first.get("errorCode"), 60)
+    message = clean(first.get("message"), 300)
+    return f"{code}: {message}".strip(": ") if code or message else ""
 
 
 def now_iso() -> str:
@@ -492,7 +512,7 @@ class RestClient:
             if response.status_code == 404:
                 raise ReviewError("REST_NOT_FOUND", "INCOMPLETE")
             if response.status_code >= 400:
-                raise ReviewError("REST_SCHEMA_MISMATCH", "INCOMPLETE")
+                raise ReviewError("REST_SCHEMA_MISMATCH", "INCOMPLETE", salesforce_error_detail(b"".join(chunks)))
             if operation != "generic":
                 log(
                     f"rest payload: operation={operation} "
@@ -1516,6 +1536,7 @@ class Server:
             "review_soql_query": "soql-query",
         }
         started = time.monotonic()
+        rejected = ""
         try:
             if name == "review_org_identity":
                 result = review_org_identity(self)
@@ -1533,6 +1554,7 @@ class Server:
                 result = explain_query(self, tool_input)
             is_error = isinstance(result, dict) and result.get("status") == "BLOCKED"
         except ReviewError as error:
+            rejected = error.detail
             if name in ENVELOPE_TOOLS:
                 result = error_envelope(self.runtime, review_types[name], error, self.proof)
             else:
@@ -1564,7 +1586,14 @@ class Server:
                 else {"error": "RESULT_TOO_LARGE", "detail": "Narrow the query; the result exceeded the payload cap."}
             )
             return {"content": [{"type": "text", "text": json.dumps(over)}], "structuredContent": over, "isError": True}
-        return {"content": [{"type": "text", "text": text}], "structuredContent": result, "isError": is_error}
+        content = [{"type": "text", "text": text}]
+        detail = rejected if is_error else ""
+        if detail:
+            content.append({"type": "text", "text": (
+                f"Salesforce rejected the request: {detail}. Fix the query and retry. Flow, "
+                "FlowDefinition, layouts, ProfileLayout and ApexTrigger metadata are Tooling API "
+                "objects: pass useToolingApi: true.")})
+        return {"content": content, "structuredContent": result, "isError": is_error}
 
     def handle_message(self, message: dict, pool: ThreadPoolExecutor) -> None:
         if not isinstance(message, dict) or message.get("jsonrpc") != "2.0":

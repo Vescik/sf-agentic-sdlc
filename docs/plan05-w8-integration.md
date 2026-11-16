@@ -312,6 +312,10 @@ evidence gates, and real client data.
   agents' PATH, and also starts the S3 design review in its finish step; `Set-Location` to the
   repository root counts like `cd`; `git` and `sf` run directly, never through a Python
   `subprocess`; requirement exclusions are binding in the design. No AI-credit cap (owner).
+  The review facade's REST_SCHEMA_MISMATCH meant "Salesforce rejected the request" (any HTTP
+  4xx/5xx) and hid the reason; the tool result now carries Salesforce's error code and message
+  after the envelope, and `org-discovery` names the Tooling API objects (Flow, layouts,
+  ProfileLayout, ApexTrigger).
 - **Decided 2026-11-16 after phase 3:**
   - D-T1: the per-role terminal allowlist is removed. Every role may run any command except a
     Salesforce command the policy denies (the same policy for every role), a chained `sf`

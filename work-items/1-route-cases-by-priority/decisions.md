@@ -22,3 +22,15 @@ Supersedes D-1 only for the test execution sequence. D-1 remains the history of 
 - Impact: AC-2 through AC-4 verification will execute under the same field-read audience named by AC-5. The designed field access remains read-only and limited to the Support profile. No component or routing behavior changes.
 - Verification and rollback: verify the Support profile read-only field permission after deployment, then run the test class as a Support-profile test user. If the test still cannot resolve the field, stop and investigate the org schema/permission mismatch rather than broaden access. The current field and profile can be reverted through scoped rollback metadata if required.
 - QA impact: no `qa-test-plan.md` exists. Expected requirement outcomes remain unchanged.
+
+
+## D-3 — Do not infer agent assignment from the Support profile name
+
+- Planned action: deploy read-only field access to the existing Support profile and show the field on its assigned Support Case layout.
+- Observed state: the profile permission and layout configuration are verified. An aggregate user query found zero active users assigned to `Custom: Support Profile` in `devmp` at 2026-11-16T11:59:21Z.
+- Decision: do not assign users or broaden permissions. The requirement and design do not identify support-user records or authorize assignment changes.
+- Impact: AC-5 is verified at the metadata configuration level. Visibility for active support agents is not confirmed in `devmp`; the production assignment state is also unknown. Other acceptance outcomes are unchanged.
+- Verification and rollback: the profile and layout metadata remain the verified configuration. No user assignment or data mutation was performed. An org owner must identify the intended support-user access mapping if assignment is required.
+- QA impact: no `qa-test-plan.md` exists. The expected outcome is unchanged; the unresolved user mapping remains visible.
+
+This is a development finding, not approval to add assignments or broader field permissions.

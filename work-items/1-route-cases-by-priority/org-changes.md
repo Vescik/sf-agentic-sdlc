@@ -98,3 +98,11 @@ Append-only agent-reported operational history. This is not deployment consent, 
 - Superseded next action: test SOQL was retained. The field was deployed first, then the Support read-only field permission, and the final focused tests passed as a Support-profile test user.
 - Verification: the final routing job `0AfgL00000e8rZZSAY` succeeded with 3 passing tests. The sequence and reasons are recorded in `decisions.md`.
 - Next action: none for the initial failed operation; its `PARTIAL` result remains unchanged.
+
+
+### Status update — 2026-11-16T11:59:21Z — Support access verification
+
+- Observed state: an aggregate user query found zero active users assigned to `Custom: Support Profile` in `devmp`. The profile and layout metadata still confirm read-only field configuration.
+- Verification: the query returned only an aggregate count and profile name; no user identities were retrieved.
+- Rollback / cleanup: no user assignment or data mutation was performed.
+- Unverified / next action: access for actual support users is not confirmed. An org owner must identify the intended profile or permission-set assignment if needed. No production assignment state was checked.

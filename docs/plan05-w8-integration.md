@@ -51,7 +51,8 @@ golden-case data is synthetic.
 
 A run succeeds when every criterion passes for the **same commit** (the HEAD of the `feat/*`
 branch). `check_delivery.py` writes the result to `work-items/<id>-<slug>/delivery-check.json`
-with the commit SHA. No agent role may edit that file (role guard).
+with the commit SHA. The file is a report for people, not a gate input: the hook that allows the
+draft PR runs the script itself (B2, D-R3).
 
 | #   | Criterion                                          | How the script checks it                                                                                                                                                                                                                                                                                                       |
 | --- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -70,13 +71,16 @@ Reported, not blocking:
 
 ## Decisions 2026-11-16
 
-| ID   | Decision                                                                                                                                                                                                                                                                         | Replaces                                                 |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| D-A2 | Real deploys to the configured `salesforce.agentOrg` need no chat question in **any** CLI session started through the repository launcher, not only in the SDK orchestrator. Still never `prod`, never another org, never quick deploy or destructive delete without a question. | SAFE-DEPLOY-AUTONOMY-001 scope "orchestrated run only"   |
-| D-B1 | When `delivery-check.json` is PASS for HEAD, the `git-agent` may push the `feat/*` branch and open a **draft** PR. Merge, ready-for-review, approve and production stay human.                                                                                                   | "agents never push or open PRs" in orchestrated runs     |
-| D-D2 | Two human checkpoints: **H1** after the design review, **H3** on the draft PR. H2 is removed; the success criteria replace it.                                                                                                                                                   | three checkpoints H1–H3                                  |
-| D-D4 | An unclear requirement does not stop the run. The agent writes a numbered assumption and continues; H1 accepts or rejects each assumption. The run is BLOCKED only for a **contradiction** (two requirements that cannot both hold) or a missing input.                          | W8 "the run stops and returns to S1" for every ambiguity |
-| D-SC | Success is the five criteria SC1–SC5, checked by `check_delivery.py` at the end. Mid-chain tickets are a log, not a gate.                                                                                                                                                        | W8 L3 evidence checks at every hand-over (L09 § A7)      |
+| ID   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Replaces                                                           |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| D-A2 | Real deploys to the configured `salesforce.agentOrg` need no chat question in **any** CLI session started through the repository launcher, not only in the SDK orchestrator. Still never `prod`, never another org, never quick deploy or destructive delete without a question.                                                                                                                                                                                                                                                   | SAFE-DEPLOY-AUTONOMY-001 scope "orchestrated run only"             |
+| D-B1 | When `delivery-check.json` is PASS for HEAD, the `git-agent` may push the `feat/*` branch and open a **draft** PR. Merge, ready-for-review, approve and production stay human.                                                                                                                                                                                                                                                                                                                                                     | "agents never push or open PRs" in orchestrated runs               |
+| D-D2 | Two human checkpoints: **H1** after the design review, **H3** on the draft PR. H2 is removed; the success criteria replace it.                                                                                                                                                                                                                                                                                                                                                                                                     | three checkpoints H1–H3                                            |
+| D-D4 | An unclear requirement does not stop the run. The agent writes a numbered assumption and continues; H1 accepts or rejects each assumption. The run is BLOCKED only for a **contradiction** (two requirements that cannot both hold) or a missing input.                                                                                                                                                                                                                                                                            | W8 "the run stops and returns to S1" for every ambiguity           |
+| D-SC | Success is the five criteria SC1–SC5, checked by `check_delivery.py` at the end. Mid-chain tickets are a log, not a gate.                                                                                                                                                                                                                                                                                                                                                                                                          | W8 L3 evidence checks at every hand-over (L09 § A7)                |
+| D-R1 | Removed as hard stops: commit subject format; the "run from the repository root" rule; the checker write ban; the question for an unknown MCP tool; ADO blocks for a missing config and for scope outside the configured project; org and project enumeration.                                                                                                                                                                                                                                                                     | safety hook and role guard rules of the same name                  |
+| D-R2 | Per-role path limits are removed. One shared list of protected control files stays, which no agent writes: `.github/hooks/`, `.github/agents/`, `.github/instructions/`, `.github/mcp.json`, `.vscode/`, `scripts/copilot_*.py`, `scripts/*_policy.py`, `scripts/start_*_mcp.mjs`, `config/`, `schemas/`. The Salesforce development MCP stays denied (it would deploy around the `sf` policy). An unresolved Dev Hub stays denied only for `package delete` and `package uninstall`, because a Dev Hub is often a production org. | per-role edit allowlists; full Dev Hub and enumeration denies      |
+| D-R3 | No file guard for `approvals/` or `delivery-check.json`. The launcher asks H1 at the terminal and writes `approvals/H1.md` with the person's answer. The draft-PR rule in the safety hook runs `check_delivery.py` itself for HEAD instead of reading a file. ADO writes stay limited to the two existing tools (wiki page, work-item artifact link).                                                                                                                                                                              | planned role-guard rule for `approvals/` and `delivery-check.json` |
 
 Proposed defaults, not yet confirmed by the owner (apply unless changed):
 
@@ -91,12 +95,12 @@ Proposed defaults, not yet confirmed by the owner (apply unless changed):
 
 ## When a run stops
 
-| Stop                                              | What happens                                                                               | Enforced by                                   |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| Contradiction in the requirement or missing input | BLOCKED before design, with the exact question for the requirement owner                   | conductor instruction (D-D4)                  |
-| H1 not approved                                   | no build starts; the person's answer (approve, or reject with a reason) is recorded        | role guard: only a person writes `approvals/` |
-| Attempt budget exhausted                          | run ends FAIL with `delivery-check.json` and the list of failing criteria; no push, no PR  | conductor instruction, attempt count in log   |
-| Boundary hit                                      | the tool call is denied; the agent reports it and continues within limits, or ends the run | hooks (table below)                           |
+| Stop                                              | What happens                                                                               | Enforced by                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Contradiction in the requirement or missing input | BLOCKED before design, with the exact question for the requirement owner                   | conductor instruction (D-D4)                                      |
+| H1 not approved                                   | no build starts; the person's answer (approve, or reject with a reason) is recorded        | launcher asks at the terminal and writes `approvals/H1.md` (D-R3) |
+| Attempt budget exhausted                          | run ends FAIL with `delivery-check.json` and the list of failing criteria; no push, no PR  | conductor instruction, attempt count in log                       |
+| Boundary hit                                      | the tool call is denied; the agent reports it and continues within limits, or ends the run | hooks (table below)                                               |
 
 Nothing else stops a run. A station that finds a problem fixes it within the budget or records
 it for H3.
@@ -106,20 +110,26 @@ it for H3.
 `ask` becomes `deny` in CLI autopilot mode, so every "ask" is a hard stop when nobody is at the
 terminal.
 
-| #   | Boundary                                                                                                      | Kind              | Where                                              |
-| --- | ------------------------------------------------------------------------------------------------------------- | ----------------- | -------------------------------------------------- |
-| A1  | Production: CLI allows only metadata retrieve; confirmation cannot override                                   | deny              | `salesforce_operation_policy.py` (SAFE-PROD-001)   |
-| A2  | Real deploy outside `agentOrg` (or any deploy without the launcher grant)                                     | ask               | safety hook (SAFE-DEPLOY-CONFIRM-001)              |
-| A3  | Quick deploy, destructive source delete                                                                       | ask (P-A3)        | safety hook                                        |
-| A4  | Missing `--target-org`, unclassified org, CLI defaults                                                        | deny              | Salesforce policy                                  |
-| A5  | `sf` command not on the allowlist; flag files; wrappers; org enumeration                                      | deny              | Salesforce policy, safety hook                     |
-| B1  | Merge, rebase, `reset --hard`, `branch -D`, `gh pr merge/review/ready`, `gh api`                              | deny              | safety hook (new rule; today only in the SDK host) |
-| B2  | Push other than `feat/*` by `git-agent`; non-draft PR; draft PR without a PASS `delivery-check.json` for HEAD | deny (P-B2, D-B1) | safety hook (new rule)                             |
-| B3  | Commit subject format                                                                                         | deny              | commit-msg hook, Git policy                        |
-| C1  | Role path limits; checker roles write nothing; no agent writes `approvals/` or `delivery-check.json`          | deny              | role guard                                         |
-| C2  | Destructive patterns (`rm -rf`, `DROP TABLE`, `DELETE FROM`)                                                  | deny              | safety hook                                        |
-| C3  | Interactive shell input, browser tools                                                                        | deny              | safety hook                                        |
-| C4  | Unknown MCP tool                                                                                              | ask               | safety hook                                        |
+| #   | Boundary                                                                                                                            | Kind                    | Where                                              |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | -------------------------------------------------- |
+| A1  | Production: CLI allows only metadata retrieve; confirmation cannot override                                                         | deny                    | `salesforce_operation_policy.py` (SAFE-PROD-001)   |
+| A2  | Real deploy outside `agentOrg` (or any deploy without the launcher grant)                                                           | ask                     | safety hook (SAFE-DEPLOY-CONFIRM-001)              |
+| A3  | Quick deploy, destructive source delete                                                                                             | ask (P-A3)              | safety hook                                        |
+| A4  | Missing `--target-org`, unclassified org, CLI defaults                                                                              | deny                    | Salesforce policy                                  |
+| A5  | `sf` command not on the allowlist; flag files; wrappers                                                                             | deny                    | Salesforce policy, safety hook                     |
+| A6  | Salesforce development MCP; `package delete` and `package uninstall` with an unresolved Dev Hub                                     | deny                    | safety hook, Salesforce policy (D-R2)              |
+| B1  | Merge, rebase, `reset --hard`, `branch -D`, `gh pr merge/review/ready`, `gh api`                                                    | deny                    | safety hook (new rule; today only in the SDK host) |
+| B2  | Push other than `feat/*` by `git-agent`; non-draft PR; draft PR when the hook's own run of `check_delivery.py` for HEAD is not PASS | deny (P-B2, D-B1, D-R3) | safety hook (new rule)                             |
+| C1  | Protected control files (list in D-R2) written by any agent                                                                         | deny                    | role guard (one shared list, D-R2)                 |
+| C2  | Destructive patterns (`rm -rf`, `DROP TABLE`, `DELETE FROM`)                                                                        | deny                    | safety hook                                        |
+| C3  | Interactive shell input, browser tools                                                                                              | deny                    | safety hook                                        |
+| C4  | ADO writes other than the wiki page and the work-item artifact link                                                                 | deny                    | safety hook, `ado_tool_policy.py` (D-R3)           |
+
+Removed as hard stops (D-R1, D-R2): commit subject format, the repository-root rule for
+terminal commands, per-role path limits, the checker write ban, the question for an unknown MCP
+tool, ADO blocks for missing config and project scope, org and project enumeration, and the Dev
+Hub block for every command except `package delete` and `package uninstall`. Checker roles stay
+separate agents with their own instructions; separation is now by role, not by permission.
 
 ## Station map (work order, not gates)
 
@@ -164,9 +174,10 @@ Runtime:
 
 - `scripts/check_delivery.py`: SC1–SC5 as above, JSON output with the commit SHA, unit tests with
   recorded `sf` JSON fixtures. The SDK orchestrator calls the same script.
-- Role guard: no agent role writes `work-items/*/approvals/` or `work-items/*/delivery-check.json`.
-- Safety hook: B1 and B2 Git rules, including "draft PR only with a PASS check for HEAD"; the
-  launcher grant (D-A2).
+- Role guard: per-role path limits replaced by one shared protected-file list (D-R2).
+- Launcher: asks H1 at the terminal and writes `approvals/H1.md` (D-R3).
+- Safety hook: B1 and B2 Git rules, including "draft PR only when its own run of
+  `check_delivery.py` passes for HEAD"; the launcher grant (D-A2); removal of the D-R1 rules.
 - `scripts/sdlc` launcher (a few lines): checks `agentOrg`, sets `SF_AGENTIC_AUTONOMOUS_ORG`, and
   starts `copilot --agent sdlc-conductor` from the repository root. The model cannot set this
   variable.
@@ -185,8 +196,9 @@ Runtime:
 
 1. **Success check:** `.ai/contracts/delivery-success.md`, `scripts/check_delivery.py`, tests
    with recorded `sf` JSON. This comes first because every later phase is judged by it.
-2. **Boundaries:** role guard paths; B1/B2 Git rules; launcher grant (D-A2); P-A5 and P-A7 if
-   confirmed; tests and safety evals for each new rule.
+2. **Boundaries:** remove the D-R1 rules and the per-role limits; add the shared protected-file
+   list (D-R2); B1/B2 Git rules; launcher grant (D-A2) and H1 prompt (D-R3); P-A5 and P-A7 if
+   confirmed; update tests and safety evals for every removed or added rule.
 3. **Conductor:** `sdlc-conductor` agent and `deliver-requirement` skill; validator checks for the
    new files.
 4. **Missing stations:** S1 text intake, plan section in S4, `check-delivery` skill, S6 security

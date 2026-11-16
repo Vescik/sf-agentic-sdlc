@@ -121,6 +121,8 @@ HUB_COMMANDS = (("package", "create"), ("package", "version"), ("package", "dele
                 ("package", "update"), ("package", "list"), ("org", "create", "scratch"),
                 )
 RETRIEVE_COMMANDS = (("project", "retrieve", "start"), ("retrieve", "metadata"))
+SCRATCH_LIFECYCLE_COMMANDS = frozenset({("org", "create", "scratch"), ("org", "resume", "scratch"),
+                                        ("org", "delete", "scratch")})
 RETRIEVE_BOOL = {"--json", "--ignore-conflicts", "-c", "--single-package", "--unzip", "-z"}
 RETRIEVE_VALUES = {"--target-org", "-o", "--api-version", "-a", "--manifest", "-x",
                    "--output-dir", "-r", "--wait", "-w", "--target-metadata-dir", "-t", "--zip-file-name"}
@@ -368,9 +370,13 @@ def _resume_target(parts: list[str], home: Path, sandbox: bool) -> str | None:
     return None
 
 
-def _delete_controllers(targets: list[str], rows: list[dict], home: Path, sandbox: bool) -> list[str]:
-    """Resolve local relationships without querying/mutating the child or parent org."""
+def _delete_controllers(targets: list[str], rows: list[dict], home: Path, sandbox: bool) -> tuple[list[str], list[str]]:
+    """Resolve local relationships without querying/mutating the child or parent org.
+
+    Returns (sandbox parents, scratch Dev Hubs); plan 05 D-SO treats a Dev Hub differently.
+    """
     controllers = []
+    hub_controllers = []
     for target in targets:
         row = _identity(target, rows)
         if row is None:
@@ -398,8 +404,8 @@ def _delete_controllers(targets: list[str], rows: list[dict], home: Path, sandbo
         if not sandbox:
             if auth.get("isScratch") is not True:
                 raise PolicyError("unresolved", "Scratch identity is not proven locally.")
-            controllers.append(_relation_target(auth, "devHubUsername"))
-    return controllers
+            hub_controllers.append(_relation_target(auth, "devHubUsername"))
+    return controllers, hub_controllers
 
 
 def _job_target(parts: list[str], home: Path) -> str | None:
@@ -571,10 +577,11 @@ def evaluate(parts: list[str], root: Path, *, config: dict | None = None,
         if not targets and not hubs:
             return Decision("unresolved", "No target/default is resolved. Ask the user to identify this operation's org and environment; do not execute.")
         rows = (inventory or local_authorizations)(root, effective_env)
-        controllers = []
+        controllers: list[str] = []
+        hub_controllers: list[str] = []
         if words in {("org", "delete", "sandbox"), ("org", "delete", "scratch")}:
-            controllers = _delete_controllers(targets, rows, effective_home, words[-1] == "sandbox")
-        decisions = [classify_target(t, entries, rows) for t in targets + hubs + controllers]
+            controllers, hub_controllers = _delete_controllers(targets, rows, effective_home, words[-1] == "sandbox")
+        decisions = [classify_target(t, entries, rows) for t in targets + hubs + controllers + hub_controllers]
         denied = cfg["salesforce"].get("review", {}).get("deniedOrganizationIds", [])
         if not isinstance(denied, list) or any(not ORG_ID.fullmatch(str(x)) for x in denied):
             return Decision("config-error", "Invalid deniedOrganizationIds configuration.")
@@ -584,7 +591,14 @@ def evaluate(parts: list[str], root: Path, *, config: dict | None = None,
         for lane in (decisions[:len(targets)], decisions[len(targets):len(targets) + len(hubs)]):
             if len({d.organization_id for d in lane}) > 1:
                 return Decision("conflict", "Conflicting explicit target identities.")
-        for d in decisions:
+        # Plan 05, D-SO: a production Dev Hub may create, resume and delete scratch orgs. The
+        # scratch org itself is the target; any production target still gets only retrieve.
+        scratch_lifecycle = words in SCRATCH_LIFECYCLE_COMMANDS
+        hub_lane = set(range(len(targets), len(targets) + len(hubs)))
+        hub_lane |= set(range(len(decisions) - len(hub_controllers), len(decisions)))
+        for index, d in enumerate(decisions):
+            if scratch_lifecycle and index in hub_lane:
+                continue
             if d.environment == "prod" and (hubs or not is_retrieve(parts)):
                 return Decision("deny", "Production CLI permits only verified metadata retrieve. Use existing read-only Salesforce MCP tools for other reads. Confirmation cannot override this denial.", "prod", d.organization_id)
         for d in decisions:

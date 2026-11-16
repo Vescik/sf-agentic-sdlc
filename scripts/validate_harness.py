@@ -907,12 +907,11 @@ def check_secret_signatures(audit: Audit) -> None:
 
 
 def check_skill_commands(audit: Audit) -> None:
-    """Guarded-command instructions in skills must be role-guard-valid and cross-OS.
+    """Harness-script instructions in skills must be runnable on every OS.
 
-    The role guard (copilot_role_guard.allowed_role_command) only permits the harness scripts when
-    invoked as `python scripts/<name>.py …` with forward slashes. A bare `scripts/<name>.py` (no
-    interpreter) or a backslash path is denied — which is exactly what made agents "get lost" on the
-    first command. Fail closed here so the skill text and the guard can never drift apart again.
+    A bare `scripts/<name>.py` (no interpreter) does not run on Windows, and a backslash path does
+    not run on macOS/Linux — which is what made agents "get lost" on the first command. The role
+    guard no longer has a terminal allowlist (plan 05, D-T1); this check keeps the text portable.
     """
 
     guarded = "validate_harness|run_evals|validate_salesforce_deploy"

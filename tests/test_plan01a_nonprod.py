@@ -116,7 +116,14 @@ class NonprodCommands(unittest.TestCase):
             for words in ('env:delete:sandbox', 'env delete sandbox', 'env:delete:scratch'):
                 for role in (None, 'developer'):
                     self.assertEqual(self.hook(f'sfdx {words} -o prod-copy --no-prompt', role)[0], expected)
-        for words in ('env:create:scratch', 'force:package:create', 'force package version create report'):
+        # Plan 05, D-SO: a production Dev Hub alone may delete a scratch org; a production
+        # sandbox parent still blocks it (above).
+        parent.unlink()
+        auth.write_text(json.dumps({'username': 'prod-copy@example.test', 'orgId': '00D000000000002AAA',
+            'isScratch': True, 'devHubUsername': 'team-alpha'}))
+        self.assertEqual(self.hook('sfdx env:delete:scratch -o prod-copy --no-prompt')[0], 'continue')
+        self.assertTrue(self.decide('sf env:create:scratch -v team-alpha -o prod-copy').allowed)
+        for words in ('force:package:create', 'force package version create report'):
             self.assertFalse(self.decide(f'sf {words} -v team-alpha -o prod-copy').allowed)
 
     def test_command_aliases_preserve_prod_denial_and_unknown_paths_stay_closed(self):
@@ -145,9 +152,11 @@ class NonprodCommands(unittest.TestCase):
         for command in ('sf data search', 'sf project retrieve start', 'sf force:apex:test:run'):
             self.assertFalse(self.decide(command+' -o prod-copy --flags-dir=sample').allowed)
 
-    def test_other_roles_do_not_gain_cli(self):
+    def test_every_role_gets_the_same_cli_policy(self):
+        # Plan 05, D-T1: no role-owned CLI; the Salesforce policy decides for every role.
         for role in ('test-strategist', 'designer', 'config-investigator', 'reviewer'):
-            self.assertEqual(self.hook('sf org list metadata -o prod-copy --metadata-type ApexClass', role)[0], 'deny')
+            self.assertEqual(self.hook('sf org list metadata -o prod-copy --metadata-type ApexClass', role)[0], 'continue')
+            self.assertEqual(self.hook('sf data query -o team-alpha --query SELECT', role)[0], 'deny')
 
     def test_identity_missing_environment_and_conflict_have_distinct_next_steps(self):
         self.config['salesforce']['orgs'].pop()

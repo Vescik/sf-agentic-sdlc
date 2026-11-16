@@ -48,8 +48,61 @@ class LauncherTest(unittest.TestCase):
                          sdlc.copilot_command(["--agent=reviewer", "--prompt=go"], agents))
 
 
-if __name__ == "__main__":
-    unittest.main()
+
+class PreflightTest(unittest.TestCase):
+    """Live Windows run: a stale dirty feat/* branch, and `sf` missing from the agents' PATH."""
+
+    def runner_for(self, status="", branch="main", pull_code=0, switch_code=0):
+        import subprocess
+        calls = []
+
+        def runner(command, **kwargs):
+            calls.append(command)
+            if command[:2] == ["git", "status"]:
+                return subprocess.CompletedProcess(command, 0, status, "")
+            if command[:3] == ["git", "rev-parse", "--abbrev-ref"]:
+                return subprocess.CompletedProcess(command, 0, branch + "\n", "")
+            if command[:2] == ["git", "switch"]:
+                return subprocess.CompletedProcess(command, switch_code, "", "")
+            if command[:2] == ["git", "pull"]:
+                return subprocess.CompletedProcess(command, pull_code, "", "")
+            raise AssertionError(command)
+        return runner, calls
+
+    def test_dirty_tree_stops_the_run(self):
+        runner, _ = self.runner_for(status=" M force-app/x.cls\n")
+        with self.assertRaisesRegex(sdlc.LaunchError, "uncommitted changes"):
+            sdlc.preflight(runner)
+
+    def test_switches_to_main_and_pulls(self):
+        runner, calls = self.runner_for(branch="feat/1-route-cases-by-priority")
+        self.assertEqual(["switched from feat/1-route-cases-by-priority to main"], sdlc.preflight(runner))
+        self.assertIn(["git", "switch", "main"], calls)
+        self.assertIn(["git", "pull", "--ff-only"], calls)
+
+    def test_offline_pull_is_only_a_note(self):
+        runner, _ = self.runner_for(pull_code=1)
+        self.assertIn("git pull --ff-only failed", sdlc.preflight(runner)[0])
+
+    def test_sf_directory_is_put_on_path(self):
+        import os
+        directory = Path(self.tmp.name) / "sfbin"
+        directory.mkdir()
+        tool = directory / ("sf.cmd" if os.name == "nt" else "sf")
+        tool.write_text("#!/bin/sh\n")
+        tool.chmod(0o755)
+        from unittest import mock
+        with mock.patch.object(sdlc, "SF_DIRECTORIES", (str(directory),)):
+            env = sdlc.salesforce_cli_path({"PATH": "/nonexistent"})
+            self.assertTrue(env["PATH"].startswith(str(directory)))
+            with mock.patch.object(sdlc, "SF_DIRECTORIES", ()):
+                with self.assertRaisesRegex(sdlc.LaunchError, "not installed or not on PATH"):
+                    sdlc.salesforce_cli_path({"PATH": "/nonexistent"})
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
 
 
 class FinishDeliveryTest(unittest.TestCase):
@@ -98,11 +151,15 @@ class FinishDeliveryTest(unittest.TestCase):
     def test_pass_without_review_or_pr_runs_reviewer_then_git_agent(self):
         self.report()
         notes = sdlc.finish_delivery(["--model", "auto"], {}, self.runner)
-        self.assertEqual(["reviewer", "git-agent"], self.agents())
-        copilot = [c for c in self.calls if c[0] == "copilot"][1]
+        self.assertEqual(["reviewer", "reviewer", "git-agent"], self.agents())
+        prompts = [c[c.index("-p") + 1] for c in self.calls if c[0] == "copilot"]
+        self.assertIn("Station S3", prompts[0])
+        self.assertIn("Station S6", prompts[1])
+        copilot = [c for c in self.calls if c[0] == "copilot"][2]
         self.assertIn("--model", copilot)
         self.assertIn("--draft", copilot[copilot.index("-p") + 1])
         body = (self.root / ".cache/github/pr-body.md").read_text()
+        self.assertIn("## S3 design review", body)
         self.assertIn("## S6 implementation review", body)
         self.assertIn("reviewer answer", body)
         self.assertTrue(any("S7" in note for note in notes))
@@ -118,6 +175,7 @@ class FinishDeliveryTest(unittest.TestCase):
         self.report()
         (self.root / ".cache/delivery").mkdir(parents=True)
         (self.root / ".cache/delivery/1-case-routing-implementation-review.md").write_text("# S6\n\nok\n")
+        (self.root / ".cache/delivery/1-case-routing-design-review.md").write_text("# S3\n\nok\n")
         self.prs = '[{"url": "https://example.invalid/pr/1"}]'
         notes = sdlc.finish_delivery([], {}, self.runner)
         self.assertEqual([], self.agents())
@@ -127,3 +185,7 @@ class FinishDeliveryTest(unittest.TestCase):
         self.assertEqual(["--model", "auto", "--allow-all-tools"], sdlc.strip_session_args(
             ["--agent", "sdlc-conductor", "-p", "deliver x", "--model", "auto", "--output-format", "json",
              "--allow-all-tools", "--trust-folder", "--no-finish"]))
+
+
+if __name__ == "__main__":
+    unittest.main()

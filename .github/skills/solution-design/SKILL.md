@@ -235,6 +235,8 @@ The design declares its intended logical change surface in one compact table:
   component set, prefix the action with a marker such as
   `[conditional — decision: retry policy] Create`; the unresolved choice and its dependent
   work remain explicit.
+- **Requirement exclusions are binding.** A component type or behavior the requirement excludes
+  (for example "no Flow") is listed under Explicit exclusions and is never a planned action.
 - **Material exclusions are prose, not an inventory.** An optional short `Explicit
 exclusions` list after the table may name likely scope-creep non-goals. Do not enumerate every out-of-scope
   component, and do not add confidence percentages, digests, state IDs, timestamps, or

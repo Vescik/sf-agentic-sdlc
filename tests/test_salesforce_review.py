@@ -1389,5 +1389,19 @@ class ObjectContractWiringAndConcurrency(unittest.TestCase):
         self.assertFalse(contract_thread.is_alive())
 
 
+
+class RejectedQueryDetailTest(unittest.TestCase):
+    """Plan 05: a rejected request carries Salesforce's reason, so the agent can fix its query."""
+
+    def test_error_body_becomes_a_bounded_detail(self):
+        from scripts import salesforce_review_server as server
+        body = json.dumps([{"errorCode": "INVALID_TYPE", "message": "sObject type 'Flow' is not supported."}]).encode()
+        self.assertEqual("INVALID_TYPE: sObject type 'Flow' is not supported.", server.salesforce_error_detail(body))
+        self.assertEqual("", server.salesforce_error_detail(b"<html>oops</html>"))
+        self.assertEqual("", server.salesforce_error_detail(b"[]"))
+        long = json.dumps([{"errorCode": "X", "message": "m" * 5000}]).encode()
+        self.assertLess(len(server.salesforce_error_detail(long)), 400)
+
+
 if __name__ == "__main__":
     unittest.main()

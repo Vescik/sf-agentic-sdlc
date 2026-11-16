@@ -41,6 +41,13 @@ A failed or unavailable tool is a stated limitation, never permission to imagine
 result (SAFE-TOOL-001). Write the explicit assumption into the design ("assumed X because
 review_object_contract was unavailable; verify before implementation") and continue.
 
+A rejected query returns Salesforce's own reason after the envelope (for example
+`INVALID_FIELD` or `INVALID_TYPE`): fix the query and retry instead of treating the fact as
+unavailable. Metadata objects such as `Flow`, `FlowDefinition`, `Layout`, `ProfileLayout`
+(which layout a profile sees) and `ApexTrigger` need `useToolingApi: true`;
+`FlowDefinitionView`, `FieldPermissions`, `ObjectPermissions`, `PermissionSetAssignment` and
+`Profile` use the normal API.
+
 ## Map versus terrain
 
 `docs/` describes the package as the team last verified it; the org is the live truth.

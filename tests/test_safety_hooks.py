@@ -1605,3 +1605,14 @@ class LiveTrialRunNineTests(unittest.TestCase):
             """python3 -c 'from pathlib import Path; Path("work-items/1/org-changes.md").write_text("sf project deploy start -o devmp")'"""))
         self.assertEqual("deny", self.decide(
             """python3 -c 'import subprocess; subprocess.run(["sf", "project", "deploy", "start", "-o", "prod"])'"""))
+
+
+class WindowsShellTests(unittest.TestCase):
+    def test_set_location_to_the_repository_root_is_not_a_compound_command(self) -> None:
+        from scripts import protected_paths_policy as protected
+
+        root = r"C:\Dev\sf-agentic-sdlc"
+        self.assertEqual("sf org list", protected.strip_root_cd(f"Set-Location '{root}'; sf org list", root))
+        self.assertEqual("sf org list", protected.strip_root_cd("set-location -Path C:/Dev/sf-agentic-sdlc; sf org list", root))
+        self.assertEqual("Set-Location 'C:\\Other'; sf org list",
+                         protected.strip_root_cd("Set-Location 'C:\\Other'; sf org list", root))

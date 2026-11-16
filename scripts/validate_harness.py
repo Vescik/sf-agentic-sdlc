@@ -250,6 +250,9 @@ def check_required_files(audit: Audit) -> None:
         ".ai/contracts/writing-standard.md",
         ".ai/contracts/delivery-success.md",
         "scripts/check_delivery.py",
+        "scripts/sdlc.py",
+        ".github/agents/sdlc-conductor.agent.md",
+        ".github/skills/deliver-requirement/SKILL.md",
         ".ai/third-party/asd-ste100/README.md",
         ".ai/third-party/asd-ste100/LICENSE",
         "schemas/salesforce-org-review-evidence.schema.json",
@@ -1440,6 +1443,35 @@ def run_checks(audit: Audit, checks: Iterable[Callable[[Audit], None]]) -> None:
             )
 
 
+def check_delivery_conductor(audit: Audit, root: Path = ROOT) -> None:
+    """Plan 05 phase 3: the conductor delegates every station and is judged by the end check."""
+    agent_path = root / ".github/agents/sdlc-conductor.agent.md"
+    skill_path = root / ".github/skills/deliver-requirement/SKILL.md"
+    data, body = frontmatter(agent_path, audit)
+    tools = set(data.get("tools") or [])
+    audit.require("agent" in tools, "sdlc-conductor needs the agent tool to start station sub-agents")
+    audit.require(
+        set(data.get("agents") or []) == {"designer", "reviewer", "developer", "git-agent"},
+        "sdlc-conductor delegates exactly to designer, reviewer, developer and git-agent",
+    )
+    org_tools = sorted(tool for tool in tools if tool.startswith(("salesforce/", "ado-readonly/", "sf-harness.")))
+    audit.require(not org_tools, f"sdlc-conductor reaches orgs only through its stations, not directly: {org_tools}")
+    audit.require("skills/deliver-requirement/SKILL.md" in body, "sdlc-conductor must follow the deliver-requirement skill")
+    audit.require("contracts/delivery-success.md" in body, "sdlc-conductor must name the delivery success contract")
+    skill = required_text(skill_path, audit)
+    for marker, reason in (
+        ("scripts/check_delivery.py", "success is the end-of-run delivery check"),
+        ("6 delivery checks", "the attempt budget is 6 checks per iteration (D-AB)"),
+        ("feedback=<path>", "a failed iteration continues with a feedback iteration"),
+        ("draft PR", "the run ends with a draft PR, never a merge"),
+        ("cannot be understood", "the person is asked only for a requirement that cannot be understood (D-D4)"),
+        ("`AC-1`", "requirements.md carries stable acceptance-criterion IDs for SC1"),
+    ):
+        audit.require(marker in skill, f"deliver-requirement skill: {reason} ({marker!r} missing)")
+    for station in ("S1", "S2", "S3", "S4", "S5", "S6", "S7", "H3"):
+        audit.require(f"| {station} " in skill, f"deliver-requirement skill: station table is missing {station}")
+
+
 def main() -> int:
     audit = Audit()
     run_checks(
@@ -1448,6 +1480,7 @@ def main() -> int:
             check_required_files,
             check_salesforce_project,
             check_customizations,
+            check_delivery_conductor,
             check_links,
             check_writing_standard,
             check_settings_and_mcp,

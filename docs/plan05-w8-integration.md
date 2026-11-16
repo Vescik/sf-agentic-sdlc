@@ -1,6 +1,6 @@
 # Plan 05: W8 SDLC chain as instructions, judged by a few success criteria
 
-Status: plan, 2026-11-16. Phase 1 (delivery check) and Phase 2 (boundaries) are implemented;
+Status: plan, 2026-11-16. Phases 1 (delivery check), 2 (boundaries) and 3 (conductor) are implemented;
 Phase 0 (live spike) is blocked, see [Implementation notes](#implementation-notes). Owner
 decisions recorded in [Decisions](#decisions-2026-11-16) are binding for the work below.
 
@@ -261,6 +261,12 @@ evidence gates, and real client data.
   the check again.
 - **Phase 2, launcher:** `scripts/sdlc.py` (D-A2, D-SR). The SDK orchestrator keeps its own
   push and PR ban (Phase 6 decides its future); its autonomy grant is now `dev` only.
+- **Phase 3:** `.github/agents/sdlc-conductor.agent.md` delegates to `designer`, `reviewer`,
+  `developer` and `git-agent`; `.github/skills/deliver-requirement/SKILL.md` holds the station
+  table, the stop list, `requirements.md`, the S6 security list, the draft-PR packet and the
+  feedback iteration. Most of Phase 4 (S1 text intake, planning, check step, security list,
+  packet) is written into this skill; Phase 4 now means testing and refining each station on a
+  live run. The validator check `check_delivery_conductor` pins delegation and the budget.
 - **Found, not decided:**
   - The role guard keeps a per-role terminal allowlist (read-only commands, the harness scripts,
     `sf` for the developer). It was not on the hard-stop list. `check_delivery.py` was added

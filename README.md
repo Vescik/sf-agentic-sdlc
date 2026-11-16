@@ -1,8 +1,8 @@
 # Salesforce Managed-Package Copilot Brain-Core
 
 A private, team-versioned GitHub Copilot harness for Salesforce development around any configured
-managed-package environment. It combines a minimal always-on safety/grounding kernel, seven SDLC agents,
-thirteen public prompt commands, seventeen internal skills, governed but initially unseeded
+managed-package environment. It combines a minimal always-on safety/grounding kernel, eight SDLC agents,
+fourteen public prompt commands, eighteen internal skills, governed but initially unseeded
 Memory/QA layers, reconciled read-only org review, durable per-work-item design files,
 and repeatable validation. No object, namespace, package behavior, or business meaning is built in.
 
@@ -46,7 +46,10 @@ zero-assumptions walkthrough in
 once, then open `sf-harness.code-workspace`.
 The same agents, skills, hooks and MCP servers also load in GitHub Copilot CLI
 ([Copilot CLI port](docs/copilot-cli-port.md)). For one-prompt delivery from a requirement to a
-reviewed packet, use the [SDK orchestrator](docs/orchestrator.md).
+draft PR in the developer agent org, run `python scripts/sdlc.py` and give the `sdlc-conductor`
+agent `deliver-requirement itemId=<ID>` or `requirementFile=<path>`
+([plan 05](docs/plan05-w8-integration.md)). The [SDK orchestrator](docs/orchestrator.md) is the
+headless alternative.
 Once the workspace is installed, use the [Ways of Working guide](docs/ways-of-working.md) to
 choose the right path for a feature, defect, managed-package dependency, or configuration-only
 change.

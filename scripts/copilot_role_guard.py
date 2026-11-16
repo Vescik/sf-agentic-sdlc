@@ -48,6 +48,7 @@ ROLES = (
     "developer",
     "git-agent",
     "reviewer",
+    "sdlc-conductor",
     "test-strategist",
     "workspace-maintainer",
 )

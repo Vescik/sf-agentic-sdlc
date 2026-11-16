@@ -37,6 +37,7 @@ the deep directory tree lives in `docs/workspace-topology.md`.
 - **developer** — Implement a designed work item …. Loads contracts: writing-standard; skills: development, document-solution, git-workflow, publish-wiki.
 - **git-agent** — Help with Git and GitHub …. Loads contracts: writing-standard; skills: git-workflow.
 - **reviewer** — Challenge a design or implementation …. Loads contracts: writing-standard; skills: check-against-principles, git-workflow.
+- **sdlc-conductor** — Run one requirement from intake …. Loads contracts: delivery-success, writing-standard; skills: deliver-requirement, git-workflow.
 - **test-strategist** — Own the QA perspective — …. Loads instructions: apex; contracts: execution-contract, tool-capabilities, writing-standard; skills: check-feature-coverage, git-workflow, prepare-qa-test-plan.
 - **workspace-maintainer** — Maintain the workspace control plane …. Loads contracts: writing-standard; skills: git-workflow, maintain-workspace.
 
@@ -45,6 +46,7 @@ the deep directory tree lives in `docs/workspace-topology.md`.
 - `adhoc-fix` — Express lane for a small …
 - `check-against-principles` — Evaluate a scoped design or …
 - `check-feature-coverage` — Compare a current Azure DevOps …
+- `deliver-requirement` — Run one requirement through intake, …
 - `development` — Implement a designed Salesforce work …
 - `document-solution` — Create or update three plain …
 - `fetch-ado-item` — Fetch and normalize one Azure …
@@ -64,6 +66,7 @@ the deep directory tree lives in `docs/workspace-topology.md`.
 
 - `/adhoc-fix` → developer
 - `/check-against-principles` → reviewer
+- `/deliver-requirement` → sdlc-conductor
 - `/document-metadata-change` → developer
 - `/document-solution` → developer
 - `/feature-health` → test-strategist

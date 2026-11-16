@@ -93,6 +93,23 @@
       "path": ".github/agents/reviewer.agent.md"
     },
     {
+      "description": "Run one requirement from intake to a draft PR in the developer agent org — each station as a sub-agent with its own role guard, success judged by scripts/check_delivery.py.",
+      "handoffs": [],
+      "loads": {
+        "contracts": [
+          "delivery-success",
+          "writing-standard"
+        ],
+        "instructions": [],
+        "skills": [
+          "deliver-requirement",
+          "git-workflow"
+        ]
+      },
+      "name": "sdlc-conductor",
+      "path": ".github/agents/sdlc-conductor.agent.md"
+    },
+    {
       "description": "Own the QA perspective — assess coverage sufficiency, run Feature Health, and author the per-work-item QA test plan interactively; select exactly one QA skill per request.",
       "handoffs": [],
       "loads": {
@@ -286,6 +303,13 @@
       "path": ".github/prompts/check-against-principles.prompt.md"
     },
     {
+      "agent": "sdlc-conductor",
+      "argumentHint": "itemId=<ID> | requirementFile=<path> [feedback=<path>]",
+      "description": "Deliver one requirement to a draft PR with the sdlc-conductor agent — thin alias, no logic of its own.",
+      "name": "deliver-requirement",
+      "path": ".github/prompts/deliver-requirement.prompt.md"
+    },
+    {
       "agent": "developer",
       "argumentHint": "itemId=<ID> [manifestPath=<path>]",
       "description": "Generate or update a sourced technical-documentation draft for one work item.",
@@ -386,6 +410,11 @@
       "path": ".github/skills/check-feature-coverage/SKILL.md"
     },
     {
+      "description": "Run one requirement through intake, design, review, build, the end-of-run delivery check and a draft PR, with each station as a sub-agent in the developer agent org.",
+      "name": "deliver-requirement",
+      "path": ".github/skills/deliver-requirement/SKILL.md"
+    },
+    {
       "description": "Implement a designed Salesforce work item, validate it, and execute required org changes with per-deploy chat confirmation.",
       "name": "development",
       "path": ".github/skills/development/SKILL.md"
@@ -467,6 +496,7 @@
     ".github/agents/developer.agent.md": "sha256:2389eae12195093ee06d4108ee79b4005242ad9714831ffc6bb3ccb88f13972f",
     ".github/agents/git-agent.agent.md": "sha256:0db01651a3dbc74cd61afe7cec7711f6d1e814daf31840d7c559e8a9b8f3b7a3",
     ".github/agents/reviewer.agent.md": "sha256:25981169161d4b2622be9054ac0cee1d9b60e80dd244643314c7d67d9f8ae3d4",
+    ".github/agents/sdlc-conductor.agent.md": "sha256:78634ab9d177b0ea5895bf6e5d0963417954c67cffc03110c269dab111564945",
     ".github/agents/test-strategist.agent.md": "sha256:3fa32d8f95930de067dfecd5cb7a47f928c45cbba27dee6af6e4a5763cca942b",
     ".github/agents/workspace-maintainer.agent.md": "sha256:648182cad481fb8e9cb0d06d1523c4ebb86ea0b375dc5f821beb269574f92df8",
     ".github/instructions/apex.instructions.md": "sha256:d28260c9247d670c71353f0cdaa22195f2490d4bb1b5bf11d403861602cda5b3",
@@ -474,6 +504,7 @@
     ".github/instructions/managed-package.instructions.md": "sha256:7744731fc962f14b14e84b0fea837eed28227db235626add74c67d9bf4f3d432",
     ".github/prompts/adhoc-fix.prompt.md": "sha256:a1d5cca35727b031629b277b9f523d8a0fc49043faa260f9fcbc3f1cf11bf6b8",
     ".github/prompts/check-against-principles.prompt.md": "sha256:5b50150518997cd9deed700566a4e9cd8e924fed8229a092f11735e1422b2a26",
+    ".github/prompts/deliver-requirement.prompt.md": "sha256:e0797a229262fe2f5ab5b670cbd57abb11937a6de8a1a0e6c8ac6bc43f4fe64a",
     ".github/prompts/document-metadata-change.prompt.md": "sha256:26fa99f7bb5d403f0a79f9d28d710ab978f6e15cd2a7639dd0c78afee6ba2bb9",
     ".github/prompts/document-solution.prompt.md": "sha256:bc5f8aa1b08d2b78bd229300c72d0b0e23526ee9c61b20fac6b30fd1b75a13ea",
     ".github/prompts/feature-health.prompt.md": "sha256:75ac6a615128de50cee558e8b3bd6f5df3817f9ecee11275e521027c710b21f4",
@@ -488,6 +519,7 @@
     ".github/skills/adhoc-fix/SKILL.md": "sha256:0aebb2f3ae4e215d96399158db96a468e3e78bd54d8efeb7ed4a9c5904553ec9",
     ".github/skills/check-against-principles/SKILL.md": "sha256:9bca9e6125e0c5b29700ac4bb4b0404973eedbb7360dbbf04ee438fee9af64ee",
     ".github/skills/check-feature-coverage/SKILL.md": "sha256:f13b70a96c8924bd0609a748357bef63663c6118e39eef12bbcc6f95f901e99d",
+    ".github/skills/deliver-requirement/SKILL.md": "sha256:0441391e83b0449ea8311807eef63159f1fb7855492a7d329777d7e767dcae6b",
     ".github/skills/development/SKILL.md": "sha256:ba2e679e8b35919384be8be57cce7ef1884615694271a483c4827b1b5f51654e",
     ".github/skills/document-solution/SKILL.md": "sha256:6512d342653de417eb1fbdb2b1eab0ae5332ce2b424cc9b85d4ee011f14eb388",
     ".github/skills/fetch-ado-item/SKILL.md": "sha256:b2e7c7de90df45932b495a1dfeda256c2966ecf3e89d748e9ba694dbfee4b84c",
@@ -504,5 +536,5 @@
     ".github/skills/solution-design/SKILL.md": "sha256:5f551d49af7be40b432fbe588db36fb9479ece9fb393788b0f78ab6e0bad7169",
     "config/repo-map-seed.json": "sha256:668bf2439e5ba336d5405fce384498de6a475c9b7def906b0e581831628762a0"
   },
-  "wordCount": 732
+  "wordCount": 761
 }

@@ -113,6 +113,20 @@ class PolicyTests(unittest.TestCase):
             (self.root/directory/filename).write_text(json.dumps({key: 'team-alpha'}))
             self.assertEqual(self.decide('sf org display').environment, 'prod')
 
+    def test_production_dev_hub_may_manage_scratch_orgs_only(self):
+        # Plan 05, D-SO: scratch org lifecycle on a production Dev Hub; nothing else on it.
+        self.assertTrue(self.decide('sf org create scratch -v team-alpha -f config/project-scratch-def.json -a scratch').allowed)
+        self.env = {'SF_TARGET_DEV_HUB': 'team-alpha'}
+        self.assertTrue(self.decide('sf org create scratch -f config/project-scratch-def.json').allowed)
+        self.assertFalse(self.decide('sf package version create -v team-alpha').allowed)
+        self.assertFalse(self.decide('sf package delete -v team-alpha -p 0Ho000000000001').allowed)
+        self.assertFalse(self.decide('sf data query -o team-alpha --query SELECT').allowed)
+
+    def test_unresolved_dev_hub_blocks_only_package_deletion(self):
+        # Plan 05, D-R2.
+        self.assertFalse(self.decide('sf package delete -p 0Ho000000000001').allowed)
+        self.assertTrue(self.decide('sf org create scratch -f config/project-scratch-def.json').allowed)
+
     def test_conflicting_targets_defaults_missing_config_and_unknown(self):
         self.assertEqual(self.decide('sf project retrieve start -o team-alpha --target-org prod-copy').status, 'conflict')
         self.assertTrue(self.decide('sf project retrieve start -o team-alpha --target-org another-name').allowed)
@@ -180,12 +194,12 @@ class PolicyTests(unittest.TestCase):
             self.assertEqual(response['hookSpecificOutput']['permissionDecision'], 'deny')
         self.assertEqual(calls, [])
 
-    def test_role_still_owns_cli_authority(self):
+    def test_policy_not_role_owns_cli_authority(self):
+        # Plan 05, D-T1: every role gets the same Salesforce policy decision.
         with patch.object(policy, '_read_json', return_value=self.config), patch.object(policy, 'local_authorizations', return_value=self.rows):
-            for role in ['reviewer', 'designer', 'config-investigator']:
-                self.assertFalse(roles.allowed_role_command('sf project retrieve start -o team-alpha', self.root, role))
-            self.assertTrue(roles.allowed_role_command('sf project retrieve start -o team-alpha', self.root, 'developer'))
-            self.assertFalse(roles.allowed_role_command('sf project deploy start -o team-alpha', self.root, 'developer'))
+            for role in ['reviewer', 'designer', 'config-investigator', 'developer']:
+                self.assertTrue(roles.salesforce_command_decision('sf project retrieve start -o team-alpha', self.root, role).allowed)
+                self.assertFalse(roles.salesforce_command_decision('sf project deploy start -o team-alpha', self.root, role).allowed)
 
     def test_local_help_without_identity(self):
         self.config = {}

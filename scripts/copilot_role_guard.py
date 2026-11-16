@@ -80,37 +80,6 @@ def native_operation_input_error(tool_input: Any) -> str | None:
     return None
 
 
-# Legacy check-only deploy validation remains available during migration, but it is no longer
-# the Developer's exclusive Salesforce execution path.
-VALIDATE_DEPLOY_ROLES = frozenset({"developer"})
-VALIDATE_DEPLOY_COMMAND_FLAGS = {
-    "start": frozenset({"--source-dir", "--manifest", "--test"}),
-    "status": frozenset({"--job-id", "--org"}),
-}
-
-
-def validate_deploy_command_allowed(parts: list[str], role: str) -> bool:
-    if role not in VALIDATE_DEPLOY_ROLES:
-        return False
-    if not parts or parts[0] not in VALIDATE_DEPLOY_COMMAND_FLAGS:
-        return False
-    allowed_flags = VALIDATE_DEPLOY_COMMAND_FLAGS[parts[0]]
-    index = 1
-    while index < len(parts):
-        token = parts[index]
-        if not token.startswith("--"):
-            return False
-        if "=" in token:
-            flag = token.split("=", 1)[0]
-            index += 1
-        else:
-            flag = token
-            index += 2
-        if flag not in allowed_flags:
-            return False
-    return True
-
-
 # Root-of-trust files: they define permissions or external capability. They are part of the
 # protected list; only the workspace maintainer may change them, after a person confirms.
 # All matching is casefolded so an NTFS/macOS case variant cannot slip past.
@@ -176,6 +145,41 @@ def protected_path(relative_path: str) -> bool:
     )
 
 
+SHELL_WRITE = re.compile(
+    r"(?:>|\btee\b|\bsed\b[^|;&]*\s-i|\bperl\b[^|;&]*\s-i|\b(?:cp|mv|rm|rmdir|chmod|chown|truncate|ln|"
+    r"install|rsync|dd|touch|unlink|shred)\b|\bopen\(|write_text|write_bytes|\.write\(|"
+    r"\bgit\s+(?:checkout|restore|apply|am|stash\s+pop)\b|Set-Content|Out-File|Add-Content|Remove-Item|"
+    r"Move-Item|Copy-Item|New-Item)",
+    re.IGNORECASE,
+)
+PROTECTED_TEXT = re.compile(
+    r"(?:\.github/(?:hooks|agents|instructions)\b|\.githooks\b|\.vscode\b|(?<![\w/.-])config/|(?<![\w/.-])schemas/|"
+    r"extensions/salesforce-operations\b|\.github/mcp\.json|copilot_[a-z_]+\.py|[a-z_]+_policy\.py|"
+    r"start_[a-z_]+_mcp\.mjs|check_delivery\.py|scripts/sdlc\.py|sf-harness\.code-workspace|"
+    r"harness\.local\.json)",
+    re.IGNORECASE,
+)
+
+
+def shell_write_to_protected(command: str) -> str | None:
+    """Best-effort: a terminal command that names a protected file and a write primitive.
+
+    Read commands (cat, grep, git diff) on protected files stay allowed. This catches obvious
+    writes, not every possible program; the editor rule in edit_decision is the main boundary.
+    """
+    normalized = command.replace("\\", "/")
+    for segment in re.split(r"[;&|\n\r]", normalized):
+        write = SHELL_WRITE.search(segment)
+        if not write:
+            continue
+        # The protected path must come after the write primitive: `python check_delivery.py
+        # > out.txt` writes out.txt, while `echo x > scripts/copilot_safety_hook.py` does not.
+        target = PROTECTED_TEXT.search(segment, write.start())
+        if target:
+            return target.group(0)
+    return None
+
+
 def edit_decision(relative_path: str, role: str) -> str:
     """allow | ask | deny for one normalized repository-relative path (plan 05, D-R2)."""
     if relative_path.startswith("OUTSIDE::"):
@@ -185,51 +189,6 @@ def edit_decision(relative_path: str, role: str) -> str:
     if protected_path(relative_path):
         return "ask" if role == MAINTAINER_ROLE else "deny"
     return "allow"
-
-
-# Validation-only terminal grant for the maintainer (plan §9.2): exact command shapes with
-# repository-contained file arguments; everything else falls through to the shared rules
-# (read-only orientation + guarded harness scripts) or is denied.
-MAINTAINER_PY_COMPILE_EXTENSIONS = frozenset({".py"})
-MAINTAINER_NODE_CHECK_EXTENSIONS = frozenset({".js", ".mjs"})
-
-
-def repository_file_argument(raw: str, root: Path, extensions: frozenset[str]) -> bool:
-    candidate = Path(raw.replace("\\", "/"))
-    if not candidate.is_absolute():
-        candidate = root / candidate
-    resolved = candidate.resolve(strict=False)
-    try:
-        resolved.relative_to(root.resolve())
-    except ValueError:
-        return False
-    return resolved.suffix.lower() in extensions
-
-
-def maintainer_terminal_command_allowed(parts: list[str], root: Path) -> bool:
-    executable = Path(parts[0]).name.lower().removesuffix(".exe").removesuffix(".cmd")
-    if executable == "npm":
-        return parts[1:] in (["run", "prettier:verify"], ["run", "lint"])
-    if executable == "node":
-        return (
-            len(parts) == 3
-            and parts[1] == "--check"
-            and repository_file_argument(parts[2], root, MAINTAINER_NODE_CHECK_EXTENSIONS)
-        )
-    if executable in {"python", "python3", "py"}:
-        index = 1
-        if executable == "py" and index < len(parts) and parts[index] == "-3":
-            index += 1
-        rest = parts[index:]
-        if rest in (["-m", "unittest", "discover", "-s", "tests"],
-                    ["-m", "unittest", "discover", "-s", "tests", "-v"]):
-            return True
-        if len(rest) >= 2 and rest[:2] == ["-m", "py_compile"] and len(rest) > 2:
-            return all(
-                repository_file_argument(arg, root, MAINTAINER_PY_COMPILE_EXTENSIONS)
-                for arg in rest[2:]
-            )
-    return False
 
 
 PATH_KEYS = {
@@ -348,67 +307,9 @@ def flag_values(parts: list[str], flag: str) -> list[str]:
     return values
 
 
-# Read-only orientation commands available to every role. Rationale: a default-deny terminal
-# that blocks `git status`/`ls`/`grep` doesn't make the harness safer — it paralyzes the agent
-# into thrashing (documented incidents), while the genuinely dangerous operations (sf, deploys,
-# rm, redirects, chaining) are blocked elsewhere. The metacharacter gate in allowed_role_command
-# already rejects ; & | < > ` $ and newlines, so none of these can chain, redirect, or substitute.
-SIMPLE_READ_COMMANDS = frozenset({
-    "ls", "dir", "pwd", "cat", "type", "head", "tail", "wc", "where", "which",
-    "grep", "findstr", "rg", "tree", "find",
-    # PowerShell read cmdlets (Windows default shell)
-    "get-childitem", "get-content", "get-location", "get-item", "select-string", "test-path",
-})
-GIT_READ_SUBCOMMANDS = frozenset({
-    "status", "diff", "log", "show", "blame", "describe", "shortlog",
-    "rev-parse", "ls-files", "grep", "branch", "remote",
-})
-# Tool version checks are pure orientation; denying them only makes agents flail.
-VERSION_CHECK_EXECUTABLES = frozenset({"python", "python3", "py", "node", "npm", "git"})
-GIT_BRANCH_LIST_FLAGS = frozenset({"-a", "--all", "-v", "-vv", "-l", "--list", "-r", "--remotes"})
-# Flags that turn a read command into a write/exec primitive.
-FIND_FORBIDDEN_TOKENS = frozenset({"-delete", "-exec", "-execdir", "-ok", "-okdir", "-fls"})
-
-
-def read_only_orientation_command(parts: list[str]) -> bool:
-    """Return whether argv is a non-mutating orientation command safe for every role."""
-
-    executable = git_policy.executable(parts)
-    if executable in VERSION_CHECK_EXECUTABLES and parts[1:] == ["--version"]:
-        return True
-    if executable in SIMPLE_READ_COMMANDS:
-        rest = parts[1:]
-        if executable == "find" and any(
-            token in FIND_FORBIDDEN_TOKENS or token.startswith("-fprint") for token in rest
-        ):
-            return False
-        if executable == "tree" and "-o" in rest:
-            return False
-        if executable == "rg" and any(token == "--pre" or token.startswith("--pre=") for token in rest):
-            return False
-        return True
-    if executable == "git" and len(parts) >= 2:
-        subcommand = parts[1].lower()
-        if subcommand not in GIT_READ_SUBCOMMANDS:
-            return False
-        rest = parts[2:]
-        if any(token.startswith("--output") for token in rest):
-            return False
-        if any(token in {"--ext-diff", "--textconv", "--open-files-in-pager", "-O"}
-               or token.startswith(("--open-files-in-pager=", "-O")) for token in rest):
-            return False
-        if subcommand == "branch":
-            # Listing only: any non-flag argument would create a branch; -d/-D would delete one.
-            return all(token in GIT_BRANCH_LIST_FLAGS for token in rest)
-        if subcommand == "remote":
-            return rest in ([], ["-v"])
-        return True
-    return False
-
-
 def salesforce_command_decision(command: str, root: Path, role: str):
-    """Keep policy failures actionable in either hook without evaluating twice."""
-    if role != "developer" or not command or re.search(r"[;&|`$<>\n\r]", command):
+    """Keep policy failures actionable in either hook without evaluating twice (every role, D-T1)."""
+    if not command or re.search(r"[;&|`$<>\n\r]", command):
         return None
     try:
         parts = shlex.split(command.replace("\\", "/"))
@@ -417,67 +318,6 @@ def salesforce_command_decision(command: str, root: Path, role: str):
     if parts and Path(parts[0]).name.lower().removesuffix(".exe").removesuffix(".cmd") in {"sf", "sfdx"}:
         return sf_policy.evaluate(parts, root)
     return None
-
-
-def allowed_role_command(command: str, root: Path, role: str) -> bool:
-    # Git is routed by evaluate_event before this non-Git allowlist. Do not
-    # reclassify a remaining command substitution as a new Git exemption.
-    if not command or re.search(r"[;&|`$<>\n\r]", command):
-        return False
-    # Normalize Windows path separators before POSIX shlex, which otherwise treats "\" as an
-    # escape and collapses `.venv\Scripts\python.exe` into one mangled token — silently denying
-    # every native Windows command. The guarded scripts take no backslash-bearing arguments.
-    try:
-        parts = shlex.split(command.replace("\\", "/"))
-    except ValueError:
-        return False
-    if not parts:
-        return False
-    if read_only_orientation_command(parts):
-        return True
-    if role == MAINTAINER_ROLE and maintainer_terminal_command_allowed(parts, root):
-        return True
-    executable = Path(parts[0]).name.lower()
-    sf_decision = salesforce_command_decision(command, root, role)
-    if sf_decision is not None:
-        return sf_decision.allowed
-    if executable not in {"python", "python3", "py", "python.exe", "python3.exe", "py.exe"}:
-        return False
-    index = 1
-    if executable.startswith("py") and index < len(parts) and parts[index] == "-3":
-        index += 1
-    if index >= len(parts):
-        return False
-    script = Path(parts[index])
-    if not script.is_absolute():
-        script = root / script
-    script = script.resolve(strict=False)
-    validate_harness = (root / "scripts/validate_harness.py").resolve()
-    run_evals = (root / "scripts/run_evals.py").resolve()
-    remainder = parts[index + 1 :]
-    # Read-only self-verification available to every role: agents legitimately check their own
-    # work (2026-07-14 usability fix — these were denied and caused live flailing).
-    if script in (validate_harness, run_evals):
-        return not remainder
-    if script == (root / "scripts/check_delivery.py").resolve():
-        return check_delivery_arguments_allowed(remainder)
-    if script == (root / "scripts/validate_salesforce_deploy.py").resolve():
-        return validate_deploy_command_allowed(remainder, role)
-    return False
-
-
-CHECK_DELIVERY_FLAGS = frozenset({"--work-item", "--base", "--org", "--deploy-job-id"})
-
-
-def check_delivery_arguments_allowed(arguments: list[str]) -> bool:
-    """scripts/check_delivery.py with its own flags only; --output stays the default report."""
-    index = 0
-    while index < len(arguments):
-        flag, _, value = arguments[index].partition("=")
-        if flag not in CHECK_DELIVERY_FLAGS:
-            return False
-        index += 1 if value else 2
-    return index == len(arguments) and "--work-item" in {a.partition("=")[0] for a in arguments}
 
 
 def collect_paths(value: Any, parent_key: str = "") -> Iterable[str]:
@@ -543,6 +383,9 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
         return response("deny", error) if error else response()
     if is_execute_tool(tool_name):
         command = terminal_command(event.get("tool_input", {}))
+        protected_write = shell_write_to_protected(command)
+        if protected_write:
+            return response("deny", f"{role} may not change protected control files from the terminal (plan 05, D-R2): {protected_write}")
         if inspect_git and git_policy is not None:
             admission = git_policy.inspect_command(command, event_root, role=role)
             if admission.has_git:
@@ -557,30 +400,16 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
                 return response()
         if git_policy is None and re.search(r"\b(?:git|gh)(?:\.exe)?\b", command):
             return response("deny", "Git message validator could not load; restore scripts/git_workflow_policy.py.")
-        if role == "git-agent":
-            try:
-                parts = shlex.split(command.replace("\\", "/"))
-            except ValueError:
-                parts = []
-            if parts and not re.search(r"[;&|`$<>\n\r]", command) and read_only_orientation_command(parts):
-                return response()
-            return response("deny", "git-agent runs Git/gh and read-only orientation commands only.")
+        # Plan 05, D-T1: no per-role terminal allowlist. Every role may run any command except
+        # Salesforce commands the policy denies, chained Salesforce commands (their target cannot
+        # be checked), and obvious shell writes to protected control files.
         if sf_policy is None and re.search(r"\b(?:sf|sfdx)(?:\.exe|\.cmd)?\b", command):
             return response("deny", f"Salesforce policy unavailable: salesforce_operation_policy ({_POLICY_ERRORS.get('salesforce_operation_policy', 'load error')}).")
+        if re.search(r"[;&|`$<>\n\r]", command) and re.search(r"(?:^|[\s;&|(`])(?:\S*/)?(?:sf|sfdx)(?:\.exe|\.cmd)?\s", command):
+            return response("deny", "Run each sf command on its own, without chaining, pipes, redirects or substitution, so its target org can be checked.")
         sf_decision = salesforce_command_decision(command, root, role)
         if sf_decision is not None:
             return response() if sf_decision.allowed else response("deny", sf_decision.reason)
-        if not allowed_role_command(command, root, role):
-            return response(
-                        "deny",
-                        f"{role}: this exact command is outside the terminal allowlist. "
-                        "Allowed families: guarded harness scripts ("
-                        "scripts/validate_harness.py, run_evals.py), "
-                        "Git/gh (message format only), file reads "
-                        "(ls/cat/grep/type/Get-Content), and tool --version checks — all plain, "
-                        "single commands with no ; & | < > ` $ chaining. Do not retry variants "
-                        "of a denied command; use one of these instead.",
-                    )
         return response()
     if not is_edit_tool(tool_name):
         return response()

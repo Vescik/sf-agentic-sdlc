@@ -487,9 +487,9 @@
   ],
   "sourceDigests": {
     ".ai/contracts/delivery-success.md": "sha256:65d4d80733db3f38e5fb644ebe4389f295b65b54f95aa830f689ea6216ca332a",
-    ".ai/contracts/execution-contract.md": "sha256:b477e963e73bb2189896dacb2cc916c34971194f3490bfef82526f8754fbfb8d",
+    ".ai/contracts/execution-contract.md": "sha256:721ac145e0aa139d3bdef756326c9f31956ff6c5f52421b2830f22823ad0e4c5",
     ".ai/contracts/source-authority.md": "sha256:a44ef511a496cf3634ffa097a214fad075a97c5e0ac57c8e9e901e94a0627ed9",
-    ".ai/contracts/tool-capabilities.md": "sha256:dcb7aca0f7868dd4bcf89314018d805c2694cd6ec0c4d904448e2298916da632",
+    ".ai/contracts/tool-capabilities.md": "sha256:c2824488e0ac5c3c79b6fbda4384def22289d07c90621f9b73a3fbe6a8ef1598",
     ".ai/contracts/writing-standard.md": "sha256:edf666b8198130c907f4f9bf52abc6572182dc1565025503870a0a54fdfa2b50",
     ".github/agents/config-investigator.agent.md": "sha256:848b110ca8e0be835f45993468452befde8314f83a2f937cebb10b63b2630a8a",
     ".github/agents/designer.agent.md": "sha256:ee4608e1b346795efe7d64e9e8d6e1fdb80fc43512eb8e3b059f1b0e91c2c6f4",

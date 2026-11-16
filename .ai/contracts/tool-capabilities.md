@@ -16,6 +16,7 @@ upgrade.
 | Real metadata deployment, including quick and destructive, only on `dev`/`uat`/`stage` | direct `sf`/`sfdx`; global hook asks before every exact invocation with target, scope, and real-org-change warning | Developer |
 | Record create/update/upsert/delete and bulk data operations on `dev`/`uat`/`stage` | direct `sf data`/legacy `sfdx` terminal command | Developer |
 | Apex execution/testing, package operations, and org lifecycle on `dev`/`uat`/`stage` | direct `sf`/`sfdx` terminal command | Developer |
+| Any other terminal command (build tools, `npm`, scripts) | terminal; no per-role allowlist (plan 05, D-T1) | every custom role; `sf`/`sfdx` follows the same Salesforce policy for every role, and the Developer rows above describe the intended owner |
 | Optional legacy check-only validation helper | `python scripts/validate_salesforce_deploy.py start\|status` | Developer |
 | Native one-operation Salesforce environment/target selection and reviewed job execution | `sf-harness.salesforce-operations/salesforceOperation` local VS Code extension, arguments only | Developer only |
 | Local Git and read-only GitHub CLI commands | `git`/`git.exe` and `gh`/`gh.exe` on PATH; commit messages are not checked | every custom role |

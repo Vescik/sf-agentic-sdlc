@@ -78,13 +78,6 @@ class GuardParserContractTests(unittest.TestCase):
                 "deny; allow them or declare them in INTENTIONALLY_EXCLUDED_FLAGS",
             )
 
-    def test_validate_deploy_guard_mirrors_parser(self) -> None:
-        self.contract(
-            "validate_salesforce_deploy",
-            validate_salesforce_deploy.build_parser(),
-            guard.VALIDATE_DEPLOY_COMMAND_FLAGS,
-        )
-
     def test_salesforce_read_lane_stays_retired(self) -> None:
         # Owner decision 2026-08-04: the CLI record-read lane was retired in favor of
         # review_soql_query on the facade. A reappearing script or guard surface means an

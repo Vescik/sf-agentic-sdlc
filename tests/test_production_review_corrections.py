@@ -91,7 +91,7 @@ class LifecycleTests(unittest.TestCase):
         command = 'sf org delete scratch -o prod-copy --no-prompt'
         self.auth['devHubUsername'] = 'team-alpha@example.test'
         self.write_auth()
-        self.hooks(command, 'deny')
+        self.hooks(command, 'continue')  # plan 05, D-SO: a production Dev Hub may delete scratch orgs
         self.auth['devHubUsername'] = 'control@example.test'
         self.write_auth()
         self.hooks(command, 'continue')

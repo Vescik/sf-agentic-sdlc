@@ -114,9 +114,12 @@ class GitWorkflowTests(unittest.TestCase):
             "git status | python -c 'print(1)'", "git commit -m \"[chore] $(rm -rf force-app)\"",
         ):
             with self.subTest(command=command):
-                self.assertEqual("deny", self.invoke(roles, command, "reviewer"))
                 if "rm -rf" in command:
                     self.assertEqual("deny", self.invoke(safety, command))
+                if "sf project" in command:
+                    self.assertEqual("deny", self.invoke(roles, command, "reviewer"))
+                if "python -c" in command:  # plan 05, D-T1: no role allowlist
+                    self.assertEqual("allow", self.invoke(roles, command, "reviewer"))
 
     def test_pr_body_text_is_data_for_every_role(self):
         # Plan 05, D-R2: no per-role edit allowlist; the PR body may quote denied commands.

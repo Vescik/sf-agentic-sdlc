@@ -65,12 +65,12 @@ Developer, subject to the global real-deploy confirmation hook:
   sanitized outcome to the canonical org-change log using the Development skill. A missing
   post-action entry is incomplete delivery/review follow-up, not a pre-execution denial. It does
   not add confirmation to data, Apex, package, permission, or org-lifecycle commands.
-- **Read-only orientation is allowed for every role**: listing/reading (`ls`, `dir`, `cat`,
-  `type`, `head`, `tail`, `wc`, `grep`, `findstr`, `find`, `where`, `which`, and the PowerShell
-  read cmdlets). Command chaining, redirection, substitution, and output flags (`--output`,
-  `find -delete/-exec`) remain denied in this non-Git read-only lane. Git/GitHub follows the
-  separate contract below.
-  Use guarded scripts for harness state and the Developer's Salesforce capability for org work.
+- **The terminal has no per-role allowlist** (plan 05, D-T1). Every role may run any command
+  except: a Salesforce command that the Salesforce policy denies (the same policy for every
+  role); an `sf`/`sfdx` command inside a chain, pipe, redirect or substitution; a shell write to
+  a protected control file; and what the global safety hook denies (destructive patterns,
+  private helpers, wrappers). Org work remains the Developer's task by role, not by permission.
+  Git/GitHub follows the separate contract below.
 
 ## Git and GitHub authoring
 

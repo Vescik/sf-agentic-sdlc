@@ -151,7 +151,7 @@ class OperationSession:
         if selected:
             values += selected["targets"]
         if words in {("org", "delete", "sandbox"), ("org", "delete", "scratch")}:
-            values += policy._delete_controllers(values, rows, self.home, words[-1] == "sandbox")
+            values += [target for lane in policy._delete_controllers(values, rows, self.home, words[-1] == "sandbox") for target in lane]
         unique = {}
         for value in values:
             row = identity(value, rows)

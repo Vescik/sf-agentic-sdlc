@@ -270,11 +270,13 @@ evidence gates, and real client data.
 - **Phase 5 (written, not run):** golden cases N1, E1, E2 and T1 with evaluator oracles in
   `evals/fixtures/delivery-golden/`, and four `conductor-` scenarios in
   `evals/agent-scenarios.yaml`. The live runs wait for Copilot CLI access and a developer org.
-- **Found, not decided:**
-  - The role guard keeps a per-role terminal allowlist (read-only commands, the harness scripts,
-    `sf` for the developer). It was not on the hard-stop list. `check_delivery.py` was added
-    for every role; other commands (for example `npm`, `sf` for roles other than the developer)
-    stay denied.
-  - A Dev Hub classified `prod` blocks `sf org create scratch` (production allows only
-    metadata retrieve). A scratch org as the agent org needs a decision on this rule.
-
+- **Decided 2026-11-16 after phase 3:**
+  - D-T1: the per-role terminal allowlist is removed. Every role may run any command except a
+    Salesforce command the policy denies (the same policy for every role), a chained `sf`
+    command, a shell write to a protected control file (best-effort text check), and what the
+    global safety hook denies. Separation of roles is by instruction.
+  - D-SO: a production Dev Hub may create, resume and delete scratch orgs; every other command
+    against a production org stays retrieve-only.
+  - Copilot CLI subscription: not available yet. The live phases (0, 4 refinement, 5 runs) wait
+    for it; the deterministic parts (`check_delivery.py`, hooks, launcher) can be exercised
+    against the developer org without Copilot.

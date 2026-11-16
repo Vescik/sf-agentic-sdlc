@@ -91,9 +91,9 @@ class NativeOperationGuardTests(unittest.TestCase):
         for command in commands:
             with self.subTest(command=command):
                 terminal = event("execute/runInTerminal", {"command": command})
+                # The global safety hook denies private helpers for every agent (plan 05, D-T1
+                # removed the per-role terminal allowlist).
                 self.assertEqual("deny", invoke(safety, terminal))
-                for role in role_guard.ROLES:
-                    self.assertEqual("deny", invoke(role_guard, terminal, role))
 
     def test_read_and_parse_checks_do_not_execute_private_helpers(self):
         for command in ("cat scripts/salesforce_operation_session.py",

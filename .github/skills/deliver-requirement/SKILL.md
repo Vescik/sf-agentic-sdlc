@@ -27,12 +27,14 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 1. Start the station as a sub-agent of the named custom agent. Give it a written request with
    the work-item folder, the station's skill, its inputs and its expected outputs. Never pass
    results only in the request text: the station reads its inputs from files.
-2. After the station, read its outputs from the work-item folder. Record one line in
-   `run-log.md`: station, agent, UTC time, status (`DONE`, `RETURNED`, `BLOCKED`), output paths,
-   and the next step. The log is a record, not a gate.
-3. A station that finds a problem fixes it inside the attempt budget, or records it for H3. It
+2. Ask the station to append one line to `run-log.md` when it ends: station, agent, UTC time,
+   status (`DONE`, `RETURNED`, `BLOCKED`), output paths, and the next step. After the station,
+   read its outputs and the log line from the work-item folder. The log is a record, not a gate.
+3. Only `scripts/check_delivery.py` writes `delivery-check.json`; the hooks deny every agent
+   edit of that file. Never ask a station to write or repair it by hand.
+4. A station that finds a problem fixes it inside the attempt budget, or records it for H3. It
    does not stop the run.
-4. Stop early only for these reasons:
+5. Stop early only for these reasons:
    - the requirement cannot be understood, two requirements contradict each other, or an input
      is missing: ask the person one exact question, wait, record the answer in
      `requirements.md`, and continue;

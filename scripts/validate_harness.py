@@ -375,8 +375,10 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
             legacy = sorted(set(tools) & (LEGACY_TOOLS | VSCODE_ONLY_TOOL_NAMES))
             audit.require(not unknown, f"{relative(path)}: unknown tools: {unknown}")
             audit.require(not legacy, f"{relative(path)}: legacy tools: {legacy}")
-            audit.require("execute" in tools,
-                          f"{relative(path)}: shared GitHub reads require the guarded terminal")
+            # The conductor delegates every terminal action to a station (plan 05, live trial).
+            audit.require(("execute" in tools) == (name != "sdlc-conductor"),
+                          f"{relative(path)}: shared GitHub reads require the guarded terminal; "
+                          "only sdlc-conductor has none")
             audit.require(f"--role {name}" in json.dumps(data.get("hooks", {}), default=str),
                           f"{relative(path)}: terminal access requires its own role guard")
             if name == "git-agent":
@@ -468,7 +470,7 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
                 )
         if prompt_agent in agents:
             effective_tools = data.get("tools", agents[prompt_agent].get("tools")) or []
-            audit.require("execute" in effective_tools,
+            audit.require("execute" in effective_tools or prompt_agent == "sdlc-conductor",
                           f"{relative(path)}: prompt must retain the role's guarded terminal for GitHub reads")
         if name == "publish-wiki":
             audit.require(prompt_agent == "developer", "publish-wiki belongs only to Developer")
@@ -1462,6 +1464,8 @@ def check_delivery_conductor(audit: Audit, root: Path = ROOT) -> None:
         set(data.get("agents") or []) == {"designer", "reviewer", "developer", "git-agent"},
         "sdlc-conductor delegates exactly to designer, reviewer, developer and git-agent",
     )
+    audit.require(not tools & {"edit", "execute"},
+                  "sdlc-conductor has no editor and no terminal, so it must delegate every station")
     org_tools = sorted(tool for tool in tools if tool.startswith(("salesforce/", "ado-readonly/", "sf-harness.")))
     audit.require(not org_tools, f"sdlc-conductor reaches orgs only through its stations, not directly: {org_tools}")
     audit.require("skills/deliver-requirement/SKILL.md" in body, "sdlc-conductor must follow the deliver-requirement skill")

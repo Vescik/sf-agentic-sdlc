@@ -1486,3 +1486,25 @@ class GlobalProtectedFilesTests(unittest.TestCase):
         self.assertEqual("deny", self.decide("Bash", {"command": "printf probe > config/spike-probe.txt"}))
         self.assertEqual("deny", self.decide("Bash", {"command": "git checkout -- scripts/git_workflow_policy.py"}))
         self.assertEqual("continue", self.decide("Bash", {"command": "cat scripts/copilot_safety_hook.py"}))
+
+
+class LiveTrialFixesTests(unittest.TestCase):
+    """Fixes from the first live conductor run (plan 05, 2026-11-16)."""
+
+    def decide(self, tool_name: str, tool_input: Any, cwd: Path = ROOT) -> str:
+        return hook_decision(run_hook("copilot_safety_hook.py", {"cwd": str(cwd), "tool_name": tool_name, "tool_input": tool_input}))
+
+    def test_delivery_report_is_never_written_by_an_agent(self) -> None:
+        self.assertEqual("deny", self.decide("create", {"path": "work-items/1201-routing/delivery-check.json"}))
+        self.assertEqual("deny", self.decide("Bash", {"command": "echo {} > work-items/1201-routing/delivery-check.json"}))
+        self.assertEqual("continue", self.decide("Bash", {"command": "cat work-items/1201-routing/delivery-check.json"}))
+
+    def test_leading_cd_to_the_repository_root_is_not_a_compound_command(self) -> None:
+        from scripts import protected_paths_policy as protected
+
+        self.assertEqual("sf org list --json", protected.strip_root_cd(f"cd {ROOT} && sf org list --json", ROOT))
+        self.assertEqual("sf org list", protected.strip_root_cd(f'cd "{ROOT}" && sf org list', ROOT))
+        self.assertEqual("cd /tmp && sf org list", protected.strip_root_cd("cd /tmp && sf org list", ROOT))
+        reason = run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "Bash",
+                                                    "tool_input": {"command": "cd /tmp && sf org list"}})
+        self.assertEqual("deny", hook_decision(reason))

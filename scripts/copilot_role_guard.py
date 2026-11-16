@@ -292,6 +292,8 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
         return response("deny", error) if error else response()
     if is_execute_tool(tool_name):
         command = terminal_command(event.get("tool_input", {}))
+        if protected_policy is not None:
+            command = protected_policy.strip_root_cd(command, root)
         protected_write = shell_write_to_protected(command)
         if protected_write:
             return response("deny", f"{role} may not change protected control files from the terminal (plan 05, D-R2): {protected_write}")

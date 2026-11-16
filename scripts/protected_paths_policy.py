@@ -63,6 +63,8 @@ PROTECTED_EXACT = frozenset(
 ) | ROOT_OF_TRUST_EXACT
 # Local, human-owned configuration: never written by an agent, not even after a question.
 NEVER_EDITED_EXACT = frozenset({"config/harness.local.json"})
+# Written only by scripts/check_delivery.py; an agent-written report would fake success.
+NEVER_EDITED_PATTERNS = ("work-items/*/delivery-check.json",)
 
 
 def protected_path(relative_path: str) -> bool:
@@ -85,7 +87,7 @@ PROTECTED_TEXT = re.compile(
     r"(?:\.github/(?:hooks|agents|instructions)\b|\.githooks\b|\.vscode\b|(?<![\w/.-])config/|(?<![\w/.-])schemas/|"
     r"extensions/salesforce-operations\b|\.github/mcp\.json|copilot_[a-z_]+\.py|[a-z_]+_policy\.py|"
     r"start_[a-z_]+_mcp\.mjs|check_delivery\.py|scripts/sdlc\.py|sf-harness\.code-workspace|"
-    r"harness\.local\.json)",
+    r"harness\.local\.json|delivery-check\.json)",
     re.IGNORECASE,
 )
 
@@ -113,7 +115,9 @@ def edit_decision(relative_path: str, role: str | None) -> str:
     """allow | ask | deny for one normalized repository-relative path (plan 05, D-R2)."""
     if relative_path.startswith("OUTSIDE::"):
         return "deny"
-    if relative_path.casefold() in NEVER_EDITED_EXACT:
+    if relative_path.casefold() in NEVER_EDITED_EXACT or any(
+        fnmatch.fnmatchcase(relative_path.casefold(), pattern) for pattern in NEVER_EDITED_PATTERNS
+    ):
         return "deny"
     if protected_path(relative_path):
         # The maintainer (role guard) and the global hook (role unknown on Copilot CLI) ask a
@@ -135,3 +139,26 @@ def patch_paths(tool_input: object) -> list[str]:
     elif isinstance(tool_input, dict):
         texts.extend(value for value in tool_input.values() if isinstance(value, str))
     return [first or second for text in texts for first, second in PATCH_FILE.findall(text)]
+
+
+LEADING_CD = re.compile(r"""^\s*cd\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*&&\s*(.+)$""", re.DOTALL)
+
+
+def strip_root_cd(command: str, root: "object") -> str:
+    """`cd <repository root> && <command>` -> `<command>` (agents prefix commands this way).
+
+    Only an exact repository-root target is removed, so the remaining command is judged in the
+    working directory the hooks already assume. Any other `cd` keeps the command compound.
+    """
+    from pathlib import Path
+
+    match = LEADING_CD.match(command or "")
+    if not match:
+        return command
+    target = next(group for group in match.groups()[:3] if group)
+    try:
+        if Path(target).expanduser().resolve() == Path(str(root)).resolve():
+            return match.group(4).strip()
+    except (OSError, RuntimeError):
+        return command
+    return command

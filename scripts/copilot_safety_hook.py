@@ -718,6 +718,8 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
     # covered by the `text` checks (destructive/production patterns) and tool classification.
     command = terminal_command(tool_input) if is_terminal_tool(tool_name) else ""
     if command and protected_policy is not None:
+        command = protected_policy.strip_root_cd(command, root)
+    if command and protected_policy is not None:
         protected_write = protected_policy.shell_write_to_protected(command)
         if protected_write:
             return hook_response("deny", f"Agents do not change protected control files from the terminal (plan 05, D-R2): {protected_write}")

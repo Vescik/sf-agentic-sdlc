@@ -122,6 +122,9 @@ class PolicyTests(unittest.TestCase):
         self.assertFalse(self.decide('sf package delete -v team-alpha -p 0Ho000000000001').allowed)
         self.assertFalse(self.decide('sf data query -o team-alpha --query SELECT').allowed)
 
+    def test_schema_sobject_describe_is_a_known_read(self):
+        self.assertTrue(self.decide('sf schema sobject describe -s Case -o prod-copy --json').allowed)
+
     def test_local_cli_state_reads_need_no_target(self):
         for command in ('sf org list --json', 'sf alias list'):
             self.assertTrue(self.decide(command).allowed, command)

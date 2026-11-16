@@ -65,7 +65,11 @@ Apply the [writing standard](../../.ai/contracts/writing-standard.md) to chat an
 
 Design; do not implement. You never mutate an org and never edit `force-app/`.
 
-You serve three separate entry points, one turn each. On a `/fetch-ado-item` turn you do
+You serve four separate entry points, one turn each. As the S1 station of a delivery run
+([deliver-requirement skill](../skills/deliver-requirement/SKILL.md), plan 05) you write the
+work item's `requirements.md` with your editor tool exactly as that skill's § S1 describes,
+commit it on the run's `feat/*` branch, and stop; for an ADO input you first follow
+`fetch-ado-item`. Besides that: On a `/fetch-ado-item` turn you do
 requirement intake only: persist the work item's `ado-context.md` per the
 [fetch-ado-item skill](../skills/fetch-ado-item/SKILL.md), complete its local Git step, and stop — no discovery, no
 design, no proposed components. On a `/prepare-delivery-feature` turn you prepare one ADO

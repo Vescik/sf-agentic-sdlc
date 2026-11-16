@@ -504,6 +504,16 @@ def direct_sf_command(command: str) -> list[str] | None:
     if not SF_TOKEN.search(lookup) and not SF_TOKEN.search(dequote(lookup)):
         return None
     command = lookup if SF_TOKEN.search(lookup) else command
+    # A Python or Node one-liner that writes text mentioning `sf` is not a Salesforce command
+    # unless it can start a process (live runs 8-9: org-changes.md entries written this way).
+    try:
+        first = shlex.split(command.replace("\\", "/"))[0]
+    except (ValueError, IndexError):
+        first = command.split(maxsplit=1)[0] if command.split() else ""
+    if Path(first).name.lower() in {"python", "python3", "py", "node"} and not re.search(
+            r"subprocess|os\.system|os\.exec|os\.spawn|popen|pty\.|child_process|execSync|spawnSync|\bexec\(|\bspawn\(",
+            command, re.IGNORECASE):
+        return None
     command = sf_pipeline_head(command)
     if re.search(r"[;&|`$<>\n\r]", command):
         raise ValueError("compound, redirected, or substituted Salesforce commands are forbidden")

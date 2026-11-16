@@ -1073,7 +1073,7 @@ class TestDesignerScopedTerminalCapability(unittest.TestCase):
         self.assertIn(self.BASELINE_HOOK, self.text)
 
     def test_designer_names_three_entry_points(self) -> None:
-        self.assertIn("three separate entry points", self.text)
+        self.assertIn("four separate entry points", self.text)
         for lane in ("/fetch-ado-item", "/prepare-delivery-feature", "/solution-design"):
             self.assertIn(lane, self.text)
 

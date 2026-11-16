@@ -73,7 +73,8 @@ PR is an unfinished run.
 
 ## S1: `requirements.md`
 
-Write it for an ADO item and for a written requirement alike:
+The designer writes it with its editor tool (a shell `printf` or heredoc write is blocked by the
+CLI's own shell safety). Write it for an ADO item and for a written requirement alike:
 
 - `## Requirements`: numbered `R-1`, `R-2`, … in plain sentences.
 - `## Acceptance criteria`: `AC-1`, `AC-2`, … each one observable and testable. Keep the IDs

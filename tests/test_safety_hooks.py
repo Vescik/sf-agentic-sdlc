@@ -1593,3 +1593,15 @@ class LiveTrialRunSixTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertEqual("continue", self.decide(command))
         self.assertEqual("deny", self.decide("command -v sf && sf project deploy start --target-org prod"))
+
+
+class LiveTrialRunNineTests(unittest.TestCase):
+    def decide(self, command: str) -> str:
+        return hook_decision(run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "Bash",
+                                                                 "tool_input": {"command": command}}))
+
+    def test_python_text_write_mentioning_sf_is_not_a_salesforce_command(self) -> None:
+        self.assertEqual("continue", self.decide(
+            """python3 -c 'from pathlib import Path; Path("work-items/1/org-changes.md").write_text("sf project deploy start -o devmp")'"""))
+        self.assertEqual("deny", self.decide(
+            """python3 -c 'import subprocess; subprocess.run(["sf", "project", "deploy", "start", "-o", "prod"])'"""))

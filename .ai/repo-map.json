@@ -34,6 +34,7 @@
         ],
         "instructions": [],
         "skills": [
+          "deliver-requirement",
           "fetch-ado-item",
           "git-workflow",
           "prepare-delivery-feature",
@@ -492,7 +493,7 @@
     ".ai/contracts/tool-capabilities.md": "sha256:d1b9225275abc8385b17dbf003f05fe54125b5798bb5bf87b73129c7bdc4d72f",
     ".ai/contracts/writing-standard.md": "sha256:edf666b8198130c907f4f9bf52abc6572182dc1565025503870a0a54fdfa2b50",
     ".github/agents/config-investigator.agent.md": "sha256:558e58cde469b1e3fc2771e624a6ccb0ff15de3f3c55f1dee4f114727b9ed178",
-    ".github/agents/designer.agent.md": "sha256:a759392c49cf319ddcaf43d950f0aedc92565e8984aa894b7c5afdf46928f324",
+    ".github/agents/designer.agent.md": "sha256:4c826bd20c53c84e5fccf221f196831ccaf8f269ddc5331b2008b5602ec4004a",
     ".github/agents/developer.agent.md": "sha256:d39fa6207961e07d1e27dfcf960d0bcc0619f1cbb6992c0de2d601fd6b6202f8",
     ".github/agents/git-agent.agent.md": "sha256:0db01651a3dbc74cd61afe7cec7711f6d1e814daf31840d7c559e8a9b8f3b7a3",
     ".github/agents/reviewer.agent.md": "sha256:6a203787adfc51697bdb5e437a6feb50bb47a110cab6a8b58b4f8304bef98805",
@@ -519,7 +520,7 @@
     ".github/skills/adhoc-fix/SKILL.md": "sha256:0aebb2f3ae4e215d96399158db96a468e3e78bd54d8efeb7ed4a9c5904553ec9",
     ".github/skills/check-against-principles/SKILL.md": "sha256:9bca9e6125e0c5b29700ac4bb4b0404973eedbb7360dbbf04ee438fee9af64ee",
     ".github/skills/check-feature-coverage/SKILL.md": "sha256:f13b70a96c8924bd0609a748357bef63663c6118e39eef12bbcc6f95f901e99d",
-    ".github/skills/deliver-requirement/SKILL.md": "sha256:01f712d77765cce1f904080d7bd039cb8c36bbb987dc796c589caaeef65b836d",
+    ".github/skills/deliver-requirement/SKILL.md": "sha256:608366c9e430fc380abdc77e08a5d9096a2b1015508a78abd61333e15bea06c7",
     ".github/skills/development/SKILL.md": "sha256:ff5e2a883cc1b9e22400b2fecadb31c3c926025236ec98a46195ee9ef5d421fb",
     ".github/skills/document-solution/SKILL.md": "sha256:6512d342653de417eb1fbdb2b1eab0ae5332ce2b424cc9b85d4ee011f14eb388",
     ".github/skills/fetch-ado-item/SKILL.md": "sha256:b2e7c7de90df45932b495a1dfeda256c2966ecf3e89d748e9ba694dbfee4b84c",
@@ -536,5 +537,5 @@
     ".github/skills/solution-design/SKILL.md": "sha256:5f551d49af7be40b432fbe588db36fb9479ece9fb393788b0f78ab6e0bad7169",
     "config/repo-map-seed.json": "sha256:668bf2439e5ba336d5405fce384498de6a475c9b7def906b0e581831628762a0"
   },
-  "wordCount": 761
+  "wordCount": 762
 }

@@ -203,6 +203,8 @@ KNOWN_COMMANDS = set(RETRIEVE_COMMANDS) | {tuple(x.split()) for x in (
     "data query", "data get record", "data create record", "data update record", "data delete record",
     "data upsert bulk", "data delete bulk", "data import tree", "data export tree",
     "data import bulk", "data export bulk", "data resume", "sobject describe", "sobject list",
+    # CLI 2.x spelling of the same read-only describes (live run 9).
+    "schema sobject describe", "schema sobject list",
     "org display", "org limits", "limits api display", "org list limits", "org assign permset",
     "org assign permsetlicense", "org remove permset", "org create scratch", "org delete scratch",
     "org create sandbox", "org delete sandbox", "org resume scratch", "org resume sandbox",

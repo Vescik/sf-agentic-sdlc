@@ -250,6 +250,7 @@ def check_required_files(audit: Audit) -> None:
         ".ai/contracts/writing-standard.md",
         ".ai/contracts/delivery-success.md",
         "scripts/check_delivery.py",
+        "scripts/check-delivery.mjs",
         "scripts/protected_paths_policy.py",
         "scripts/sdlc.py",
         ".github/agents/sdlc-conductor.agent.md",
@@ -1057,6 +1058,7 @@ def check_grounding_contracts(audit: Audit) -> None:
     # moved to managed-package.instructions.md, whose applyTo "**" keeps them always-on.
     boundaries = required_text(ROOT / ".github/instructions/managed-package.instructions.md", audit)
     for marker in (
+        "SAFE-DELIVERY-RUN-001",
         "SAFE-DEPLOY-CONFIRM-001",
         "SAFE-UNTRUST-001",
         "SAFE-TOOL-001",
@@ -1477,13 +1479,14 @@ def check_delivery_conductor(audit: Audit, root: Path = ROOT) -> None:
     audit.require("contracts/delivery-success.md" in body, "sdlc-conductor must name the delivery success contract")
     skill = required_text(skill_path, audit)
     for marker, reason in (
-        ("scripts/check_delivery.py", "success is the end-of-run delivery check"),
+        ("scripts/check-delivery.mjs", "success is the end-of-run delivery check, run the same way on every OS"),
         ("6 delivery checks", "the attempt budget is 6 checks per iteration (D-AB)"),
         ("feedback=<path>", "a failed iteration continues with a feedback iteration"),
         ("draft PR", "the run ends with a draft PR, never a merge"),
         ("cannot be understood", "the person is asked only for a requirement that cannot be understood (D-D4)"),
         ("`AC-1`", "requirements.md carries stable acceptance-criterion IDs for SC1"),
         ("is BLOCKED", "old org test failures stop the run for a person; the agent does not fix them"),
+        ("SAFE-DELIVERY-RUN-001", "gaps in a delivery run become assumptions and PR findings, never a stop"),
     ):
         audit.require(marker in skill, f"deliver-requirement skill: {reason} ({marker!r} missing)")
     for station in ("S1", "S2", "S3", "S4", "S5", "S6", "S7", "H3"):

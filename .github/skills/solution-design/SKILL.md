@@ -263,6 +263,9 @@ context, not a mandatory return to Solution Design.
 
 ## Unknowns and implementation discretion
 
+In a delivery run (SAFE-DELIVERY-RUN-001), every gap below becomes a recorded assumption or
+finding, never a stop: deliver the design with the chosen default and continue.
+
 - **Technical fact:** investigate through permitted evidence. If unavailable, name the gap
   and consequence; do not ask the human for a fact a tool can establish or invent its value.
 - **Technical recommendation:** propose a concrete solution within the Designer's remit and

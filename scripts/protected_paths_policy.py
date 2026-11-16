@@ -59,7 +59,7 @@ PROTECTED_PATTERNS = (
     "scripts/start_*_mcp.mjs",
 )
 PROTECTED_EXACT = frozenset(
-    path.casefold() for path in (".github/mcp.json", "scripts/check_delivery.py", "scripts/sdlc.py", "sf-harness.code-workspace")
+    path.casefold() for path in (".github/mcp.json", "scripts/check_delivery.py", "scripts/check-delivery.mjs", "scripts/sdlc.py", "sf-harness.code-workspace")
 ) | ROOT_OF_TRUST_EXACT
 # Local, human-owned configuration: never written by an agent, not even after a question.
 NEVER_EDITED_EXACT = frozenset({"config/harness.local.json"})

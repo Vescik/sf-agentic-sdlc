@@ -281,5 +281,18 @@ class CheckDeliveryTest(unittest.TestCase):
         self.assertFalse(cd.is_test_class("public class Y { @isTest static void t() {} }"))
 
 
+
+class CrossPlatformWrapperTest(unittest.TestCase):
+    def test_node_wrapper_finds_python_and_passes_arguments(self):
+        import shutil
+        if shutil.which("node") is None:
+            self.skipTest("node is not installed")
+        root = Path(__file__).resolve().parents[1]
+        done = subprocess.run(["node", str(root / "scripts" / "check-delivery.mjs"), "--help"],
+                              capture_output=True, text=True, timeout=60)
+        self.assertEqual(0, done.returncode, done.stderr)
+        self.assertIn("--work-item", done.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

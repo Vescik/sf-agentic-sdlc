@@ -92,7 +92,7 @@ checks that the contract's role, arguments and entry point match the prompt fron
 Run in the repository root with a trusted folder. Record the CLI version and the result of
 each check in the work item or the decisions log.
 
-1. `/agent` lists all seven agents; `copilot --agent designer` starts.
+1. `/agent` lists all eight agents; `copilot --agent designer` starts.
 2. In the designer, ask for `echo ok`: it runs. Ask for `sf project deploy start -o prod`:
    the safety hook denies it, with the hook's reason in the output.
 3. In the reviewer, ask it to create a file under `.github/hooks/`: the role guard denies it.

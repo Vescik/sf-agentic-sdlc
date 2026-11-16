@@ -53,7 +53,7 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 
 | Step | Agent | Request | Done when |
 | --- | --- | --- | --- |
-| S1 requirements | `designer` | ADO input: follow `fetch-ado-item itemId=<ID>`. Then, for every input, write `requirements.md` (see below). | `requirements.md` is committed |
+| S1 requirements | `designer` | Pass the exact input: the `requirementFile` path (the station reads the file itself) or the ADO item ID. ADO input: follow `fetch-ado-item itemId=<ID>`. Then, for every input, write `requirements.md` (see below). | `requirements.md` is committed |
 | S2 design | `designer` | Follow `solution-design` for the work item. The design lists the planned metadata components and traces each `AC-n` to the design. | `design.md` is committed |
 | S3 design review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=design`. | a review result exists; findings that block the design go back to S2 once, then to H3 as findings |
 | S4 build | `developer` | Follow `development` on branch `feat/<id>-<slug>`. The launcher granted deploy autonomy (`SF_AGENTIC_AUTONOMOUS_ORG`): deploy with `--target-org <agent org>` and do not ask for confirmation; the hooks enforce the limits. Plan tasks, write source and Apex tests; for a new field, add a permission set with field access and assign it in the agent org; commit the source, deploy to the agent org, then commit `acceptance-trace.md` and `deploy-job-id`. | the work is committed and deployed |

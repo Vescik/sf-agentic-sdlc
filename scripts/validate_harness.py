@@ -390,6 +390,11 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
             )
             if data.get("agents"):
                 audit.require("agent" in tools, f"{relative(path)}: agents allowlist requires the agent tool")
+            # Copilot CLI does not start workspace MCP servers for a custom agent (plan 05, live
+            # trial 2026-11-16): an agent that uses an MCP server's tools declares that server.
+            declared = data.get("mcp-servers") or {}
+            for server in sorted({tool.split("/", 1)[0] for tool in tools if tool.startswith(("salesforce/", "ado-readonly/"))}):
+                audit.require(server in declared, f"{relative(path)}: uses {server} tools but does not declare it in mcp-servers")
         if isinstance(name, str):
             agents[name] = data
 

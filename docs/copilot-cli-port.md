@@ -65,6 +65,12 @@ base for an SDK orchestrator.
   (`agent_type: "reviewer"`); the sub-agent gets its own agent's tools. The frontmatter fields
   `argument-hint`, `handoffs` and `agents` are ignored with a warning, so the conductor's
   delegate list is an instruction, not a limit.
+- **Workspace MCP servers are not started for a custom agent** (`--agent` or a sub-agent): every
+  call failed with "connection was cancelled", while the default agent worked. Each agent that
+  uses Salesforce or ADO tools now declares the same launchers under `mcp-servers` in its
+  frontmatter; the validator requires it. The review facade also answers `initialize` at once
+  and runs its three CLI reads in parallel (identity proof 6.4 s -> 2.7 s); tools still wait for
+  the proof.
 - **`apply_patch` sends the patch as text**; the hooks read the file paths from its
   `*** Add/Update/Delete File:` lines.
 

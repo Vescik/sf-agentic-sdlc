@@ -54,10 +54,9 @@ it is merely technical.
 
 ## Repository work
 
-Follow `.github/skills/git-workflow/SKILL.md` when Git work is needed. All roles can use all
-Git and GitHub CLI commands. Hooks validate only commit-message syntax and matching IDs;
-branch names, paths, staging methods, commit options, working directories, and Salesforce/ADO
-configuration do not gate Git. Branch schemes are conventions. Preserve unrelated changes.
+Follow `.github/skills/git-workflow/SKILL.md` when Git work is needed. All roles can use local
+Git. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Commit messages, branch names for local work, paths and working directories are
+not checked. Preserve unrelated changes.
 Active authors commit completed milestones after verification; a review request stays a review.
 Push, PR creation/update, merge,
 and destructive Git actions require an explicit instruction covering the operation. One

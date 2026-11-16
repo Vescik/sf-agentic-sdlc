@@ -18,9 +18,10 @@ upgrade.
 | Apex execution/testing, package operations, and org lifecycle on `dev`/`uat`/`stage` | direct `sf`/`sfdx` terminal command | Developer |
 | Optional legacy check-only validation helper | `python scripts/validate_salesforce_deploy.py start\|status` | Developer |
 | Native one-operation Salesforce environment/target selection and reviewed job execution | `sf-harness.salesforce-operations/salesforceOperation` local VS Code extension, arguments only | Developer only |
-| Git and GitHub CLI commands | `git`/`git.exe` and `gh`/`gh.exe` on PATH; only commit-message validation | all eight custom roles |
-| Publication, merge, and destructive Git actions | Same commands; explicit human instruction checked by the agent | all eight custom roles within the requested task |
-| Final commit-message validation | Local `commit-msg` hook installed per checkout | every role; standard Git hook-skipping behavior remains |
+| Local Git and read-only GitHub CLI commands | `git`/`git.exe` and `gh`/`gh.exe` on PATH; commit messages are not checked | every custom role |
+| Push of `feat/*` branches and draft PR creation | Same commands; the hook requires `--draft` and a PASS `scripts/check_delivery.py` result for HEAD | git-agent only (plan 05, B2) |
+| Merge, rebase, `reset --hard`, force push, `gh api`, release and repository settings | Denied by the hooks | a person only (plan 05, B1) |
+| End-of-run delivery check | `python scripts/check_delivery.py --work-item work-items/<id>-<slug>` | every custom role |
 | Interactive human confirmation | `vscode/askQuestions` | prompts and approval gates |
 | Manual role handoff | User selects a role and sends the bounded request; Designer also offers two optional `send: false` shortcuts | existing roles; Designer shortcuts target Reviewer or Developer |
 
@@ -79,9 +80,8 @@ scope and completeness. Do not change vendor transport or lose hierarchy relatio
 
 The [Git Workflow](../../.github/skills/git-workflow/SKILL.md) owns this procedure. All eight
 roles can use all Git and `gh`/`gh.exe` commands. GitHub CLI is a terminal tool, not a new MCP.
-Use existing authentication without printing tokens. Hooks apply no branch, path, index,
-working-directory, commit-option, repository, PR, or role restriction to Git/gh. They validate
-commit-message syntax and matching IDs only, independently of Salesforce/ADO configuration.
+Use existing authentication without printing tokens. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Hooks do not check commit
+messages, local branch names, paths, the index or the working directory.
 
 The agent preserves unrelated work and follows the user's scope. Push, PR publication/update,
 merge, and destructive Git actions require an explicit instruction. Hooks do not attest chat

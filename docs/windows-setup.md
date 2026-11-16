@@ -146,17 +146,11 @@ server starts with `salesforce.agentOrg` from `config/harness.local.json` (e.g. 
   their tools at **workspace** scope.
 
 All roles can use all Git/gh commands through [Git Workflow](../.github/skills/git-workflow/SKILL.md).
-The only Git-specific validation is commit-message syntax and matching IDs. There are no
-branch, path, staging, commit-option, working-directory, or Salesforce/ADO configuration gates.
-Install final commit-message validation once per checkout:
+Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05).
+There are no commit-message, local branch, path, staging, working-directory, or Salesforce/ADO
+configuration gates.
 
-```powershell
-python scripts/install_git_message_hook.py
-```
-
-This local Git hook validates editor/file messages; standard Git hook-skipping options retain
-their normal behavior. Push, PR publication/update, merge, and destructive actions require an
-explicit human instruction. Native terminal approval may still appear. You do not need to
+Native terminal approval may still appear. You do not need to
 switch to Git Agent just to commit. Verify both hooks and the effective terminal tool in a
 fresh VS Code Local session; parser/unit tests do not prove Windows host behavior.
 

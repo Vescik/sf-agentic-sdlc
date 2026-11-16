@@ -811,15 +811,12 @@ def check_settings_and_mcp(audit: Audit) -> None:
     audit.require("salesforce-development/*" not in doc_prompt.get("tools", []), "Documentation prompt must not inherit Salesforce write tools")
     audit.require("execute" in doc_prompt.get("tools", []), "Documentation prompt needs guarded terminal execution (read-only orientation)")
     role_guard = required_text(ROOT / "scripts/copilot_role_guard.py", audit)
-    audit.require(role_guard.count('".cache/ado-items/"') >= 3, "ADO cache must be writable by its three consuming roles")
+    # Plan 05, D-R2: one shared protected-file list replaces the per-role edit allowlists.
+    for marker in ("PROTECTED_PREFIXES", "PROTECTED_PATTERNS", "def edit_decision(", '"scripts/check_delivery.py"'):
+        audit.require(marker in role_guard, f"role guard is missing the shared protected-file list: {marker}")
+    for protected in ('".github/hooks/"', '".github/agents/"', '"config/"', '"scripts/copilot_*.py"'):
+        audit.require(protected in role_guard, f"role guard must protect {protected}")
     audit.require('".cache/test-cases/"' not in role_guard, "the Test Case cache write permission retired with the QA sync lane and must not return")
-    audit.require("QA_TEST_PLAN_PATTERN" in role_guard, "Test Strategist needs the exact-path QA test-plan write rule (D18)")
-    strategist_prefixes = re.search(r'"test-strategist":\s*\(([^)]*)\)', role_guard)
-    audit.require(
-        strategist_prefixes is not None and '"work-items/"' not in strategist_prefixes.group(1),
-        "Test Strategist must not gain the broad work-items/ prefix; the QA plan write is the "
-        "exact-path QA_TEST_PLAN_PATTERN rule only (D18)",
-    )
     audit.require('".cache/org-usage/"' not in role_guard, "the org-usage lane retired with the Knowledge subsystem and must not return")
     # Documentation wording is not pinned here: the read-only MCP model, the retrieve
     # confirmation, and credential isolation are enforced by the machine checks above and the

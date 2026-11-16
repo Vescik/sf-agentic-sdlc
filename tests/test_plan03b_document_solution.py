@@ -1,9 +1,8 @@
-"""Plan 03b's narrow editor grant remains independent of unrestricted Git access.
+"""Solution documentation: editor and Git rules after plan 05.
 
-Contract: Developer may edit exactly three files per lowercase hyphenated solution
-slug. Regression: a broad docs grant or path alias would overwrite unrelated files.
-Gap: delivery-document tests do not cover this set or in-repository redirection.
-Git validates commit-message syntax; it does not repeat editor path or role checks.
+Editor (D-R2): every role may write documentation; only the shared protected files and paths
+outside the repository are denied, including through symlinks and traversal.
+Git: local add and commit stay available to every role without editor path checks.
 """
 from __future__ import annotations
 
@@ -53,7 +52,6 @@ class SolutionDocumentationFixture(unittest.TestCase):
         with (patch("sys.stdin", StringIO(json.dumps(event))),
               patch("sys.argv", ["guard", "--role", role]),
               patch.object(roles, "HARNESS_ROOT", self.root),
-              patch.object(roles, "METADATA_ROOT", self.root),
               patch.object(roles, "_log_decision"), redirect_stdout(stdout)):
             self.assertEqual(0, roles.main())
         response = json.loads(stdout.getvalue())
@@ -85,128 +83,30 @@ class SolutionDocumentationFixture(unittest.TestCase):
 
 
 class SolutionDocumentationEditTests(SolutionDocumentationFixture):
-    def test_three_files_can_be_created_and_updated_through_host_edit_events(self):
-        for tool in ("create_file", "edit/editFiles", "apply_patch"):
-            with self.subTest(tool=tool, phase="create"):
-                self.assertEqual("allow", self.invoke({"files": self.paths}, tool=tool))
-        for path in self.paths:
-            self.write(path)
-        for tool in ("replace_string_in_file", "edit/editFiles"):
-            with self.subTest(tool=tool, phase="update"):
-                self.assertEqual("allow", self.invoke({"files": self.paths}, tool=tool))
+    """Plan 05, D-R2: documentation is ordinary repository content for every role."""
 
-    def test_only_exact_names_and_lowercase_hyphenated_slugs_are_allowed(self):
-        invalid = (
-            "docs/solutions/invoice-approval/technical-documentation.md",
-            "docs/solutions/invoice-approval/README.md",
-            "docs/solutions/invoice-approval/overview.json",
-            "docs/solutions/invoice-approval/Overview.md",
-            "docs/solutions/invoice-approval/overview.md/child.md",
-            "docs/solutions/invoice-approval/nested/overview.md",
-            "docs/solutions/Billing/invoice-approval/overview.md",
-            "docs/solutions/Invoice-approval/overview.md",
-            "docs/solutions/invoice_approval/overview.md",
-            "docs/solutions/invoice approval/overview.md",
-            "docs/solutions/-invoice/overview.md",
-            "docs/solutions/invoice-/overview.md",
-            "docs/solutions/invoice--approval/overview.md",
-            "docs/solutions/zażółć/overview.md",
-            "docs/solutions/overview.md",
-            "docs/solutions",
-            "docs/other/overview.md",
-            "docs/workspace-topology.md",
-        )
-        for path in invalid:
-            with self.subTest(path=path):
-                self.assertEqual("deny", self.edit(path))
-        self.assertEqual("allow", self.edit("docs/solutions/invoice-v2/overview.md"))
-        self.assertEqual("deny", self.invoke({"files": [*self.paths, invalid[0]]}))
+    def test_every_role_can_create_and_update_solution_and_other_documentation(self):
+        for role in roles.ROLES:
+            for path in (*self.paths, "docs/solutions/Billing/extra.md", "docs/other/overview.md"):
+                with self.subTest(role=role, path=path):
+                    self.assertEqual("allow", self.edit(self.root / path, role=role))
+                    self.write(path)
+                    self.assertEqual("allow", self.edit(path, role=role))
 
-    def test_absolute_nested_cwd_and_native_separator_paths_keep_the_same_boundary(self):
-        self.assertEqual("allow", self.edit(self.root / self.paths[0]))
-        folder = self.root / "docs/solutions/invoice-approval"
-        folder.mkdir(parents=True)
-        self.assertEqual("allow", self.edit("overview.md", cwd=folder))
-        self.assertEqual("deny", self.edit(self.root.parent / self.paths[0]))
-        self.assertEqual("allow" if os.name == "nt" else "deny",
-                         self.edit(r"docs\solutions\invoice-approval\overview.md"))
-        self.assertEqual("deny", self.edit(r"docs\solutions\invoice-approval\..\..\..\work-items\123\design.md"))
-
-    def test_traversal_cannot_reenter_solution_scope_or_other_developer_grants(self):
-        for path in (
-            "docs/solutions/invoice-approval/../other/overview.md",
-            "docs/solutions/invoice-approval/../../../work-items/123-example/design.md",
-            "docs/solutions/invoice-approval/../../../output/documentation/example.md",
-            "docs/solutions/invoice-approval/../../../../outside.md",
-            "work-items/../docs/solutions/invoice-approval/overview.md",
-            "docs/../docs/solutions/invoice-approval/overview.md",
-        ):
-            with self.subTest(path=path):
-                self.assertEqual("deny", self.edit(path))
-
-    def test_solution_file_symlinks_cannot_redirect_into_any_existing_grant(self):
-        targets = (
-            "work-items/123-example/design.md",
-            "output/documentation/example.md",
-            ".cache/ado-items/item.md",
-            "force-app/main/default/classes/Example.cls",
-            "docs/solutions/other/overview.md",
-            "docs/workspace-topology.md",
-        )
-        for index, target in enumerate(targets):
-            with self.subTest(target=target):
-                file = self.write(target, "Preserve me\n")
-                alias = self.symlink(f"docs/solutions/alias-{index}/overview.md", file)
-                self.assertEqual("deny", self.edit(alias))
-                self.assertEqual("Preserve me\n", file.read_text())
-        outside = self.root.parent / "outside.md"
-        outside.write_text("Outside repository\n")
-        self.assertEqual("deny", self.edit(self.symlink("docs/solutions/outside/overview.md", outside)))
-
-    def test_directory_symlinks_and_aliases_into_solution_documents_are_denied(self):
-        target = self.write(self.paths[0])
-        for alias in ("work-items/123-alias/overview.md", "docs/solutions/invalid/extra.md"):
-            with self.subTest(alias=alias):
-                self.assertEqual("deny", self.edit(self.symlink(alias, target)))
-        allowed_folder = self.write("work-items/123-target/overview.md").parent
-        alias = self.symlink("docs/solutions/directory-alias", allowed_folder, directory=True)
-        self.assertEqual("deny", self.edit(alias / "overview.md"))
-        # The docs/solutions ancestor itself must not redirect to another allowed tree.
-        separate_root = self.root / "second"
-        separate_root.mkdir()
-        (separate_root / "docs").mkdir()
-        self.symlink("second/docs/solutions", self.root / "work-items", directory=True)
-        original_root = self.root
-        try:
-            self.root = separate_root
-            self.assertEqual("deny", self.edit("docs/solutions/123-target/overview.md"))
-        finally:
-            self.root = original_root
-
-    def test_hard_links_and_directories_do_not_receive_file_write_authority(self):
-        protected = self.write(".github/copilot-instructions.md", "Protected instructions\n")
-        target = self.root / self.paths[0]
-        target.parent.mkdir(parents=True)
-        os.link(protected, target)
-        self.assertEqual("deny", self.edit(target))
-        self.assertEqual("Protected instructions\n", protected.read_text())
-        directory = self.root / self.paths[1]
-        directory.mkdir()
-        self.assertEqual("deny", self.edit(directory))
-
-    def test_other_role_authorities_and_existing_developer_lanes_are_unchanged(self):
-        for role in roles.ALLOWED_PREFIXES:
+    def test_aliases_cannot_reach_protected_files_or_leave_the_repository(self):
+        protected = self.write("scripts/copilot_safety_hook.py", "# guard\n")
+        outside = Path(self.temp.name) / "outside.md"
+        outside.write_text("outside\n", encoding="utf-8")
+        self.symlink("docs/solutions/invoice-approval/overview.md", protected)
+        self.symlink("docs/solutions/invoice-approval/flows.md", outside)
+        for role in roles.ROLES:
             with self.subTest(role=role):
-                expected = "allow" if role in {"developer", "workspace-maintainer"} else "deny"
+                expected = "ask" if role == roles.MAINTAINER_ROLE else "deny"
                 self.assertEqual(expected, self.edit(self.paths[0], role=role))
-        # Maintainer already owns docs; the new filename restriction adds no role restriction.
-        self.assertEqual("allow", self.edit("docs/solutions/invoice-approval/notes.md", role="workspace-maintainer"))
-        for path in ("work-items/123-example/technical-documentation.md",
-                     "output/documentation/example.md", "docs/org-changes/2026-09-30-example.md",
-                     "force-app/main/default/classes/Example.cls"):
-            with self.subTest(path=path):
-                self.assertEqual("allow", self.edit(path))
-        self.assertEqual("deny", self.edit(".ai/memory/example.md"))
+                self.assertEqual("deny", self.edit(self.paths[1], role=role))
+                self.assertEqual(expected, self.edit("docs/../scripts/copilot_safety_hook.py", role=role))
+                self.assertEqual("deny", self.edit("../outside.md", role=role))
+        self.assertEqual("# guard\n", protected.read_text(encoding="utf-8"))
 
 
 class SolutionDocumentationGitTests(SolutionDocumentationFixture):
@@ -230,7 +130,7 @@ class SolutionDocumentationGitTests(SolutionDocumentationFixture):
             self.write(path)
         self.write("docs/solutions/invoice-approval/extra.md")
         self.assertEqual("allow", self.git_decision("add", "--", *self.paths, "docs/solutions/invoice-approval/extra.md"))
-        for role in roles.ALLOWED_PREFIXES:
+        for role in roles.ROLES:
             with self.subTest(role=role):
                 self.assertEqual("allow", self.git_decision("add", "--", *self.paths, role=role))
 

@@ -23,10 +23,6 @@
       "purpose": "Ignored transient caches, drafts, receipts"
     },
     {
-      "path": ".githooks",
-      "purpose": "Git commit-message hook"
-    },
-    {
       "path": ".github",
       "purpose": "Copilot surface: kernel, agents, prompts, skills, hooks, CI"
     },
@@ -92,12 +88,12 @@
     },
     {
       "path": "work-items",
-      "purpose": "Durable work: one stable folder per work item \u2014 ado-context.md (ADO requirement snapshot), design.md (intent), tasks.md (progress), decisions.md (deviations), qa-test-plan.md (optional QA handoff), technical-documentation.md (optional change documentation)"
+      "purpose": "Durable work: one stable folder per work item — ado-context.md (ADO requirement snapshot), design.md (intent), tasks.md (progress), decisions.md (deviations), qa-test-plan.md (optional QA handoff), technical-documentation.md (optional change documentation)"
     }
   ],
   "resumeHere": [
     "Decisions: `.ai/memory/decisions-log.md`.",
     "Deep tree: `docs/workspace-topology.md`; setup: `docs/setup-zero-to-first-prompt.md`.",
-    "Resume work from work-items/<id>-<slug>/: ado-context.md is the ADO requirement (when ADO-backed), design.md the intent, tasks.md the state, decisions.md the deviations; optional qa-test-plan.md and technical-documentation.md are projections read only when the task needs them \u2014 chat is never workflow truth"
+    "Resume work from work-items/<id>-<slug>/: ado-context.md is the ADO requirement (when ADO-backed), design.md the intent, tasks.md the state, decisions.md the deviations; optional qa-test-plan.md and technical-documentation.md are projections read only when the task needs them — chat is never workflow truth"
   ]
 }

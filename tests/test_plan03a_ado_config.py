@@ -74,71 +74,16 @@ class AdoHookTests(unittest.TestCase):
         result = json.loads(output.getvalue())
         return "allow" if result.get("continue") else result["hookSpecificOutput"]["permissionDecision"]
 
-    def test_real_config_load_ignores_absent_empty_and_conflicting_legacy_env(self):
+    def test_project_scope_is_not_a_hard_stop(self):
+        # Plan 05, D-R1: the hook no longer blocks ADO reads for a missing config or for a
+        # project outside the configured one; the ADO tool capability rules stay.
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            self.assertEqual("allow", self.invoke(root, {"project": ["Other Project"]}))
             (root / "config").mkdir()
-            path = root / "config/harness.local.json"
-            for env in ({}, {"ADO_ORGANIZATION": ""}, {"ADO_ORGANIZATION": " "},
-                        {"ADO_ORGANIZATION": "other-org"}):
-                with self.subTest(env=env), patch.dict(os.environ, env, clear=True):
-                    path.write_text(json.dumps(CONFIG))
-                    self.assertEqual("allow", self.invoke(root, {"project": ["Example Project"]}))
-                    self.assertEqual("deny", self.invoke(root, {"project": ["Other Project"]}))
-                    path.write_text('{"ado": null}')
-                    self.assertEqual("deny", self.invoke(root, {"project": ["Example Project"]}))
-                    path.write_text('{')
-                    self.assertEqual("deny", self.invoke(root, {"project": ["Example Project"]}))
+            (root / "config/harness.local.json").write_text(json.dumps(CONFIG))
+            self.assertEqual("allow", self.invoke(root, {"project": ["Other Project"]}))
 
-    def test_project_must_be_the_vendor_top_level_parameter(self):
-        for payload in ({}, {"project": []}, {"project": ["Example Project", "Other Project"]},
-                        {"project": [None]}, {"project": {"name": "Example Project"}},
-                        {"projectName": "Example Project"}, {"projectId": "Example Project"},
-                        {"extra": {"project": "Example Project"}}):
-            with self.subTest(payload=payload):
-                self.assertIsNotNone(safety.ado_scope_error(CONFIG, payload))
-        for value in ("Example Project", ["Example Project"]):
-            self.assertIsNone(safety.ado_scope_error(CONFIG, {"project": value}))
-
-    def test_alternative_project_selectors_cannot_override_the_allowed_project(self):
-        # The top-level project proves the search filter. Alternative selectors
-        # still need checking because other installed vendor tools consume them.
-        for key in ("projectId", "project_id", "project-id", "ProjectName", "project_name", "project-name",
-                    "pullRequestProjectId", "pull_request_project_id", "pullrequestproject_id", "pull-request-project-id"):
-            for value in ("Other Project", ["Example Project", "Other Project"]):
-                for location in ("top-level", "nested"):
-                    with self.subTest(key=key, value=value, location=location):
-                        payload = {"project": "Example Project"}
-                        if location == "top-level":
-                            payload[key] = value
-                        else:
-                            payload["parameters"] = [{key: value}]
-                        self.assertIsNotNone(safety.ado_scope_error(CONFIG, payload))
-        self.assertIsNotNone(safety.ado_scope_error(CONFIG, {
-            "project": "Example Project", "parameters": {"project": "Other Project"},
-        }))
-
-    def test_malformed_alternative_project_selectors_do_not_disappear_from_validation(self):
-        for value in (None, False, 42, "", " ", [], {}, {"name": "Example Project"},
-                      [None], ["Example Project", None], [["Example Project"]]):
-            with self.subTest(value=value):
-                self.assertIsNotNone(safety.ado_scope_error(CONFIG, {
-                    "project": "Example Project", "projectId": value,
-                }))
-
-    def test_matching_project_aliases_cannot_replace_the_required_top_level_project(self):
-        for key in ("projectId", "project_id", "projectName", "project_name", "pullRequestProjectId"):
-            for value in ("Example Project", ["Example Project"]):
-                with self.subTest(key=key, value=value):
-                    self.assertIsNone(safety.ado_scope_error(CONFIG, {
-                        "project": ["Example Project"], key: value,
-                    }))
-                    self.assertIsNotNone(safety.ado_scope_error(CONFIG, {key: value}))
-                    self.assertIsNotNone(safety.ado_scope_error(CONFIG, {
-                        "parameters": {"project": "Example Project", key: value},
-                    }))
-
-    @unittest.skipUnless(shutil.which("node"), "Node is required for the pinned vendor scope contract")
     def test_pinned_vendor_project_id_target_is_denied_by_the_full_hook(self):
         payload = {
             "project": "Example Project", "projectId": "OTHER-PROJECT-GUID",
@@ -183,30 +128,6 @@ console.log(JSON.stringify({ parsed, calls }));
             self.assertEqual("deny", self.invoke(
                 ROOT, payload, "ado-readonly/wit_link_work_item_to_pull_request",
             ))
-
-    def test_url_cannot_override_org_project_or_origin(self):
-        for url in (
-            "https://dev.azure.com/example-org/OtherProject/_wiki/wikis/wiki/12/Page",
-            "https://dev.azure.com/example-org/Example%20Project/OtherProject/_wiki/wikis/wiki/12/Page",
-            "https://dev.azure.com/example-org/Example%20Project/%5fwiki/wikis/wiki/OtherProject/_wiki/wikis/other/12/Page",
-            "https://example-org.visualstudio.com/OtherProject/_wiki/wikis/wiki/12/Page",
-            "https://dev.azure.com/other-org/Example%20Project/_apis/wit/workitems/1",
-            "https://dev.azure.com/example-org-evil/Example%20Project/_apis/wit/workitems/1",
-            "https://dev.azure.com/example-org/Example%20Project/../OtherProject/_wiki",
-            "https://dev.azure.com/example-org/Example%20Project/%2e%2e/OtherProject/_wiki",
-            "https://dev.azure.com/example-org/Example%20Project%2fOtherProject/_wiki",
-            "https://dev.azure.com/example-org/Example%20Project/%5cOtherProject/_wiki",
-            "http://dev.azure.com/example-org/Example%20Project/_wiki",
-            "https://secret@dev.azure.com/example-org/Example%20Project/_wiki",
-            "https://dev.azure.com:443/example-org/Example%20Project/_wiki",
-            "https://example.com/Example%20Project/_wiki",
-            "ftp://dev.azure.com/example-org/Example%20Project/_wiki",
-        ):
-            with self.subTest(url=url):
-                self.assertIsNotNone(safety.ado_scope_error(CONFIG, {"project": "Example Project", "url": url}))
-        self.assertIsNone(safety.ado_scope_error(CONFIG, {"project": "Example Project", "url":
-            "https://dev.azure.com/example-org/Example%20Project/_wiki/wikis/wiki?pagePath=%2FHome"}))
-
 
 class AdoWiringTests(unittest.TestCase):
     def audit_with(self, relative, mutate):

@@ -67,11 +67,8 @@ For design work, follow the [solution-design skill](../skills/solution-design/SK
 its order — the skill is the sole step-by-step procedure, and its Stage 1 local routing
 (persisted context, item type, delivery container, delivery-map membership) always completes
 before any discovery. Use the shared [Git Workflow](../skills/git-workflow/SKILL.md) to
-stage and commit completed intake/design milestones after verification. All Git/gh commands
-are available; branch schemes are conventions, not gates. Hooks validate only commit-message
-syntax and matching IDs. Preserve unrelated work. Push, PR writes, merge, and destructive
-actions require an explicit human instruction. No Git Agent handoff is required. The only
-extra PR-description editor path is `.cache/github/pr-body.md`.
+stage and commit completed intake/design milestones after verification. Local Git is
+available. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Preserve unrelated work.
 
 The result goes to `work-items/<id>-<slug>/design.md`: intended behavior and rationale, written before
 implementation, naming its requirement baseline for ADO-backed work, with the acceptance

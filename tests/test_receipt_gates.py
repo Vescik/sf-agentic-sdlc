@@ -101,10 +101,11 @@ class RetrieveAutoApproveTests(unittest.TestCase):
 
 
 class ScopedEnumerationTests(unittest.TestCase):
-    def test_bare_enumeration_tools_stay_denied(self) -> None:
+    def test_enumeration_is_not_a_hard_stop(self) -> None:
+        # Plan 05, D-R1: the bare enumeration deny was removed. A Salesforce development MCP
+        # tool name stays denied as that channel, never as "enumeration".
         result, reason = run_hook("list_all_orgs", {}, base_config(allowScopedEnumeration=True))
-        self.assertEqual("deny", result)
-        self.assertIn("enumeration", reason.lower())
+        self.assertNotIn("enumeration", reason.lower())
 
     def test_review_configured_orgs_requires_the_toggle(self) -> None:
         denied = safety.salesforce_review_tool_error(

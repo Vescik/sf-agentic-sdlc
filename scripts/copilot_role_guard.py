@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import fnmatch
 import os
 import re
 import shlex
@@ -39,41 +40,19 @@ ado_policy = _optional_policy("ado_tool_policy")
 from typing import Any, Iterable
 
 
-ALLOWED_PREFIXES = {
-    # Read-only evidence collector: writes only its sanitized reports (the Knowledge draft
-    # and org-usage lanes were removed 2026-11-15).
-    "config-investigator": (
-        "output/investigations/",
-        "output/reference-data/",
-    ),
-    "test-strategist": (
-        "output/feature-health/",
-        ".cache/ado-items/",
-        ".cache/ado-wiki/",
-    ),
-    # Context-first roles (plan 2026-08-07 phase 3).
-    "designer": (
-        ".cache/ado-items/",
-        ".cache/ado-wiki/",
-        "work-items/",
-    ),
-    "developer": (
-        "output/documentation/",
-        ".cache/ado-items/",
-        ".cache/ado-wiki/",
-        "work-items/",
-    ),
-    "reviewer": (),
-    "git-agent": (),
-    # Workspace control plane (plan 2026-08-11): the maintainer's edit authority is the
-    # three-way taxonomy below (allow/ask/deny), not a prefix tuple — the empty tuple keeps
-    # the role enumerable (CLI --role choices, contract tests) without granting a prefix.
-    "workspace-maintainer": (),
-}
+# Custom agents that run this guard. Edit authority is the shared protected-file list below
+# (plan 05, D-R2), not a per-role allowlist.
+ROLES = (
+    "config-investigator",
+    "designer",
+    "developer",
+    "git-agent",
+    "reviewer",
+    "test-strategist",
+    "workspace-maintainer",
+)
 
 HARNESS_ROOT = Path(__file__).resolve().parents[1]
-METADATA_ROOT = HARNESS_ROOT
-METADATA_EDIT_PREFIXES = ("force-app/", "manifest/", "tests/e2e/")
 # The runtime ID, canonical extension reference and documented short reference only.
 # Never recognize another server/extension by a matching suffix or substring.
 NATIVE_OPERATION_TOOLS = frozenset({
@@ -131,13 +110,9 @@ def validate_deploy_command_allowed(parts: list[str], role: str) -> bool:
     return True
 
 
-# Workspace control plane (plan 2026-08-11). The maintainer role owns bounded workspace
-# maintenance with a three-way edit decision: standard control-plane paths allow, the
-# root-of-trust set (files that define permissions or external capability) returns `ask` so a
-# human confirms every such edit, and everything else — delivery source, work items, memory,
-# local config, caches — stays deny. All matching is casefolded so an NTFS/macOS
-# case variant cannot turn an `ask` surface into a silent allow; the deny and ask sets are
-# checked before the allow sets, so the strictest classification always wins.
+# Root-of-trust files: they define permissions or external capability. They are part of the
+# protected list; only the workspace maintainer may change them, after a person confirms.
+# All matching is casefolded so an NTFS/macOS case variant cannot slip past.
 MAINTAINER_ROLE = "workspace-maintainer"
 ROOT_OF_TRUST_EXACT = frozenset(
     path.casefold()
@@ -153,8 +128,6 @@ ROOT_OF_TRUST_EXACT = frozenset(
         "scripts/ado_wiki_link_tools.mjs",
         "scripts/salesforce_operation_policy.py",
         "scripts/git_workflow_policy.py",
-        "scripts/install_git_message_hook.py",
-        ".githooks/commit-msg",
         "scripts/salesforce_operation_session.py",
         "scripts/salesforce_job_selection.py",
         "scripts/salesforce_job_executor.mjs",
@@ -168,75 +141,49 @@ ROOT_OF_TRUST_EXACT = frozenset(
     )
 )
 ROOT_OF_TRUST_PREFIXES = (".github/agents/", "extensions/salesforce-operations/")
-# Always denied to the maintainer, even where an allow prefix would otherwise match.
-# config/harness.local.json is gitignored and human-owned: hard deny, not ask.
-MAINTAINER_DENIED_EXACT = frozenset({"config/harness.local.json"})
-MAINTAINER_DENIED_PREFIXES = (
-    "force-app/",
-    "manifest/",
-    "tests/e2e/",
-    "work-items/",
-    ".ai/memory/",
-    ".cache/",
-    "output/",
-    ".sf/",
-    ".sfdx/",
-)
-MAINTAINER_ALLOWED_PREFIXES = (
-    ".github/prompts/",
-    ".github/skills/",
+# Shared protected control files (plan 05, D-R2). Per-role edit allowlists were removed: every
+# role may edit the repository except these files, which define the agents' own limits. No agent
+# writes them; the workspace maintainer may, after a person confirms each edit ("ask").
+PROTECTED_PREFIXES = (
+    ".github/hooks/",
+    ".github/agents/",
     ".github/instructions/",
-    "docs/",
-    "evals/",
-    "tests/",
-    "schemas/",
-    "scripts/",
+    ".githooks/",
+    ".vscode/",
     "config/",
-    ".ai/contracts/",
+    "schemas/",
+    "extensions/salesforce-operations/",
 )
-MAINTAINER_ALLOWED_EXACT = frozenset(
-    path.casefold()
-    for path in (
-        ".github/pull_request_template.md",
-        ".github/CODEOWNERS",
-        ".ai/repo-map.json",
-        ".ai/repo-map.md",
-        "README.md",
-        "SETUP.md",
-        "CONTRIBUTING.md",
-        "package.json",
-        "package-lock.json",
-        "requirements-dev.txt",
-        "requirements-dev.lock",
-        "eslint.config.js",
-        ".prettierignore",
-        ".prettierrc",
-        ".nvmrc",
-        ".forceignore",
-        ".gitattributes",
-        ".gitignore",
+PROTECTED_PATTERNS = (
+    "scripts/copilot_*.py",
+    "scripts/*_policy.py",
+    "scripts/start_*_mcp.mjs",
+)
+PROTECTED_EXACT = frozenset(
+    path.casefold() for path in (".github/mcp.json", "scripts/check_delivery.py", "scripts/sdlc.py", "sf-harness.code-workspace")
+) | ROOT_OF_TRUST_EXACT
+# Local, human-owned configuration: never written by an agent, not even after a question.
+NEVER_EDITED_EXACT = frozenset({"config/harness.local.json"})
+
+
+def protected_path(relative_path: str) -> bool:
+    lowered = relative_path.casefold()
+    return (
+        lowered in PROTECTED_EXACT
+        or any(lowered.startswith(prefix) for prefix in PROTECTED_PREFIXES)
+        or any(fnmatch.fnmatchcase(lowered, pattern) for pattern in PROTECTED_PATTERNS)
     )
-)
 
 
-def maintainer_edit_decision(relative_path: str) -> str:
-    """Three-way decision for one normalized repo-relative path: allow | ask | deny."""
+def edit_decision(relative_path: str, role: str) -> str:
+    """allow | ask | deny for one normalized repository-relative path (plan 05, D-R2)."""
     if relative_path.startswith("OUTSIDE::"):
         return "deny"
-    lowered = relative_path.casefold()
-    if lowered in MAINTAINER_DENIED_EXACT:
+    if relative_path.casefold() in NEVER_EDITED_EXACT:
         return "deny"
-    if any(lowered.startswith(prefix) for prefix in MAINTAINER_DENIED_PREFIXES):
-        return "deny"
-    if lowered in ROOT_OF_TRUST_EXACT or any(
-        lowered.startswith(prefix) for prefix in ROOT_OF_TRUST_PREFIXES
-    ):
-        return "ask"
-    if lowered in MAINTAINER_ALLOWED_EXACT or any(
-        lowered.startswith(prefix) for prefix in MAINTAINER_ALLOWED_PREFIXES
-    ):
-        return "allow"
-    return "deny"
+    if protected_path(relative_path):
+        return "ask" if role == MAINTAINER_ROLE else "deny"
+    return "allow"
 
 
 # Validation-only terminal grant for the maintainer (plan §9.2): exact command shapes with
@@ -282,27 +229,6 @@ def maintainer_terminal_command_allowed(parts: list[str], root: Path) -> bool:
                 for arg in rest[2:]
             )
     return False
-
-
-# Interactive QA test-plan handoff (owner plan 2026-08-11, D18): the Test Strategist's only
-# tracked work-item write is the exact per-item QA plan file. A `work-items/` prefix grant
-# would hand the role the sibling authorities (ado-context.md, design.md, tasks.md,
-# decisions.md), so this is an exact-path predicate, not a prefix — positive item id,
-# non-empty slug, exact filename, nothing deeper. Case variants and traversal fail closed:
-# normalize_path resolves `..` before matching, and a spelling variant simply doesn't match.
-QA_TEST_PLAN_PATTERN = re.compile(r"work-items/[1-9][0-9]*-[^/]+/qa-test-plan\.md")
-QA_TEST_PLAN_ROLES = frozenset({"test-strategist"})
-# Operational org-change history has one role owner and one bounded standalone fallback.
-# The README remains policy documentation, not a Developer-write target.
-WORK_ITEM_ORG_CHANGE_LOG_PATTERN = re.compile(
-    r"work-items/[1-9][0-9]*-[^/]+/org-changes\.md"
-)
-STANDALONE_ORG_CHANGE_LOG_PATTERN = re.compile(
-    r"docs/org-changes/[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9][a-z0-9-]*\.md"
-)
-# Solution documentation is an exact three-file grant, never a docs/ prefix grant.
-SOLUTION_DOCUMENTATION_PATTERN = (git_policy.SOLUTION_DOCUMENTATION_PATTERN
-                                  if git_policy is not None else re.compile(r"(?!)"))
 
 
 PATH_KEYS = {
@@ -532,70 +458,25 @@ def allowed_role_command(command: str, root: Path, role: str) -> bool:
     # work (2026-07-14 usability fix — these were denied and caused live flailing).
     if script in (validate_harness, run_evals):
         return not remainder
+    if script == (root / "scripts/check_delivery.py").resolve():
+        return check_delivery_arguments_allowed(remainder)
     if script == (root / "scripts/validate_salesforce_deploy.py").resolve():
         return validate_deploy_command_allowed(remainder, role)
     return False
 
 
-def resolve_candidate(raw: str, resolution_root: Path) -> Path | None:
-    if not raw or raw.startswith(("http://", "https://")):
-        return None
-    candidate = Path(os.path.expanduser(raw))
-    if not candidate.is_absolute():
-        candidate = resolution_root / candidate
-    return candidate.resolve(strict=False)
+CHECK_DELIVERY_FLAGS = frozenset({"--work-item", "--base", "--org", "--deploy-job-id"})
 
 
-def development_edit_allowed(raw: str, resolution_root: Path, role: str = "developer") -> bool:
-    solution_decision = solution_documentation_edit_decision(raw, resolution_root)
-    if solution_decision is not None:
-        return role == "developer" and solution_decision
-    if git_policy.pr_body_path(METADATA_ROOT, str(resolution_root / raw)):
-        return role in git_policy.PUBLISH_ROLES
-    candidate = resolve_candidate(raw, resolution_root)
-    if candidate is None:
-        return True
-    try:
-        brain_relative = candidate.relative_to(METADATA_ROOT.resolve()).as_posix()
-    except ValueError:
-        return False
-    if any(brain_relative.startswith(prefix) for prefix in METADATA_EDIT_PREFIXES):
-        return True
-    if STANDALONE_ORG_CHANGE_LOG_PATTERN.fullmatch(brain_relative):
-        return role == "developer"
-    return allowed(brain_relative, ALLOWED_PREFIXES[role])
-
-
-def solution_documentation_edit_decision(raw: str, resolution_root: Path) -> bool | None:
-    """Check both the requested name and its target before other Developer grants."""
-    if not raw or raw.startswith(("http://", "https://")):
-        return None
-    candidate = Path(os.path.expanduser(raw))
-    if not candidate.is_absolute():
-        candidate = resolution_root / candidate
-    root = METADATA_ROOT.resolve()
-    try:
-        lexical = candidate.relative_to(root).as_posix()
-    except ValueError:
-        lexical = ""
-    try:
-        resolved = candidate.resolve(strict=False).relative_to(root).as_posix()
-    except ValueError:
-        resolved = ""
-    except (OSError, RuntimeError):
-        return False
-    if not any(path.casefold() == "docs/solutions" or path.casefold().startswith("docs/solutions/")
-               for path in (lexical, resolved)):
-        return None
-    if not SOLUTION_DOCUMENTATION_PATTERN.fullmatch(lexical):
-        return False
-    try:
-        # Reuse the Git workflow's existing traversal, symlink and containment checks.
-        git_policy.exact_path(root, lexical)
-        # An in-place editor write must not alter a protected hard-linked file.
-        return not candidate.exists() or (candidate.is_file() and candidate.stat().st_nlink == 1)
-    except (ValueError, OSError):
-        return False
+def check_delivery_arguments_allowed(arguments: list[str]) -> bool:
+    """scripts/check_delivery.py with its own flags only; --output stays the default report."""
+    index = 0
+    while index < len(arguments):
+        flag, _, value = arguments[index].partition("=")
+        if flag not in CHECK_DELIVERY_FLAGS:
+            return False
+        index += 1 if value else 2
+    return index == len(arguments) and "--work-item" in {a.partition("=")[0] for a in arguments}
 
 
 def collect_paths(value: Any, parent_key: str = "") -> Iterable[str]:
@@ -632,31 +513,6 @@ def normalize_path(raw: str, resolution_root: Path, policy_root: Path) -> str | 
         return f"OUTSIDE::{candidate.resolve(strict=False)}"
 
 
-def allowed(relative_path: str, prefixes: tuple[str, ...]) -> bool:
-    if relative_path.startswith("OUTSIDE::"):
-        return False
-    return any(
-        relative_path.startswith(prefix)
-        if prefix.endswith("/")
-        else relative_path == prefix
-        for prefix in prefixes
-    )
-
-
-def role_path_allowed(relative_path: str, role: str) -> bool:
-    if relative_path == git_policy.PR_BODY:
-        return role in git_policy.PUBLISH_ROLES
-    if SOLUTION_DOCUMENTATION_PATTERN.fullmatch(relative_path):
-        return role == "developer"
-    if WORK_ITEM_ORG_CHANGE_LOG_PATTERN.fullmatch(relative_path):
-        return role == "developer"
-    if STANDALONE_ORG_CHANGE_LOG_PATTERN.fullmatch(relative_path):
-        return role == "developer"
-    if role in QA_TEST_PLAN_ROLES and QA_TEST_PLAN_PATTERN.fullmatch(relative_path):
-        return True
-    return allowed(relative_path, ALLOWED_PREFIXES[role])
-
-
 def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True) -> dict[str, Any]:
     tool_name = str(event.get("tool_name", ""))
     _EVENT_CONTEXT["tool"] = tool_name
@@ -687,7 +543,7 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
     if is_execute_tool(tool_name):
         command = terminal_command(event.get("tool_input", {}))
         if inspect_git and git_policy is not None:
-            admission = git_policy.inspect_command(command, event_root)
+            admission = git_policy.inspect_command(command, event_root, role=role)
             if admission.has_git:
                 if admission.decision == "deny":
                     return response("deny", admission.reason)
@@ -700,8 +556,6 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
                 return response()
         if git_policy is None and re.search(r"\b(?:git|gh)(?:\.exe)?\b", command):
             return response("deny", "Git message validator could not load; restore scripts/git_workflow_policy.py.")
-        if event_root != root:
-            return response("deny", f"{role} non-Git terminal commands must run from the brain-core root.")
         if role == "git-agent":
             try:
                 parts = shlex.split(command.replace("\\", "/"))
@@ -739,24 +593,6 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
         names_body = Path(os.path.normpath(lexical)) == root / git_policy.PR_BODY
         if (resolves_to_body or names_body) and not git_policy.pr_body_path(root, str(lexical)):
             return response("deny", "The PR body must be a repository-contained regular file without symlinks or hard links.")
-    if role == "developer":
-        if not raw_paths:
-            return response(
-                        "ask",
-                        f"{role} requested an edit whose target path could not be determined.",
-                    )
-        denied_raw = sorted(
-            raw
-            for raw in raw_paths
-            if not development_edit_allowed(raw, event_root, role)
-        )
-        if denied_raw:
-            return response(
-                        "deny",
-                        f"{role} may edit only root Salesforce force-app/manifest/tests/e2e source, work items, reviewed documentation, and ignored ADO cache: {', '.join(denied_raw)}",
-                    )
-        return response()
-
     found = {
         normalized
         for raw in raw_paths
@@ -767,40 +603,29 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
                     "ask",
                     f"{role} requested an edit whose target path could not be determined.",
                 )
-
-    if role == MAINTAINER_ROLE:
-        decisions = {path: "allow" if path == git_policy.PR_BODY else maintainer_edit_decision(path) for path in found}
-        denied = sorted(path for path, decision in decisions.items() if decision == "deny")
-        if denied:
-            # Any denied path fails the whole multi-file operation — no partial edits.
-            return response(
-                        "deny",
-                        "workspace-maintainer may edit only the workspace control plane "
-                        f"(root-of-trust files need confirmation); denied: {', '.join(denied)}",
-                    )
-        asked = sorted(path for path, decision in decisions.items() if decision == "ask")
-        if asked:
-            return response(
-                        "ask",
-                        "Root-of-trust change — these files define permissions or external "
-                        f"capability: {', '.join(asked)}. Confirm only if the agent has stated "
-                        "the exact capability/safety impact and affected files.",
-                    )
-        return response()
-
-    denied = sorted(path for path in found if not role_path_allowed(path, role))
+    decisions = {path: "allow" if path == git_policy.PR_BODY else edit_decision(path, role) for path in found}
+    denied = sorted(path for path, decision in decisions.items() if decision == "deny")
     if denied:
+        # Any denied path fails the whole multi-file operation — no partial edits.
         return response(
                     "deny",
-                    f"{role} may not edit: {', '.join(denied)}",
+                    f"{role} may not edit protected control files, local configuration or paths "
+                    f"outside the repository (plan 05, D-R2): {', '.join(denied)}",
                 )
-
+    asked = sorted(path for path, decision in decisions.items() if decision == "ask")
+    if asked:
+        return response(
+                    "ask",
+                    "Root-of-trust change — these files define permissions or external "
+                    f"capability: {', '.join(asked)}. Confirm only if the agent has stated "
+                    "the exact capability/safety impact and affected files.",
+                )
     return response()
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--role", required=True, choices=sorted(ALLOWED_PREFIXES))
+    parser.add_argument("--role", required=True, choices=sorted(ROLES))
     args = parser.parse_args()
     try:
         event = json.load(sys.stdin)

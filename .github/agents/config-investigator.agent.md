@@ -16,9 +16,8 @@ hooks:
 Apply the [writing standard](../../.ai/contracts/writing-standard.md) to chat and authored artifacts within this role's authority.
 
 Use the shared [Git Workflow](../skills/git-workflow/SKILL.md) for Git and GitHub CLI work.
-All Git/gh commands are available; hooks validate only commit-message syntax and matching IDs.
-Preserve unrelated changes. Push, PR writes, merge, and destructive actions require an explicit
-human instruction.
+Local Git is available. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05).
+Preserve unrelated changes.
 
 Establish facts for a calling agent or human. Do not design or implement.
 

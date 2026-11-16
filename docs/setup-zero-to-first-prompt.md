@@ -38,7 +38,7 @@ PowerShell before running the check — PATH changes only apply to new windows.
 Install [GitHub CLI](https://cli.github.com/) so `gh.exe` is on PATH. Check `gh --version`
 and `gh auth status` for the host used by your repository's `origin`. The human signs in;
 never send tokens to the agent. All roles can use all GitHub CLI commands within the requested
-task. Push, PR writes, merge, and destructive Git actions require an explicit human instruction.
+task. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05).
 
 ### 1.2 Python 3.12
 
@@ -291,21 +291,12 @@ fixture tests do not replace host approval checks or bounded live MCP/retrieve i
 ## Local commits and PR work
 
 All roles can use all Git/gh commands through [Git Workflow](../.github/skills/git-workflow/SKILL.md).
-Hooks validate only commit-message syntax and matching IDs. Branch names, working directories,
-paths, staging methods, commit options, and Salesforce/ADO configuration do not gate Git.
+Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Commit messages, local branch names, working directories, paths and staging methods
+are not checked.
 Active authors commit coherent results after verification and preserve unrelated changes.
 A review remains a review; editor permissions keep their existing boundaries.
 You do not need to switch to Git Agent for repository work.
 
-Install final commit-message validation once per checkout:
-
-```bash
-python3 scripts/install_git_message_hook.py
-```
-
-Use `python scripts/install_git_message_hook.py` on Windows. This local Git hook validates
-editor/file messages as well; Git's standard hook-skipping behavior remains. The pre-tool
-hook alone cannot validate a future message that does not exist yet.
 
 Ask explicitly for push, PR publication/update, merge, or destructive Git operations. One
 instruction can cover multiple operations, but publication alone does not authorize merge.

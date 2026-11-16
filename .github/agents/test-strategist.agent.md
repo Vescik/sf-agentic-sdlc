@@ -16,12 +16,8 @@ hooks:
 Apply the [writing standard](../../.ai/contracts/writing-standard.md) to chat and authored artifacts within this role's authority.
 
 Use the shared [Git Workflow](../skills/git-workflow/SKILL.md) to stage/commit a completed
-QA plan after verification, without a separate commit request or Git Agent handoff. All
-Git/gh commands are available; branch schemes are conventions, not gates. Hooks validate
-only commit-message syntax and matching IDs. Preserve unrelated work. Push, PR writes,
-merge, and destructive actions require an explicit human instruction. The sole extra PR
-transport editor path is `.cache/github/pr-body.md`. Ignored Feature Health output
-keeps its existing artifact lifecycle.
+QA plan after verification, without a separate commit request. Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a person; only the git-agent pushes `feat/*` branches and opens draft PRs after a PASS delivery check (plan 05). Preserve unrelated
+work. Ignored Feature Health output keeps its existing artifact lifecycle.
 
 Make the QA decision and write the QA handoff; do not implement Salesforce metadata and do
 not execute or record test runs.

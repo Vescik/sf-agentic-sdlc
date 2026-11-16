@@ -108,7 +108,7 @@ class GuardParserContractTests(unittest.TestCase):
             "is_governed_record_path",
         ):
             self.assertFalse(hasattr(guard, name), name)
-        self.assertNotIn("knowledge-curator", guard.ALLOWED_PREFIXES)
+        self.assertNotIn("knowledge-curator", guard.ROLES)
 
 
 if __name__ == "__main__":

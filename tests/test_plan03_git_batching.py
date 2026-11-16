@@ -41,7 +41,7 @@ class GitAdmissionStateIndependenceTests(unittest.TestCase):
             config.write_bytes(b"\xff invalid ADO configuration")
             index_before = (root / ".git/index").read_bytes()
             status_before = git("status", "--porcelain")
-            for command in ("git add .", "git commit -m '[chore] Save partial staging'", "git push origin main"):
+            for command in ("git add .", "git commit -m 'Save partial staging'", "git push origin feat/partial"):
                 self.assertEqual("allow", policy.inspect_command(command, root).decision)
             self.assertEqual(index_before, (root / ".git/index").read_bytes())
             self.assertEqual(status_before, git("status", "--porcelain"))

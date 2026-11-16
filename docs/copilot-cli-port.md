@@ -47,10 +47,11 @@ base for an SDK orchestrator.
 ## Known gaps on the CLI
 
 - **Native Salesforce operation tool.** `sf-harness.salesforce-operations/salesforceOperation`
-  is a VS Code extension tool and does not exist in the CLI. Operations that need it
-  (unknown targets, `latest`, its one-use environment and deployment dialogs) stop and report
-  (SAFE-HOST-NATIVE-001). Deploys to the configured agent org go through direct `sf`; in an
-  orchestrated run they need no question (SAFE-DEPLOY-AUTONOMY-001, `docs/orchestrator.md`).
+  is a VS Code extension tool and does not exist in the CLI. The agent uses the direct `sf` CLI
+  under the same policy instead: the environment comes from `config/harness.local.json` and a
+  `latest` selector is resolved and named explicitly (SAFE-HOST-NATIVE-001, plan 05 D-SR).
+  Deploys to the developer agent org need no question in a session started with
+  `scripts/sdlc.py` or the orchestrator (SAFE-DEPLOY-AUTONOMY-001).
 - **`ask` decisions.** The CLI turns `ask` into `deny` in autopilot mode and in the cloud
   agent. A "person says yes" gate is then a hard stop, not a question.
 - **Handoffs.** `handoffs` is a VS Code feature. On the CLI, the designer → reviewer →

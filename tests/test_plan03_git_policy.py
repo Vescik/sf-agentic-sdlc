@@ -1,4 +1,4 @@
-"""Git is unrestricted across roles; the only Git policy is commit-message format."""
+"""Git publication boundaries (plan 05, B1 and B2); commit messages are not checked (D-R1)."""
 from __future__ import annotations
 
 import json
@@ -29,28 +29,23 @@ class GitWorkflowTests(unittest.TestCase):
         out = StringIO()
         argv = ["hook", "--role", role] if module is roles else ["hook"]
         with patch("sys.stdin", StringIO(json.dumps(event))), patch("sys.argv", argv), \
-                patch.object(module, "HARNESS_ROOT", self.root), patch.object(module, "_log_decision"), \
-                patch.object(roles, "METADATA_ROOT", self.root), redirect_stdout(out):
+                patch.object(module, "HARNESS_ROOT", self.root), patch.object(module, "_log_decision"), redirect_stdout(out):
             module.main()
         result = json.loads(out.getvalue())
         return "allow" if result.get("continue") else result["hookSpecificOutput"]["permissionDecision"]
 
-    def test_every_role_can_use_all_git_and_gh_operations_without_repository_state(self):
+    def test_everyday_git_is_allowed_for_every_role_with_any_commit_message(self):
         commands = (
-            "git status", "git add .", "git add -A", "git commit -m '[chore] Record changes'",
-            "git commit -am '[docs] Explain deployment'", "git commit --amend --no-edit",
-            "git switch main", "git checkout -b arbitrary/name", "git branch -D arbitrary/name",
-            "git stash pop", "git fetch upstream", "git pull --rebase", "git rebase main",
-            "git merge arbitrary", "git cherry-pick HEAD~2", "git reset --hard HEAD",
-            "git clean -fd", "git push --force-with-lease origin HEAD:main", "git push --force",
-            "git push origin --delete old-branch", "git tag -d old", "git config user.name Example",
-            "git -C elsewhere status", "git -c color.ui=always status",
-            "gh pr create -R unrelated/project --title Example", "gh pr merge 42 --squash --admin",
-            "gh repo view unrelated/project", "gh release create v1", "gh api repos/example/project",
-            "git add . && git commit -m '[chore] Save all changes' && git push",
+            "git status", "git add .", "git add -A", "git commit -m 'unformatted subject'",
+            "git commit -am '[WI-123] Work — AB#456'", "git commit --amend --no-edit",
+            "git switch main", "git checkout -b arbitrary/name", "git branch -d merged/name",
+            "git stash pop", "git fetch upstream", "git pull --rebase", "git rebase --abort",
+            "git cherry-pick HEAD~2", "git clean -fd", "git tag -d old", "git config user.name Example",
+            "git -C elsewhere status", "git -c color.ui=always status", "gh pr view 42",
+            "gh repo view unrelated/project", "gh release view v1", "gh pr edit 42 --body-file b.md",
             "cd ../different/repository && git status", "git diff > /tmp/diff.patch",
         )
-        for role in roles.ALLOWED_PREFIXES:
+        for role in roles.ROLES:
             for command in commands:
                 with self.subTest(role=role, command=command):
                     self.assertEqual("allow", self.invoke(roles, command, role))
@@ -58,12 +53,60 @@ class GitWorkflowTests(unittest.TestCase):
             with self.subTest(hook="safety", command=command):
                 self.assertEqual("allow", self.invoke(safety, command))
 
-    def test_invalid_literal_message_denied_by_both_hooks_for_all_roles(self):
-        for role in roles.ALLOWED_PREFIXES:
-            for module in (roles, safety):
-                with self.subTest(role=role, module=module.__name__):
-                    self.assertEqual("deny", self.invoke(module, "git commit -m 'unformatted subject'", role))
-                    self.assertEqual("deny", self.invoke(module, "git commit -m '[WI-123] Work — AB#456'", role))
+    def test_operations_reserved_for_a_person_are_denied_everywhere(self):
+        # Plan 05, boundary B1.
+        commands = (
+            "git merge arbitrary", "git rebase main", "git reset --hard HEAD", "git branch -D old",
+            "git branch -d -f old", "gh pr merge 42 --squash --admin", "gh pr review 42 --approve",
+            "gh pr ready 42", "gh api repos/example/project", "gh release create v1",
+            "gh repo delete example/project", "gh secret set TOKEN", "gh auth token",
+            "git add . && git commit -m 'Save' && git merge main",
+        )
+        for command in commands:
+            with self.subTest(hook="safety", command=command):
+                self.assertEqual("deny", self.invoke(safety, command))
+            for role in roles.ROLES:
+                with self.subTest(role=role, command=command):
+                    self.assertEqual("deny", self.invoke(roles, command, role))
+
+    def git(self, *args):
+        return subprocess.run(["git", "-C", str(self.root), *args], capture_output=True, text=True, check=True).stdout.strip()
+
+    def test_push_only_feature_branches_by_the_git_agent(self):
+        # Plan 05, boundary B2.
+        self.git("init", "-q", "-b", "main")
+        self.git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", "base")
+        self.git("switch", "-q", "-c", "feat/1201-routing")
+        for command in ("git push -u origin feat/1201-routing", "git push origin HEAD:feat/1201-routing", "git push"):
+            with self.subTest(command=command):
+                self.assertEqual("allow", self.invoke(roles, command, "git-agent"))
+                self.assertEqual("allow", self.invoke(safety, command))
+                self.assertEqual("deny", self.invoke(roles, command, "developer"))
+        for command in ("git push origin main", "git push origin HEAD:main", "git push --force origin feat/x",
+                        "git push -f", "git push origin +feat/x", "git push origin :feat/x",
+                        "git push --delete origin feat/x", "git push --tags", "git push --mirror"):
+            with self.subTest(command=command):
+                self.assertEqual("deny", self.invoke(roles, command, "git-agent"))
+                self.assertEqual("deny", self.invoke(safety, command))
+
+    def test_draft_pr_needs_a_pass_delivery_check_for_head(self):
+        # Plan 05, D-B1 and boundary B2.
+        self.git("init", "-q", "-b", "main")
+        self.git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", "base")
+        head = self.git("rev-parse", "HEAD")
+        create = "gh pr create --draft --title Routing --body-file .cache/github/pr-body.md"
+        self.assertEqual("deny", self.invoke(roles, "gh pr create --title Routing", "git-agent"))
+        self.assertEqual("deny", self.invoke(roles, create, "git-agent"))
+        report = self.root / "work-items/1201-routing/delivery-check.json"
+        report.parent.mkdir(parents=True)
+        report.write_text(json.dumps({"status": "FAIL", "commit": head}), encoding="utf-8")
+        self.assertEqual("deny", self.invoke(roles, create, "git-agent"))
+        report.write_text(json.dumps({"status": "PASS", "commit": "0" * 40}), encoding="utf-8")
+        self.assertEqual("deny", self.invoke(roles, create, "git-agent"))
+        report.write_text(json.dumps({"status": "PASS", "commit": head}), encoding="utf-8")
+        self.assertEqual("allow", self.invoke(roles, create, "git-agent"))
+        self.assertEqual("allow", self.invoke(safety, create))
+        self.assertEqual("deny", self.invoke(roles, create, "developer"))
 
     def test_mixed_shell_does_not_exempt_non_git_commands(self):
         for command in (
@@ -75,14 +118,13 @@ class GitWorkflowTests(unittest.TestCase):
                 if "rm -rf" in command:
                     self.assertEqual("deny", self.invoke(safety, command))
 
-    def test_pr_body_editor_scope_stays_separate_from_git_permissions(self):
+    def test_pr_body_text_is_data_for_every_role(self):
+        # Plan 05, D-R2: no per-role edit allowlist; the PR body may quote denied commands.
         payload = {"filePath": str(self.root / policy.PR_BODY), "content": "Describe git reset --hard as data."}
-        for role in roles.ALLOWED_PREFIXES:
+        for role in roles.ROLES:
             with self.subTest(role=role):
-                self.assertEqual("allow" if role in policy.PUBLISH_ROLES else "deny",
-                                 self.invoke(roles, role=role, tool="create_file", payload=payload))
-        payload["filePath"] = str(self.root / ".cache/github/other.md")
-        self.assertEqual("deny", self.invoke(roles, role="git-agent", tool="create_file", payload=payload))
+                self.assertEqual("allow", self.invoke(roles, role=role, tool="create_file", payload=payload))
+        self.assertEqual("allow", self.invoke(safety, tool="create_file", payload=payload))
 
     def test_pr_body_editor_does_not_follow_symlinks_or_hard_links(self):
         protected = self.root / "protected.md"
@@ -98,87 +140,6 @@ class GitWorkflowTests(unittest.TestCase):
             self.skipTest("This host cannot create symlink fixtures")
         self.assertFalse(policy.pr_body_path(self.root, policy.PR_BODY))
         self.assertEqual("Keep this content", protected.read_text(encoding="utf-8"))
-
-
-class CommitMessageTests(unittest.TestCase):
-    def test_message_formats_are_independent_of_branch_context_and_ado(self):
-        for message in (
-            "[chore] Update workspace configuration", "[docs] Explain architecture\n\nAny body text.",
-            "[WI-123] Add validation — AB#123", "[FEATURE-456] Integrate billing changes AB#456\n\nSee also AB#789",
-            "[WI-123] Fixes validation AB#123\n\nCloses the bug.",
-        ):
-            with self.subTest(message=message):
-                self.assertIsNone(policy.message_error(message))
-        for message in ("", "[chore]", "[docs] ", "plain subject", "[WI-0] Work AB#0",
-                        "[WI-123] Work", "[WI-123] Work AB#124", "[WI-123] Work AB#123 AB#124",
-                        "[WI-123] Work\n\nAB#123", "# invalid subject\n[docs] Hidden later",
-                        "\n[docs] Not the first line", "\ufeff[docs] Subject starts with BOM"):
-            with self.subTest(message=message):
-                self.assertIsNotNone(policy.message_error(message))
-
-    def test_all_common_message_option_spellings(self):
-        for arguments in (
-            "-m '[chore] Save'", "--message='[chore] Save'", "-m'[chore] Save'",
-            "-am '[chore] Save'", "-aqm'[chore] Save'", "--amend -m '[chore] Save'",
-            "-m '[WI-123] Save AB#123' -m AB#456", "--message '[FEATURE-456] Save AB#456' -m AB#789",
-        ):
-            with self.subTest(arguments=arguments):
-                self.assertEqual("allow", policy.inspect_command("git commit " + arguments, Path.cwd()).decision)
-        for arguments in ("-m bad", "--message=bad", "-mbad", "-am bad", "-aqmbad", "--amend -m bad"):
-            with self.subTest(arguments=arguments):
-                self.assertEqual("deny", policy.inspect_command("git commit " + arguments, Path.cwd()).decision)
-
-    def test_message_files_follow_cd_and_git_C_without_git_subprocesses(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            target = root / "nested" / "repo"
-            target.mkdir(parents=True)
-            message = target / "message.txt"
-            message.write_text("invalid\n", encoding="utf-8")
-            for command in ("git -C nested/repo commit -F message.txt", "cd nested && git -C repo commit --file=message.txt",
-                            "git -Cnested -C repo commit -Fmessage.txt", "env -C nested/repo git commit -Fmessage.txt"):
-                with self.subTest(command=command):
-                    self.assertEqual("deny", policy.inspect_command(command, root).decision)
-            message.write_text("[chore] Saved from file\n", encoding="utf-8")
-            self.assertEqual("allow", policy.inspect_command("git -C nested/repo commit -F message.txt", root).decision)
-
-    def test_dynamic_directories_defer_file_reads_but_not_literal_messages(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            (root / "message.txt").write_text("invalid", encoding="utf-8")
-            for prefix in ('git -C "$ROOT"', 'cd "$ROOT" && git', 'env -C "$ROOT" git'):
-                with self.subTest(prefix=prefix):
-                    self.assertEqual("allow", policy.inspect_command(prefix + " commit -F message.txt", root).decision)
-                    self.assertEqual("deny", policy.inspect_command(prefix + " commit -m bad", root).decision)
-
-    def test_dynamic_editor_stdin_and_reused_messages_defer_to_native_hook(self):
-        for command in ("git commit", "git commit --amend --no-edit", "git commit -C HEAD", "git commit -F -",
-                        'git commit -m "$MESSAGE"', "git commit -F missing.txt", "git commit --fixup HEAD",
-                        "git commit --edit -m 'a draft to edit'"):
-            with self.subTest(command=command):
-                result = policy.inspect_command(command, Path.cwd())
-                self.assertTrue(result.has_git)
-                self.assertEqual("allow", result.decision)
-                self.assertFalse(result.remaining_commands)
-
-    def test_final_message_cli_returns_sanitized_errors(self):
-        with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "COMMIT_EDITMSG"
-            for message, exit_code in (
-                ("[docs] Explain Git", 0), ("sensitive invalid contents", 1),
-                ("[WI-123] Save AB#123\n# Editor reference AB#456\n", 0),
-                ("[WI-123] Save AB#123\n# ------------------------ >8 ------------------------\n+AB#456", 0),
-                ("# invalid subject\n[docs] Hidden later", 1),
-                ("# ------------------------ >8 ------------------------\n[docs] Hidden later", 1),
-                ("\n[docs] Not the first line", 1),
-                ("\ufeff[docs] Subject starts with BOM", 1),
-            ):
-                path.write_text(message, encoding="utf-8")
-                result = subprocess.run([sys.executable, policy.__file__, "--message-file", str(path)],
-                                        text=True, capture_output=True, check=False)
-                self.assertEqual(exit_code, result.returncode)
-                self.assertNotIn("sensitive", result.stderr)
-                self.assertEqual(message, path.read_text(encoding="utf-8"))
 
 
 class ShellParsingTests(unittest.TestCase):

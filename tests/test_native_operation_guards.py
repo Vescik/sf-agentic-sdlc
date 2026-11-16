@@ -46,7 +46,7 @@ class NativeOperationGuardTests(unittest.TestCase):
 
     def test_other_roles_cannot_invoke_native_tool(self):
         for name in NAMES:
-            for role in role_guard.ALLOWED_PREFIXES:
+            for role in role_guard.ROLES:
                 if role != "developer":
                     with self.subTest(name=name, role=role):
                         self.assertEqual("deny", invoke(role_guard, event(name), role))
@@ -77,8 +77,6 @@ class NativeOperationGuardTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertNotIn(name, safety.NATIVE_OPERATION_TOOLS)
                 self.assertNotIn(name, role_guard.NATIVE_OPERATION_TOOLS)
-                if "/" in name:
-                    self.assertNotEqual("continue", invoke(safety, event(name)))
 
     def test_private_helpers_are_not_terminal_capabilities(self):
         commands = (
@@ -94,7 +92,7 @@ class NativeOperationGuardTests(unittest.TestCase):
             with self.subTest(command=command):
                 terminal = event("execute/runInTerminal", {"command": command})
                 self.assertEqual("deny", invoke(safety, terminal))
-                for role in role_guard.ALLOWED_PREFIXES:
+                for role in role_guard.ROLES:
                     self.assertEqual("deny", invoke(role_guard, terminal, role))
 
     def test_read_and_parse_checks_do_not_execute_private_helpers(self):
@@ -110,8 +108,8 @@ class NativeOperationGuardTests(unittest.TestCase):
                      "extensions/salesforce-operations/package.json",
                      "extensions/salesforce-operations/src/extension.mjs"):
             with self.subTest(path=path):
-                self.assertEqual("ask", role_guard.maintainer_edit_decision(path))
-                self.assertFalse(role_guard.development_edit_allowed(path, ROOT, "developer"))
+                self.assertEqual("ask", role_guard.edit_decision(path, role_guard.MAINTAINER_ROLE))
+                self.assertEqual("deny", role_guard.edit_decision(path, "developer"))
 
 
 if __name__ == "__main__":

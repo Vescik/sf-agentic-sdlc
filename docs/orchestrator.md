@@ -64,26 +64,26 @@ It must be a `salesforce.orgs` entry. Both Salesforce review MCP entries (`.vsco
 `.github/mcp.json`) start with it (`--org-from-config`); no host prompts for an alias. The review
 facade still proves host, Org ID and IsSandbox before tools.
 
-Owner decision 2026-11-15: in an orchestrated run, retrieve, validate and deploy to the agent org
-need no fresh confirmation (SAFE-DEPLOY-AUTONOMY-001 in
-`.github/instructions/managed-package.instructions.md`):
+Owner decisions 2026-11-15 and 2026-11-16 (plan 05, D-A2): the agent org is always a developer
+org, and in a session started by the orchestrator or by `scripts/sdlc.py`, retrieve, validate,
+deploy, quick deploy and source delete to it need no fresh confirmation
+(SAFE-DEPLOY-AUTONOMY-001 in `.github/instructions/managed-package.instructions.md`):
 
-- the orchestrator starts the Copilot CLI process with `SF_AGENTIC_AUTONOMOUS_ORG=<agentOrg>`;
+- the host starts the Copilot CLI process with `SF_AGENTIC_AUTONOMOUS_ORG=<agentOrg>`;
   the hook process inherits it from the host, and no model command can set it;
-- `scripts/copilot_safety_hook.py` then allows a real `sf project deploy start` or
-  `sf deploy metadata` only when every `--target-org` is exactly the agent org and the org is
-  classified `dev`, `uat` or `stage`;
-- quick deploys, destructive source deletes, CLI defaults, other orgs and `prod` keep the
-  existing question or denial. Validate (`--dry-run`) and retrieve never needed one.
+- `scripts/copilot_safety_hook.py` then allows a real `sf project deploy start`,
+  `sf deploy metadata`, `sf project deploy quick` or `sf project delete source` only when every
+  `--target-org` is exactly the agent org and the org is classified `dev`;
+- CLI defaults, other orgs, and `uat`, `stage` or `prod` keep the existing question or denial.
 
-`--no-autonomy` turns the grant off for a run. An agent org classified `prod` never gets it.
+`--no-autonomy` turns the grant off for a run.
 
 ## Limits
 
 - **Not live-verified.** The SDK calls follow `github-copilot-sdk` 1.0.34. Run one short
   requirement end to end and record the result before relying on it.
-- **Native Salesforce operation tool.** It exists only in VS Code (SAFE-HOST-NATIVE-001). Steps
-  that need it (unconfigured targets, latest selectors, environment answers) stop and report.
+- **Native Salesforce operation tool.** It exists only in VS Code. Stations use the direct `sf`
+  CLI under the same policy instead (SAFE-HOST-NATIVE-001, plan 05 D-SR).
 - **Tool narrowing per station.** The host rejects publication and checker writes, but uses the
   agent's own tool list otherwise. Narrower per-station lists (`available_tools`) are a next step
   once the CLI tool names are confirmed on a live run.

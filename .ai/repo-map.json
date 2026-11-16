@@ -77,7 +77,7 @@
       "path": ".github/agents/git-agent.agent.md"
     },
     {
-      "description": "Challenge a design or implementation against the package constraints and house conventions. Read-only — no edit rights, no org mutations.",
+      "description": "Challenge a design or implementation against the package constraints and house conventions. Challenges, does not fix — no source edits, no org mutations.",
       "handoffs": [],
       "loads": {
         "contracts": [
@@ -182,10 +182,6 @@
     {
       "path": ".cache",
       "purpose": "Ignored transient caches, drafts, receipts"
-    },
-    {
-      "path": ".githooks",
-      "purpose": "Git commit-message hook"
     },
     {
       "path": ".github",
@@ -410,7 +406,7 @@
       "path": ".github/skills/generate-technical-documentation/SKILL.md"
     },
     {
-      "description": "Shared Git and GitHub CLI workflow for all roles, with commit-message validation and explicitly requested publication, merge, and destructive actions.",
+      "description": "Shared Git and GitHub CLI workflow for all roles; hooks reserve merge and destructive actions for a person, and only the git-agent pushes feature branches and opens draft PRs.",
       "name": "git-workflow",
       "path": ".github/skills/git-workflow/SKILL.md"
     },
@@ -462,20 +458,20 @@
   ],
   "sourceDigests": {
     ".ai/contracts/delivery-success.md": "sha256:40ccddd2044c758f8bdf178fe72f19738d2dfdb0aed2133d9f93ce7b5ada8c7a",
-    ".ai/contracts/execution-contract.md": "sha256:ae6fa65793c47d2fde0ddd8531958f1152be780e451d8954bb4389554c5c0c02",
+    ".ai/contracts/execution-contract.md": "sha256:b477e963e73bb2189896dacb2cc916c34971194f3490bfef82526f8754fbfb8d",
     ".ai/contracts/source-authority.md": "sha256:a44ef511a496cf3634ffa097a214fad075a97c5e0ac57c8e9e901e94a0627ed9",
-    ".ai/contracts/tool-capabilities.md": "sha256:ca22283a323a76022e628611dfe73af0d887a0f856970801731b4df8cb3c4151",
+    ".ai/contracts/tool-capabilities.md": "sha256:dcb7aca0f7868dd4bcf89314018d805c2694cd6ec0c4d904448e2298916da632",
     ".ai/contracts/writing-standard.md": "sha256:edf666b8198130c907f4f9bf52abc6572182dc1565025503870a0a54fdfa2b50",
-    ".github/agents/config-investigator.agent.md": "sha256:399c4a7dd6997db34e7c16022f27427ece637995d289ed3b88ef926247683036",
-    ".github/agents/designer.agent.md": "sha256:57287a1f0dffb829a0e8d720441de7f247adb9504f86a20fa015fc28588329be",
-    ".github/agents/developer.agent.md": "sha256:abc52333a849636ed0ba1dd64782af8e6155b69e06d9ede7122649f5920cda4c",
-    ".github/agents/git-agent.agent.md": "sha256:0cf7077cbdbd877ff811b3fd94d9229f9bc79e2f3769936cb8a2dc4ccc2b12c5",
-    ".github/agents/reviewer.agent.md": "sha256:d53b70b1110d6b240b7a75a6e25c1008db8b59945c7f620681474aa15d7c8d6d",
-    ".github/agents/test-strategist.agent.md": "sha256:98f4d3889cf8db677df7c8ee4aec2ce2b5377a8e906519faddbe464e1148b951",
-    ".github/agents/workspace-maintainer.agent.md": "sha256:334fcdd7b6cae8ab0babead5b9968accc1b92cd90ef05c775b18ed10b2f520cf",
+    ".github/agents/config-investigator.agent.md": "sha256:848b110ca8e0be835f45993468452befde8314f83a2f937cebb10b63b2630a8a",
+    ".github/agents/designer.agent.md": "sha256:ee4608e1b346795efe7d64e9e8d6e1fdb80fc43512eb8e3b059f1b0e91c2c6f4",
+    ".github/agents/developer.agent.md": "sha256:2389eae12195093ee06d4108ee79b4005242ad9714831ffc6bb3ccb88f13972f",
+    ".github/agents/git-agent.agent.md": "sha256:0db01651a3dbc74cd61afe7cec7711f6d1e814daf31840d7c559e8a9b8f3b7a3",
+    ".github/agents/reviewer.agent.md": "sha256:25981169161d4b2622be9054ac0cee1d9b60e80dd244643314c7d67d9f8ae3d4",
+    ".github/agents/test-strategist.agent.md": "sha256:3fa32d8f95930de067dfecd5cb7a47f928c45cbba27dee6af6e4a5763cca942b",
+    ".github/agents/workspace-maintainer.agent.md": "sha256:648182cad481fb8e9cb0d06d1523c4ebb86ea0b375dc5f821beb269574f92df8",
     ".github/instructions/apex.instructions.md": "sha256:d28260c9247d670c71353f0cdaa22195f2490d4bb1b5bf11d403861602cda5b3",
     ".github/instructions/flows.instructions.md": "sha256:63c560e27041a9bf6e89342f0df491310f6a6fb3dc3d70d1a56f6c61d5788adc",
-    ".github/instructions/managed-package.instructions.md": "sha256:4c382e4cdd0f58599113fe230de918f738d504b55057f204030b470cde1e8fba",
+    ".github/instructions/managed-package.instructions.md": "sha256:7744731fc962f14b14e84b0fea837eed28227db235626add74c67d9bf4f3d432",
     ".github/prompts/adhoc-fix.prompt.md": "sha256:a1d5cca35727b031629b277b9f523d8a0fc49043faa260f9fcbc3f1cf11bf6b8",
     ".github/prompts/check-against-principles.prompt.md": "sha256:5b50150518997cd9deed700566a4e9cd8e924fed8229a092f11735e1422b2a26",
     ".github/prompts/document-metadata-change.prompt.md": "sha256:26fa99f7bb5d403f0a79f9d28d710ab978f6e15cd2a7639dd0c78afee6ba2bb9",
@@ -492,11 +488,11 @@
     ".github/skills/adhoc-fix/SKILL.md": "sha256:0aebb2f3ae4e215d96399158db96a468e3e78bd54d8efeb7ed4a9c5904553ec9",
     ".github/skills/check-against-principles/SKILL.md": "sha256:9bca9e6125e0c5b29700ac4bb4b0404973eedbb7360dbbf04ee438fee9af64ee",
     ".github/skills/check-feature-coverage/SKILL.md": "sha256:f13b70a96c8924bd0609a748357bef63663c6118e39eef12bbcc6f95f901e99d",
-    ".github/skills/development/SKILL.md": "sha256:4b6d3d6f1033590c5b214cd3d0db0be59075eebcf1b8a0e2434d1331cadaa3c3",
+    ".github/skills/development/SKILL.md": "sha256:ba2e679e8b35919384be8be57cce7ef1884615694271a483c4827b1b5f51654e",
     ".github/skills/document-solution/SKILL.md": "sha256:6512d342653de417eb1fbdb2b1eab0ae5332ce2b424cc9b85d4ee011f14eb388",
     ".github/skills/fetch-ado-item/SKILL.md": "sha256:b2e7c7de90df45932b495a1dfeda256c2966ecf3e89d748e9ba694dbfee4b84c",
     ".github/skills/generate-technical-documentation/SKILL.md": "sha256:1a9ebcfd81ce9bf5b9e69902e26f87b3c2f164dcf6b5806de8898d7d27a4fec4",
-    ".github/skills/git-workflow/SKILL.md": "sha256:850776624b15408d9387c9ae480ab039db89362613d14356f7792f3428c899d6",
+    ".github/skills/git-workflow/SKILL.md": "sha256:7c27aa2fda71312886755161e0f2d49122c8ee7df3eecf0ce98d301340862e08",
     ".github/skills/investigate-config-records/SKILL.md": "sha256:f4f73326b1128ba0eb71841b9c6cd9c03d62b35d115e5c6a9d438192c087b5d8",
     ".github/skills/investigate-object/SKILL.md": "sha256:17ec512fbf2e74277e5ca73a0ffa19523cd03913da5c7102a6574af0e3940666",
     ".github/skills/maintain-workspace/SKILL.md": "sha256:7b30335b32b741e522e9ada11bb31784b146516ae8701fe0975eef6d82ab0f8f",
@@ -506,7 +502,7 @@
     ".github/skills/publish-wiki/SKILL.md": "sha256:bbdcdb4e7661fcbbb6ae2eb5789ef0188aeed2be7a3d4f3eda1444dbde749d6f",
     ".github/skills/search-ado/SKILL.md": "sha256:c28a742cdba3a37f43dba155b68c26cee2481cef157c4fa0c08bce398186694b",
     ".github/skills/solution-design/SKILL.md": "sha256:5f551d49af7be40b432fbe588db36fb9479ece9fb393788b0f78ab6e0bad7169",
-    "config/repo-map-seed.json": "sha256:900d25d577d75b81254ab88bb141748a16c98096c26ab9467578580a2b0552dd"
+    "config/repo-map-seed.json": "sha256:668bf2439e5ba336d5405fce384498de6a475c9b7def906b0e581831628762a0"
   },
-  "wordCount": 739
+  "wordCount": 732
 }

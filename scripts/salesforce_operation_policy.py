@@ -561,7 +561,13 @@ def evaluate(parts: list[str], root: Path, *, config: dict | None = None,
         if is_hub and not hubs:
             hubs = _defaults(root, effective_home, effective_env, True)
             if not hubs:
-                return Decision("unresolved", "Dev Hub target is unresolved; no operation authorized.")
+                # Plan 05, D-R2: an unresolved Dev Hub blocks only package deletion, because a
+                # Dev Hub is often a production org. Other Dev Hub commands are left to the CLI,
+                # which resolves its own default hub or fails.
+                if words[:2] == ("package", "delete"):
+                    return Decision("unresolved", "Dev Hub target is unresolved; package deletion is not authorized.")
+                if not targets:
+                    return Decision("allow", "Dev Hub unresolved; the Salesforce CLI resolves or rejects its default hub (plan 05, D-R2).")
         if not targets and not hubs:
             return Decision("unresolved", "No target/default is resolved. Ask the user to identify this operation's org and environment; do not execute.")
         rows = (inventory or local_authorizations)(root, effective_env)

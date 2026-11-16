@@ -250,6 +250,7 @@ def check_required_files(audit: Audit) -> None:
         ".ai/contracts/writing-standard.md",
         ".ai/contracts/delivery-success.md",
         "scripts/check_delivery.py",
+        "scripts/protected_paths_policy.py",
         "scripts/sdlc.py",
         ".github/agents/sdlc-conductor.agent.md",
         ".github/skills/deliver-requirement/SKILL.md",
@@ -814,11 +815,18 @@ def check_settings_and_mcp(audit: Audit) -> None:
     audit.require("salesforce-development/*" not in doc_prompt.get("tools", []), "Documentation prompt must not inherit Salesforce write tools")
     audit.require("execute" in doc_prompt.get("tools", []), "Documentation prompt needs guarded terminal execution (read-only orientation)")
     role_guard = required_text(ROOT / "scripts/copilot_role_guard.py", audit)
-    # Plan 05, D-R2: one shared protected-file list replaces the per-role edit allowlists.
-    for marker in ("PROTECTED_PREFIXES", "PROTECTED_PATTERNS", "def edit_decision(", '"scripts/check_delivery.py"'):
-        audit.require(marker in role_guard, f"role guard is missing the shared protected-file list: {marker}")
-    for protected in ('".github/hooks/"', '".github/agents/"', '"config/"', '"scripts/copilot_*.py"'):
-        audit.require(protected in role_guard, f"role guard must protect {protected}")
+    # Plan 05, D-R2: one shared protected-file list (scripts/protected_paths_policy.py), enforced by
+    # the global safety hook for every agent (Copilot CLI ignores frontmatter hooks) and by the
+    # role guard where it runs.
+    protected = required_text(ROOT / "scripts/protected_paths_policy.py", audit)
+    safety_hook = required_text(ROOT / "scripts/copilot_safety_hook.py", audit)
+    for marker in ("PROTECTED_PREFIXES", "PROTECTED_PATTERNS", "def edit_decision(", '"scripts/check_delivery.py"',
+                   "def shell_write_to_protected(", "def patch_paths("):
+        audit.require(marker in protected, f"shared protected-file list is missing: {marker}")
+    for path in ('".github/hooks/"', '".github/agents/"', '"config/"', '"scripts/copilot_*.py"'):
+        audit.require(path in protected, f"shared protected-file list must protect {path}")
+    for text, name in ((role_guard, "role guard"), (safety_hook, "global safety hook")):
+        audit.require('_optional_policy("protected_paths_policy")' in text, f"{name} must load the shared protected-file list")
     audit.require('".cache/test-cases/"' not in role_guard, "the Test Case cache write permission retired with the QA sync lane and must not return")
     audit.require('".cache/org-usage/"' not in role_guard, "the org-usage lane retired with the Knowledge subsystem and must not return")
     # Documentation wording is not pinned here: the read-only MCP model, the retrieve
@@ -1389,6 +1397,7 @@ def check_native_operation_wiring(audit: Audit) -> None:
                   and items.get("minLength") == 1 and items.get("maxLength") == 8192,
                   "native argument schema must preserve the reviewed size bounds")
     guard = required_text(ROOT / "scripts/copilot_role_guard.py", audit)
+    protected_list = required_text(ROOT / "scripts/protected_paths_policy.py", audit)
     safety = required_text(ROOT / "scripts/copilot_safety_hook.py", audit)
     for text, name in ((guard, "role guard"), (safety, "global safety hook")):
         audit.require('"sf_harness_run_operation"' in text and "native_operation_input_error" in text,
@@ -1396,8 +1405,8 @@ def check_native_operation_wiring(audit: Audit) -> None:
     for path in ("scripts/salesforce_operation_session.py", "scripts/salesforce_job_selection.py",
                  "scripts/salesforce_job_executor.mjs"):
         audit.require((ROOT / path).is_file(), f"native private runtime missing: {path}")
-        audit.require(f'"{path}"' in guard, f"native private runtime must remain root of trust: {path}")
-    audit.require('"extensions/salesforce-operations/"' in guard,
+        audit.require(f'"{path}"' in protected_list, f"native private runtime must remain root of trust: {path}")
+    audit.require('"extensions/salesforce-operations/"' in protected_list,
                   "native extension sources and packaging must remain root of trust")
     root_package = load_json(ROOT / "package.json", audit)
     ci = required_text(ROOT / ".github/workflows/harness-ci.yml", audit)

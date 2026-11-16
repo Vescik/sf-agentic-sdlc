@@ -35,6 +35,7 @@ sf_policy = _optional_policy("salesforce_operation_policy")
 git_policy = _optional_policy("git_workflow_policy")
 ado_policy = _optional_policy("ado_tool_policy")
 _ado_config = _optional_policy("ado_config")
+protected_policy = _optional_policy("protected_paths_policy")
 ado_config_error = _ado_config.ado_config_error if _ado_config is not None else None
 
 from typing import Any
@@ -716,6 +717,10 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
     # Salesforce commands (observed live on the Windows pilot). Non-command surfaces are still
     # covered by the `text` checks (destructive/production patterns) and tool classification.
     command = terminal_command(tool_input) if is_terminal_tool(tool_name) else ""
+    if command and protected_policy is not None:
+        protected_write = protected_policy.shell_write_to_protected(command)
+        if protected_write:
+            return hook_response("deny", f"Agents do not change protected control files from the terminal (plan 05, D-R2): {protected_write}")
     if command and inspect_git and git_policy is not None:
         admission = git_policy.inspect_command(command, Path(event.get("cwd") or os.getcwd()))
         if admission.has_git:
@@ -732,7 +737,9 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
     if command and git_policy is None and re.search(r"\b(?:git|gh)(?:\.exe)?\b", command):
         return hook_response("deny", "Git message validator could not load; restore scripts/git_workflow_policy.py.")
     if not command and git_policy is not None:
-        paths = collect_filesystem_paths(tool_input)
+        paths = collect_filesystem_paths(tool_input) if isinstance(tool_input, (dict, list)) else []
+        if protected_policy is not None:
+            paths += [path for path in protected_policy.patch_paths(tool_input) if path not in paths]
         # Bare "create" is the Copilot CLI new-file tool; exact match only (a substring would hit MCP tools).
         is_editor = bare_tool == "create" or any(token in lowered_name for token in ("edit", "createfile", "create_file", "replace", "insert", "patch", "write"))
         correct_cwd = Path(event.get("cwd") or os.getcwd()).resolve() == root
@@ -740,6 +747,28 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
             # A PR description can quote a forbidden command without executing it.
             # The independent role guard still governs this exact transport path.
             text = " ".join(paths)
+        # Protected control files (plan 05, D-R2), enforced here for every agent because Copilot
+        # CLI does not run the per-agent role guard. The role is unknown here, so a protected
+        # file needs a person ("ask"); local config and paths outside the repository are denied.
+        if is_editor and paths:
+            if protected_policy is None:
+                return hook_response("deny", f"Protected-file policy unavailable: protected_paths_policy ({_POLICY_ERRORS.get('protected_paths_policy', 'load error')}).")
+            event_root = Path(event.get("cwd") or os.getcwd()).resolve()
+            decisions = {}
+            for raw in paths:
+                candidate = Path(os.path.expanduser(raw))
+                candidate = (candidate if candidate.is_absolute() else event_root / candidate).resolve(strict=False)
+                try:
+                    relative = candidate.relative_to(root.resolve()).as_posix()
+                except ValueError:
+                    relative = f"OUTSIDE::{candidate}"
+                decisions[relative] = protected_policy.edit_decision(relative, None)
+            denied = sorted(path for path, decision in decisions.items() if decision == "deny")
+            if denied:
+                return hook_response("deny", "Local configuration and paths outside the repository are never edited by an agent (plan 05, D-R2): " + ", ".join(denied))
+            asked = sorted(path for path, decision in decisions.items() if decision == "ask")
+            if asked:
+                return hook_response("ask", "Protected control file — it defines the agents' own limits: " + ", ".join(asked) + ". A person must confirm this exact edit (plan 05, D-R2).")
     if command and private_native_invocation(command):
         return hook_response("deny", "Private Salesforce session/executor cannot be invoked from a terminal; use the native Developer tool.")
 

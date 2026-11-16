@@ -248,10 +248,11 @@ evidence gates, and real client data.
 
 ## Implementation notes
 
-- **Phase 0 (2026-11-16):** Copilot CLI 1.0.112 authenticates through `gh` but every session
-  fails with "Access denied by policy settings": the account has no Copilot CLI access. The
-  only result: the CLI ignores the agent frontmatter fields `argument-hint` and `handoffs` with
-  a warning.
+- **Phase 0 (2026-11-16, live after the subscription):** results in
+  `docs/copilot-cli-port.md` § Known gaps. Q1 sub-agents: yes, through the `task` tool. Q2 the
+  sub-agent's frontmatter hooks: no, frontmatter hooks do not run at all on the CLI; the
+  protected-file rule moved to the global safety hook. Q3 `model:` per agent: not tested yet.
+  `ask` decisions are hard stops in prompt mode.
 - **Phase 1:** `scripts/check_delivery.py` and `.ai/contracts/delivery-success.md`. The trace
   table is the file `acceptance-trace.md`; the deploy job ID is the file `deploy-job-id`.
 - **Phase 2, deviation from D-R3:** the draft-PR hook reads `delivery-check.json` and requires

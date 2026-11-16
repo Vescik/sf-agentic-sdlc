@@ -46,6 +46,28 @@ base for an SDK orchestrator.
 
 ## Known gaps on the CLI
 
+**Live results 2026-11-16 (Copilot CLI 1.0.112, plan 05 phase 0):**
+
+- **Agent frontmatter `hooks` do not run.** A developer session wrote `config/spike-probe.txt`
+  with no role-guard decision. Only `.github/hooks/safety.json` runs. The shared protected-file
+  rule therefore lives in `scripts/protected_paths_policy.py` and the global safety hook enforces
+  it for every agent: editor and `apply_patch` edits of protected files ask a person, local
+  config and paths outside the repository are denied, shell writes to protected files are
+  denied. Role-specific rules (only the git-agent pushes and opens PRs, the maintainer's
+  confirmed edits) apply only in VS Code; on the CLI any agent may push `feat/*` and open a
+  draft PR after a PASS check.
+- **The hook payload has no agent name**: `cwd`, `hook_event_name`, `session_id`, `timestamp`,
+  `tool_input`, `tool_name` (`Bash`, `Edit`, …), `tool_use_id`.
+- **`ask` is a hard stop in prompt mode**, even with `--allow-all-tools`: "Denied by preToolUse
+  hook (unable to ask user for confirmation)".
+- **The global hook works**: `rm -rf` and `git merge` were denied with the repository reasons.
+- **Sub-agents work**: a custom agent starts another with the `task` tool
+  (`agent_type: "reviewer"`); the sub-agent gets its own agent's tools. The frontmatter fields
+  `argument-hint`, `handoffs` and `agents` are ignored with a warning, so the conductor's
+  delegate list is an instruction, not a limit.
+- **`apply_patch` sends the patch as text**; the hooks read the file paths from its
+  `*** Add/Update/Delete File:` lines.
+
 - **Native Salesforce operation tool.** `sf-harness.salesforce-operations/salesforceOperation`
   is a VS Code extension tool and does not exist in the CLI. The agent uses the direct `sf` CLI
   under the same policy instead: the environment comes from `config/harness.local.json` and a

@@ -1118,7 +1118,7 @@ class StandaloneGitIsolationTests(unittest.TestCase):
     )
     POLICY_FILES = (
         "copilot_role_guard.py", "copilot_safety_hook.py", "git_workflow_policy.py",
-        "salesforce_operation_policy.py", "verify_salesforce_org.py",
+        "protected_paths_policy.py", "salesforce_operation_policy.py", "verify_salesforce_org.py",
         "ado_config.py", "ado_tool_policy.py",
     )
 
@@ -1454,3 +1454,35 @@ class DeployValidationWrapperTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GlobalProtectedFilesTests(unittest.TestCase):
+    """Plan 05 phase 0: Copilot CLI ignores frontmatter hooks, so the global safety hook enforces
+    the shared protected-file list for every agent (editor tools, apply_patch text, shell)."""
+
+    def decide(self, tool_name: str, tool_input: Any) -> str:
+        return hook_decision(run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": tool_name, "tool_input": tool_input}))
+
+    def test_editor_and_patch_edits_of_protected_files_need_a_person(self) -> None:
+        for tool, tool_input in (
+            ("edit", {"path": "scripts/copilot_role_guard.py"}),
+            ("create", {"path": ".github/agents/new.agent.md"}),
+            ("Edit", "*** Begin Patch\n*** Add File: schemas/probe.json\n+{}\n*** End Patch\n"),
+            ("apply_patch", "*** Begin Patch\n*** Update File: force-app/a.cls\n*** Move to: config/x.json\n*** End Patch\n"),
+        ):
+            with self.subTest(tool=tool, tool_input=tool_input):
+                self.assertEqual("ask", self.decide(tool, tool_input))
+
+    def test_local_config_and_outside_paths_are_denied_and_delivery_paths_pass(self) -> None:
+        self.assertEqual("deny", self.decide("create", {"path": "config/harness.local.json"}))
+        self.assertEqual("deny", self.decide("edit", {"path": "/etc/hosts"}))
+        self.assertEqual("deny", self.decide("apply_patch", "*** Begin Patch\n*** Update File: config/harness.local.json\n*** End Patch\n"))
+        for tool, tool_input in (("create", {"path": "force-app/main/default/classes/X.cls"}),
+                                 ("apply_patch", "*** Begin Patch\n*** Add File: work-items/1-a/requirements.md\n+x\n*** End Patch\n")):
+            with self.subTest(tool=tool):
+                self.assertEqual("continue", self.decide(tool, tool_input))
+
+    def test_shell_writes_to_protected_files_are_denied_for_every_agent(self) -> None:
+        self.assertEqual("deny", self.decide("Bash", {"command": "printf probe > config/spike-probe.txt"}))
+        self.assertEqual("deny", self.decide("Bash", {"command": "git checkout -- scripts/git_workflow_policy.py"}))
+        self.assertEqual("continue", self.decide("Bash", {"command": "cat scripts/copilot_safety_hook.py"}))

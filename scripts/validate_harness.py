@@ -250,6 +250,7 @@ def check_required_files(audit: Audit) -> None:
         ".ai/contracts/writing-standard.md",
         ".ai/contracts/delivery-success.md",
         "scripts/check_delivery.py",
+        "scripts/protected_paths_policy.py",
         "scripts/sdlc.py",
         ".github/agents/sdlc-conductor.agent.md",
         ".github/skills/deliver-requirement/SKILL.md",
@@ -374,8 +375,10 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
             legacy = sorted(set(tools) & (LEGACY_TOOLS | VSCODE_ONLY_TOOL_NAMES))
             audit.require(not unknown, f"{relative(path)}: unknown tools: {unknown}")
             audit.require(not legacy, f"{relative(path)}: legacy tools: {legacy}")
-            audit.require("execute" in tools,
-                          f"{relative(path)}: shared GitHub reads require the guarded terminal")
+            # The conductor delegates every terminal action to a station (plan 05, live trial).
+            audit.require(("execute" in tools) == (name != "sdlc-conductor"),
+                          f"{relative(path)}: shared GitHub reads require the guarded terminal; "
+                          "only sdlc-conductor has none")
             audit.require(f"--role {name}" in json.dumps(data.get("hooks", {}), default=str),
                           f"{relative(path)}: terminal access requires its own role guard")
             if name == "git-agent":
@@ -387,6 +390,11 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
             )
             if data.get("agents"):
                 audit.require("agent" in tools, f"{relative(path)}: agents allowlist requires the agent tool")
+            # Copilot CLI does not start workspace MCP servers for a custom agent (plan 05, live
+            # trial 2026-11-16): an agent that uses an MCP server's tools declares that server.
+            declared = data.get("mcp-servers") or {}
+            for server in sorted({tool.split("/", 1)[0] for tool in tools if tool.startswith(("salesforce/", "ado-readonly/"))}):
+                audit.require(server in declared, f"{relative(path)}: uses {server} tools but does not declare it in mcp-servers")
         if isinstance(name, str):
             agents[name] = data
 
@@ -467,7 +475,7 @@ def check_customizations(audit: Audit, root: Path = ROOT) -> None:
                 )
         if prompt_agent in agents:
             effective_tools = data.get("tools", agents[prompt_agent].get("tools")) or []
-            audit.require("execute" in effective_tools,
+            audit.require("execute" in effective_tools or prompt_agent == "sdlc-conductor",
                           f"{relative(path)}: prompt must retain the role's guarded terminal for GitHub reads")
         if name == "publish-wiki":
             audit.require(prompt_agent == "developer", "publish-wiki belongs only to Developer")
@@ -814,11 +822,18 @@ def check_settings_and_mcp(audit: Audit) -> None:
     audit.require("salesforce-development/*" not in doc_prompt.get("tools", []), "Documentation prompt must not inherit Salesforce write tools")
     audit.require("execute" in doc_prompt.get("tools", []), "Documentation prompt needs guarded terminal execution (read-only orientation)")
     role_guard = required_text(ROOT / "scripts/copilot_role_guard.py", audit)
-    # Plan 05, D-R2: one shared protected-file list replaces the per-role edit allowlists.
-    for marker in ("PROTECTED_PREFIXES", "PROTECTED_PATTERNS", "def edit_decision(", '"scripts/check_delivery.py"'):
-        audit.require(marker in role_guard, f"role guard is missing the shared protected-file list: {marker}")
-    for protected in ('".github/hooks/"', '".github/agents/"', '"config/"', '"scripts/copilot_*.py"'):
-        audit.require(protected in role_guard, f"role guard must protect {protected}")
+    # Plan 05, D-R2: one shared protected-file list (scripts/protected_paths_policy.py), enforced by
+    # the global safety hook for every agent (Copilot CLI ignores frontmatter hooks) and by the
+    # role guard where it runs.
+    protected = required_text(ROOT / "scripts/protected_paths_policy.py", audit)
+    safety_hook = required_text(ROOT / "scripts/copilot_safety_hook.py", audit)
+    for marker in ("PROTECTED_PREFIXES", "PROTECTED_PATTERNS", "def edit_decision(", '"scripts/check_delivery.py"',
+                   "def shell_write_to_protected(", "def patch_paths("):
+        audit.require(marker in protected, f"shared protected-file list is missing: {marker}")
+    for path in ('".github/hooks/"', '".github/agents/"', '"config/"', '"scripts/copilot_*.py"'):
+        audit.require(path in protected, f"shared protected-file list must protect {path}")
+    for text, name in ((role_guard, "role guard"), (safety_hook, "global safety hook")):
+        audit.require('_optional_policy("protected_paths_policy")' in text, f"{name} must load the shared protected-file list")
     audit.require('".cache/test-cases/"' not in role_guard, "the Test Case cache write permission retired with the QA sync lane and must not return")
     audit.require('".cache/org-usage/"' not in role_guard, "the org-usage lane retired with the Knowledge subsystem and must not return")
     # Documentation wording is not pinned here: the read-only MCP model, the retrieve
@@ -1389,6 +1404,7 @@ def check_native_operation_wiring(audit: Audit) -> None:
                   and items.get("minLength") == 1 and items.get("maxLength") == 8192,
                   "native argument schema must preserve the reviewed size bounds")
     guard = required_text(ROOT / "scripts/copilot_role_guard.py", audit)
+    protected_list = required_text(ROOT / "scripts/protected_paths_policy.py", audit)
     safety = required_text(ROOT / "scripts/copilot_safety_hook.py", audit)
     for text, name in ((guard, "role guard"), (safety, "global safety hook")):
         audit.require('"sf_harness_run_operation"' in text and "native_operation_input_error" in text,
@@ -1396,8 +1412,8 @@ def check_native_operation_wiring(audit: Audit) -> None:
     for path in ("scripts/salesforce_operation_session.py", "scripts/salesforce_job_selection.py",
                  "scripts/salesforce_job_executor.mjs"):
         audit.require((ROOT / path).is_file(), f"native private runtime missing: {path}")
-        audit.require(f'"{path}"' in guard, f"native private runtime must remain root of trust: {path}")
-    audit.require('"extensions/salesforce-operations/"' in guard,
+        audit.require(f'"{path}"' in protected_list, f"native private runtime must remain root of trust: {path}")
+    audit.require('"extensions/salesforce-operations/"' in protected_list,
                   "native extension sources and packaging must remain root of trust")
     root_package = load_json(ROOT / "package.json", audit)
     ci = required_text(ROOT / ".github/workflows/harness-ci.yml", audit)
@@ -1453,6 +1469,8 @@ def check_delivery_conductor(audit: Audit, root: Path = ROOT) -> None:
         set(data.get("agents") or []) == {"designer", "reviewer", "developer", "git-agent"},
         "sdlc-conductor delegates exactly to designer, reviewer, developer and git-agent",
     )
+    audit.require(not tools & {"edit", "execute"},
+                  "sdlc-conductor has no editor and no terminal, so it must delegate every station")
     org_tools = sorted(tool for tool in tools if tool.startswith(("salesforce/", "ado-readonly/", "sf-harness.")))
     audit.require(not org_tools, f"sdlc-conductor reaches orgs only through its stations, not directly: {org_tools}")
     audit.require("skills/deliver-requirement/SKILL.md" in body, "sdlc-conductor must follow the deliver-requirement skill")

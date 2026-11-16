@@ -8,7 +8,7 @@ the feature branch. An agent's own statement that work is done, tested, or deplo
 success. Plan and decisions: [plan 05](../../docs/plan05-w8-integration.md).
 
 ```bash
-.venv/bin/python scripts/check_delivery.py --work-item work-items/<id>-<slug>
+python3 scripts/check_delivery.py --work-item work-items/<id>-<slug>
 ```
 
 The script runs the Apex tests itself and reads the deploy result from the org. It writes

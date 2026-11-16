@@ -1403,7 +1403,14 @@ class Server:
 
     def start(self) -> None:
         started = time.monotonic()
-        version_payload = run_cli_json(["version", "--json"])
+        # The three CLI reads are independent; run them together (each costs ~2 s of CLI start).
+        with ThreadPoolExecutor(max_workers=3) as cli:
+            version_future = cli.submit(run_cli_json, ["version", "--json"])
+            token_future = cli.submit(run_cli_json, ["org", "auth", "show-access-token", "--json", "-o", self.runtime["alias"]])
+            display_future = cli.submit(run_cli_json, ["org", "display", "--json", "-o", self.runtime["alias"]])
+            version_payload = version_future.result()
+            token_payload = token_future.result()
+            display = display_future.result()
         cli_version = safe_string(version_payload.get("cliVersion"), 80)
         match = re.match(r"^@salesforce/cli/(\d+)\.(\d+)\.(\d+)$", cli_version)
         if not match or int(match.group(1)) != self.runtime["policy"]["salesforceCliMajor"]:
@@ -1411,13 +1418,9 @@ class Server:
         if tuple(int(part) for part in match.groups()) < MIN_CLI_VERSION:
             # sf org auth show-access-token only exists from 2.136.8 (plugin-org 5.11.0).
             raise ReviewError("CLI_VERSION_UNSUPPORTED")
-        token_payload = run_cli_json(
-            ["org", "auth", "show-access-token", "--json", "-o", self.runtime["alias"]]
-        )
         token = token_payload.get("accessToken")
         if not isinstance(token, str) or not token:
             raise ReviewError("CLI_SCHEMA_MISMATCH")
-        display = run_cli_json(["org", "display", "--json", "-o", self.runtime["alias"]])
         instance_url = str(display.get("instanceUrl") or "")
         host = self._validated_host(instance_url)
         display_org_id = str(display.get("id") or display.get("orgId") or "")
@@ -1593,6 +1596,8 @@ class Server:
         if method == "ping":
             self.write_message({"jsonrpc": "2.0", "id": message_id, "result": {}})
             return
+        if method in ("tools/list", "tools/call"):
+            self._await_startup()
         if method == "tools/list":
             self.write_message({"jsonrpc": "2.0", "id": message_id, "result": {"tools": TOOL_DEFINITIONS}})
             return
@@ -1613,6 +1618,38 @@ class Server:
         self.write_message(
             {"jsonrpc": "2.0", "id": message_id, "error": {"code": -32601, "message": "Method not found"}}
         )
+
+    def start_in_background(self) -> None:
+        """Answer initialize at once and prove the identity meanwhile (Copilot CLI cancels a server
+        that does not finish the handshake within a few seconds). Tool discovery and calls wait
+        for the proof, so no tool is exposed before the identity is frozen."""
+        self._ready = threading.Event()
+        self._startup_error: str | None = None
+
+        def boot() -> None:
+            try:
+                self.start()
+            except ReviewError as error:
+                self._startup_error = error.code
+            except Exception:  # noqa: BLE001 - any startup failure blocks every tool
+                self._startup_error = "STARTUP_FAILED"
+            finally:
+                self._ready.set()
+            if self._startup_error:
+                # Fail fast exactly as the synchronous start did: no tool was ever exposed.
+                sys.stderr.write(f"Salesforce review facade blocked: {self._startup_error}\n")
+                sys.stderr.flush()
+                os._exit(2)
+
+        threading.Thread(target=boot, name="review-startup", daemon=True).start()
+
+    def _await_startup(self) -> None:
+        ready = getattr(self, "_ready", None)
+        if ready is None:
+            return  # started synchronously
+        ready.wait()
+        if self._startup_error:
+            _fatal_startup(self._startup_error)
 
     def serve(self) -> None:
         if os.name == "nt":  # Windows: text mode turns \n into \r\n and corrupts framing
@@ -1637,6 +1674,7 @@ class Server:
                     log("blocked: MCP_SCHEMA_MISMATCH (unparseable frame)")
                     raise SystemExit(2)
                 self.handle_message(message, pool)
+            self._await_startup()  # EOF before startup ends still reports a failed proof
             pool.shutdown(wait=True)  # EOF: drain in-flight calls, then exit cleanly
 
 
@@ -1655,7 +1693,7 @@ def main(argv: "list[str]") -> int:
     try:
         runtime = load_runtime(args.org)
         server = Server(runtime)
-        server.start()
+        server.start_in_background()
         server.serve()
     except ReviewError as error:
         _fatal_startup(error.code)

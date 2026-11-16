@@ -1118,7 +1118,7 @@ class StandaloneGitIsolationTests(unittest.TestCase):
     )
     POLICY_FILES = (
         "copilot_role_guard.py", "copilot_safety_hook.py", "git_workflow_policy.py",
-        "salesforce_operation_policy.py", "verify_salesforce_org.py",
+        "protected_paths_policy.py", "salesforce_operation_policy.py", "verify_salesforce_org.py",
         "ado_config.py", "ado_tool_policy.py",
     )
 
@@ -1454,3 +1454,142 @@ class DeployValidationWrapperTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GlobalProtectedFilesTests(unittest.TestCase):
+    """Plan 05 phase 0: Copilot CLI ignores frontmatter hooks, so the global safety hook enforces
+    the shared protected-file list for every agent (editor tools, apply_patch text, shell)."""
+
+    def decide(self, tool_name: str, tool_input: Any) -> str:
+        return hook_decision(run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": tool_name, "tool_input": tool_input}))
+
+    def test_editor_and_patch_edits_of_protected_files_need_a_person(self) -> None:
+        for tool, tool_input in (
+            ("edit", {"path": "scripts/copilot_role_guard.py"}),
+            ("create", {"path": ".github/agents/new.agent.md"}),
+            ("Edit", "*** Begin Patch\n*** Add File: schemas/probe.json\n+{}\n*** End Patch\n"),
+            ("apply_patch", "*** Begin Patch\n*** Update File: force-app/a.cls\n*** Move to: config/x.json\n*** End Patch\n"),
+        ):
+            with self.subTest(tool=tool, tool_input=tool_input):
+                self.assertEqual("ask", self.decide(tool, tool_input))
+
+    def test_local_config_and_outside_paths_are_denied_and_delivery_paths_pass(self) -> None:
+        self.assertEqual("deny", self.decide("create", {"path": "config/harness.local.json"}))
+        self.assertEqual("deny", self.decide("edit", {"path": "/etc/hosts"}))
+        self.assertEqual("deny", self.decide("apply_patch", "*** Begin Patch\n*** Update File: config/harness.local.json\n*** End Patch\n"))
+        for tool, tool_input in (("create", {"path": "force-app/main/default/classes/X.cls"}),
+                                 ("apply_patch", "*** Begin Patch\n*** Add File: work-items/1-a/requirements.md\n+x\n*** End Patch\n")):
+            with self.subTest(tool=tool):
+                self.assertEqual("continue", self.decide(tool, tool_input))
+
+    def test_shell_writes_to_protected_files_are_denied_for_every_agent(self) -> None:
+        self.assertEqual("deny", self.decide("Bash", {"command": "printf probe > config/spike-probe.txt"}))
+        self.assertEqual("deny", self.decide("Bash", {"command": "git checkout -- scripts/git_workflow_policy.py"}))
+        self.assertEqual("continue", self.decide("Bash", {"command": "cat scripts/copilot_safety_hook.py"}))
+
+
+class LiveTrialFixesTests(unittest.TestCase):
+    """Fixes from the first live conductor run (plan 05, 2026-11-16)."""
+
+    def decide(self, tool_name: str, tool_input: Any, cwd: Path = ROOT) -> str:
+        return hook_decision(run_hook("copilot_safety_hook.py", {"cwd": str(cwd), "tool_name": tool_name, "tool_input": tool_input}))
+
+    def test_delivery_report_is_never_written_by_an_agent(self) -> None:
+        self.assertEqual("deny", self.decide("create", {"path": "work-items/1201-routing/delivery-check.json"}))
+        self.assertEqual("deny", self.decide("Bash", {"command": "echo {} > work-items/1201-routing/delivery-check.json"}))
+        self.assertEqual("continue", self.decide("Bash", {"command": "cat work-items/1201-routing/delivery-check.json"}))
+
+    def test_leading_cd_to_the_repository_root_is_not_a_compound_command(self) -> None:
+        from scripts import protected_paths_policy as protected
+
+        self.assertEqual("sf org list --json", protected.strip_root_cd(f"cd {ROOT} && sf org list --json", ROOT))
+        self.assertEqual("sf org list", protected.strip_root_cd(f'cd "{ROOT}" && sf org list', ROOT))
+        self.assertEqual("cd /tmp && sf org list", protected.strip_root_cd("cd /tmp && sf org list", ROOT))
+        reason = run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "Bash",
+                                                    "tool_input": {"command": "cd /tmp && sf org list"}})
+        self.assertEqual("deny", hook_decision(reason))
+
+
+class SubagentGateTests(unittest.TestCase):
+    def test_only_station_agents_start_as_sub_agents(self) -> None:
+        for agent_type, expected in (("reviewer", "continue"), ("developer", "continue"), ("git-agent", "continue"),
+                                     ("task", "deny"), ("general-purpose", "deny"), ("explore", "deny"),
+                                     ("workspace-maintainer", "deny"), ("sdlc-conductor", "deny"), ("", "deny")):
+            with self.subTest(agent_type=agent_type):
+                for tool_name in ("task", "Agent"):  # the CLI hook payload says `Agent`
+                    output = run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": tool_name,
+                                                                 "tool_input": {"agent_type": agent_type, "prompt": "x"}})
+                    self.assertEqual(expected, hook_decision(output))
+
+
+class LiveTrialRunThreeTests(unittest.TestCase):
+    """Fixes from live run 3 (plan 05, 2026-11-16)."""
+
+    def decide(self, command: str) -> str:
+        return hook_decision(run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "Bash",
+                                                                 "tool_input": {"command": command}}))
+
+    def test_written_text_that_names_a_protected_file_is_not_a_protected_write(self) -> None:
+        from scripts import protected_paths_policy as protected
+
+        doc = """python3 -c 'from pathlib import Path; Path("work-items/1/trace.md").write_text("see scripts/check_delivery.py")'"""
+        self.assertIsNone(protected.shell_write_to_protected(doc))
+        self.assertIsNone(protected.shell_write_to_protected("python3 scripts/check_delivery.py --work-item w > out.txt"))
+        self.assertEqual("scripts/copilot_role_guard.py", protected.shell_write_to_protected(
+            """python3 -c 'from pathlib import Path; Path("scripts/copilot_role_guard.py").write_text("x")'"""))
+        self.assertTrue(protected.shell_write_to_protected("cp /tmp/x scripts/copilot_safety_hook.py"))
+
+    def test_sf_output_may_be_piped_to_a_filter(self) -> None:
+        for command in ("sf org list --json | python3 -c 'import json,sys; print(1)'",
+                        "sf org list --json 2>&1 | jq .result"):
+            with self.subTest(command=command):
+                self.assertEqual("continue", self.decide(command))
+        for command in ("sf org list | sf org list", "sf org list; rm x", "sf org list || sf org list",
+                        "echo hi | sf org list", "sf org list -o $(cat x)"):
+            with self.subTest(command=command):
+                self.assertEqual("deny", self.decide(command))
+
+
+class DeployGrantHintTests(unittest.TestCase):
+    def test_grant_needs_an_explicit_target_and_says_so(self) -> None:
+        # Live run 3: a deploy that relied on the project default target asked and was denied.
+        allowed = safety.sf_policy.Decision("allow", "ok", "dev", "00D000000000002")
+        event = {"cwd": str(ROOT), "tool_name": "Bash",
+                 "tool_input": {"command": "sf project deploy start --source-dir force-app"}}
+        with patch.dict("os.environ", {safety.AUTONOMY_ENV: "devmp"}), \
+                patch.object(safety.sf_policy, "evaluate", return_value=allowed), \
+                patch.object(safety, "_log_decision"):
+            output = safety.evaluate_event(event)
+        self.assertEqual("deny", output["hookSpecificOutput"]["permissionDecision"])
+        self.assertIn("Add --target-org devmp", output["hookSpecificOutput"]["permissionDecisionReason"])
+        with patch.dict("os.environ", {}, clear=False), patch.object(safety.sf_policy, "evaluate", return_value=allowed), \
+                patch.object(safety, "_log_decision"):
+            import os
+            os.environ.pop(safety.AUTONOMY_ENV, None)
+            self.assertEqual("ask", safety.evaluate_event(event)["hookSpecificOutput"]["permissionDecision"])
+
+
+class DeployHelpTests(unittest.TestCase):
+    def test_deploy_help_is_not_a_deploy_under_the_grant(self) -> None:
+        # Live run 5: `sf project deploy start --help` was denied as a deploy without target.
+        allowed = safety.sf_policy.Decision("allow", "Local command help.")
+        event = {"cwd": str(ROOT), "tool_name": "Bash", "tool_input": {"command": "sf project deploy start --help"}}
+        with patch.dict("os.environ", {safety.AUTONOMY_ENV: "devmp"}), \
+                patch.object(safety.sf_policy, "evaluate", return_value=allowed), patch.object(safety, "_log_decision"):
+            self.assertTrue(safety.evaluate_event(event).get("continue"))
+
+
+class LiveTrialRunSixTests(unittest.TestCase):
+    def decide(self, command: str) -> str:
+        return hook_decision(run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "Bash",
+                                                                 "tool_input": {"command": command}}))
+
+    def test_unparseable_prose_is_not_a_private_helper_call(self) -> None:
+        self.assertFalse(safety.private_native_invocation("apply_patch <<'PATCH'\nit's a note\nPATCH"))
+        self.assertTrue(safety.private_native_invocation("python scripts/salesforce_job_executor.mjs 'x"))
+
+    def test_cli_lookups_are_not_salesforce_commands(self) -> None:
+        for command in ("command -v sf", "which sf", "git status --short && command -v sf || true"):
+            with self.subTest(command=command):
+                self.assertEqual("continue", self.decide(command))
+        self.assertEqual("deny", self.decide("command -v sf && sf project deploy start --target-org prod"))

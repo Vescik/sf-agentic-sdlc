@@ -24,15 +24,23 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 
 ## Rules for every station
 
-1. Start the station as a sub-agent of the named custom agent. Give it a written request with
+1. Start the station as a sub-agent of the named custom agent: the `task` tool with
+   `agent_type` set to the agent name (`designer`, `reviewer`, `developer`, `git-agent`). The
+   hooks deny every other sub-agent, including the built-in `task` and `general-purpose`
+   agents. Do not set a `model`; the station inherits the session model. Give it a written request with
    the work-item folder, the station's skill, its inputs and its expected outputs. Never pass
    results only in the request text: the station reads its inputs from files.
-2. After the station, read its outputs from the work-item folder. Record one line in
-   `run-log.md`: station, agent, UTC time, status (`DONE`, `RETURNED`, `BLOCKED`), output paths,
-   and the next step. The log is a record, not a gate.
-3. A station that finds a problem fixes it inside the attempt budget, or records it for H3. It
+2. Ask the station to append one line to `run-log.md` when it ends: station, agent, UTC time,
+   status (`DONE`, `RETURNED`, `BLOCKED`), output paths, and the next step. After the station,
+   read its outputs and the log line from the work-item folder. The log is a record, not a gate.
+3. Ask every station to write and change files with its editor tools, not with shell commands
+   such as `python3 -c` or heredocs; a shell command that mentions `sf` inside its text is denied
+   as a chained Salesforce command. Run each `sf` command on its own.
+4. Only `scripts/check_delivery.py` writes `delivery-check.json`; the hooks deny every agent
+   edit of that file. Never ask a station to write or repair it by hand.
+5. A station that finds a problem fixes it inside the attempt budget, or records it for H3. It
    does not stop the run.
-4. Stop early only for these reasons:
+6. Stop early only for these reasons:
    - the requirement cannot be understood, two requirements contradict each other, or an input
      is missing: ask the person one exact question, wait, record the answer in
      `requirements.md`, and continue;
@@ -48,17 +56,20 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 
 | Step | Agent | Request | Done when |
 | --- | --- | --- | --- |
-| S1 requirements | `designer` | ADO input: follow `fetch-ado-item itemId=<ID>`. Then, for every input, write `requirements.md` (see below). | `requirements.md` is committed |
-| S2 design | `designer` | Follow `solution-design` for the work item. The design lists the planned metadata components and traces each `AC-n` to the design. | `design.md` is committed |
+| S1 requirements | `designer` | Before S1, fix the run's identity and say it in every station request: the work-item folder `work-items/<id>-<slug>` and the branch `feat/<id>-<slug>`. For an ADO item, `<id>` is its ID; for a `requirementFile`, `<id>` is the next free number in `work-items/` and the requirement is a written, human-provided requirement with no ADO item. Pass the exact input (the file path, which the station reads itself, or the ADO item ID). ADO input: follow `fetch-ado-item itemId=<ID>`. Then, for every input, create the branch and write `requirements.md` (see below). | `requirements.md` is committed on `feat/<id>-<slug>` |
+| S2 design | `designer` | Follow `solution-design` with the written requirement in `work-items/<id>-<slug>/requirements.md` (or `itemId=<ID>` for ADO input). Say that no `ado-context.md` exists for a written requirement. The design lists the planned metadata components and traces each `AC-n` to the design. | `design.md` is committed |
 | S3 design review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=design`. | a review result exists; findings that block the design go back to S2 once, then to H3 as findings |
-| S4 build | `developer` | Follow `development` on branch `feat/<id>-<slug>`: plan tasks, write source and Apex tests; for a new field, add a permission set with field access and assign it in the agent org; commit the source, deploy to the agent org, then commit `acceptance-trace.md` and `deploy-job-id`. | the work is committed and deployed |
-| S5 check | `developer` | Run `python scripts/check_delivery.py --work-item <folder>`. On FAIL, fix the cause named in the failing details, commit, deploy, and run the check again. | `delivery-check.json` is PASS for HEAD, or the budget is spent |
+| S4 build | `developer` | Follow `development` on branch `feat/<id>-<slug>`. The launcher granted deploy autonomy (`SF_AGENTIC_AUTONOMOUS_ORG`): deploy with `--target-org <agent org>` and do not ask for confirmation; the hooks enforce the limits. Plan tasks, write source and Apex tests; for a new field, add a permission set with field access and assign it in the agent org; commit the source, deploy to the agent org, then commit `acceptance-trace.md` and `deploy-job-id`. | the work is committed and deployed |
+| S5 check | `developer` | Run `python3 scripts/check_delivery.py --work-item <folder>`. On FAIL, fix the cause named in the failing details, commit, deploy, and run the check again. | `delivery-check.json` is PASS for HEAD, or the budget is spent |
 | S6 implementation review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=implementation` with the security list below. | review findings are written; a finding that breaks SC1–SC5 goes back to S4 inside the budget, every other finding goes to H3 |
 | S7 draft PR | `git-agent` | Push `feat/<id>-<slug>` and open a draft PR with the delivery packet as its body. | the draft PR URL is known |
 | H3 | person | Reviews the draft PR; merges or closes it. | — |
 
-After S6, run the delivery check again when S6 caused a change. S7 starts only on a PASS for
-the HEAD commit.
+Every station runs as its own sub-agent, in this order. S3 and S6 are `reviewer` sub-agents
+and S7 is a `git-agent` sub-agent; never mark a station DONE or RETURNED without starting its
+sub-agent (live run 8 skipped all three). After S6, run the delivery check again when S6 caused
+a change. S7 starts only on a PASS for the HEAD commit and is not optional: a PASS without a draft
+PR is an unfinished run.
 
 ## S1: `requirements.md`
 

@@ -248,10 +248,11 @@ evidence gates, and real client data.
 
 ## Implementation notes
 
-- **Phase 0 (2026-11-16):** Copilot CLI 1.0.112 authenticates through `gh` but every session
-  fails with "Access denied by policy settings": the account has no Copilot CLI access. The
-  only result: the CLI ignores the agent frontmatter fields `argument-hint` and `handoffs` with
-  a warning.
+- **Phase 0 (2026-11-16, live after the subscription):** results in
+  `docs/copilot-cli-port.md` § Known gaps. Q1 sub-agents: yes, through the `task` tool. Q2 the
+  sub-agent's frontmatter hooks: no, frontmatter hooks do not run at all on the CLI; the
+  protected-file rule moved to the global safety hook. Q3 `model:` per agent: not tested yet.
+  `ask` decisions are hard stops in prompt mode.
 - **Phase 1:** `scripts/check_delivery.py` and `.ai/contracts/delivery-success.md`. The trace
   table is the file `acceptance-trace.md`; the deploy job ID is the file `deploy-job-id`.
 - **Phase 2, deviation from D-R3:** the draft-PR hook reads `delivery-check.json` and requires
@@ -288,6 +289,14 @@ evidence gates, and real client data.
     the current `TriggerHandler` API and deployed to `devmp` (org only, not in this repository).
   - Check 3: all five criteria PASS (63 Apex tests); the draft-PR hook admits the git-agent and
     denies other roles.
+- **Live conductor runs on N1 (2026-11-16, Copilot CLI 1.0.112, model `auto`):** runs 1–7 each
+  stopped on a new obstacle, fixed in PR #13 (conductor tools, sub-agent gate on the hook name
+  `Agent`, MCP servers per agent, deploy autonomy wording, sf pipes and CLI lookups, write
+  targets, `python3` for the check, run identity). Run 8 (41 min, 1 premium request): S1, S2,
+  S4, S5 as station sub-agents, deploy `0AfgL00000e90HtSAI` to `devmp`, three delivery checks,
+  final PASS on SC1–SC5. The conductor skipped S3, S6 and S7; S7 was then run alone with the
+  git-agent, which pushed `feat/1-route-cases-by-priority` and opened draft PR #14 through the
+  hook's PASS check. The skill now makes S3, S6 and S7 mandatory.
 - **Decided 2026-11-16 after phase 3:**
   - D-T1: the per-role terminal allowlist is removed. Every role may run any command except a
     Salesforce command the policy denies (the same policy for every role), a chained `sf`

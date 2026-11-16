@@ -121,6 +121,7 @@ HUB_COMMANDS = (("package", "create"), ("package", "version"), ("package", "dele
                 ("package", "update"), ("package", "list"), ("org", "create", "scratch"),
                 )
 RETRIEVE_COMMANDS = (("project", "retrieve", "start"), ("retrieve", "metadata"))
+LOCAL_READ_COMMANDS = frozenset({("org", "list"), ("alias", "list"), ("config", "get"), ("config", "list")})
 SCRATCH_LIFECYCLE_COMMANDS = frozenset({("org", "create", "scratch"), ("org", "resume", "scratch"),
                                         ("org", "delete", "scratch")})
 RETRIEVE_BOOL = {"--json", "--ignore-conflicts", "-c", "--single-package", "--unzip", "-z"}
@@ -535,6 +536,10 @@ def evaluate(parts: list[str], root: Path, *, config: dict | None = None,
         if any(p == "--flags-dir" or p.startswith("--flags-dir=") for p in parts):
             return Decision("deny", "Flag files can change the assessed target and scope; use explicit arguments.")
         parts = canonical_command(parts)
+        # Local, read-only CLI state: lists aliases and authorizations without contacting an
+        # org (plan 05: agents need it to find the agent org; enumeration is no longer denied).
+        if command_words(parts) in LOCAL_READ_COMMANDS and not _targets(parts, TARGET_FLAGS | HUB_FLAGS):
+            return Decision("allow", "Local CLI state read; no org is contacted.")
         cfg = config if config is not None else _read_json(root / "config/harness.local.json")
         entries = cfg["salesforce"]["orgs"]
         if not isinstance(entries, list):

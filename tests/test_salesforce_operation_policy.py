@@ -122,6 +122,11 @@ class PolicyTests(unittest.TestCase):
         self.assertFalse(self.decide('sf package delete -v team-alpha -p 0Ho000000000001').allowed)
         self.assertFalse(self.decide('sf data query -o team-alpha --query SELECT').allowed)
 
+    def test_local_cli_state_reads_need_no_target(self):
+        for command in ('sf org list --json', 'sf alias list'):
+            self.assertTrue(self.decide(command).allowed, command)
+        self.assertFalse(self.decide('sf org list -o team-alpha').allowed)
+
     def test_unresolved_dev_hub_blocks_only_package_deletion(self):
         # Plan 05, D-R2.
         self.assertFalse(self.decide('sf package delete -p 0Ho000000000001').allowed)

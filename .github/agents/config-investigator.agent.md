@@ -9,6 +9,14 @@ hooks:
       command: python3 scripts/copilot_role_guard.py --role config-investigator
       windows: python scripts/copilot_role_guard.py --role config-investigator
       timeout: 10
+# Copilot CLI starts workspace MCP servers only for the default agent; a custom agent needs
+# its own declaration (plan 05, live trial 2026-11-16). Same launchers as .github/mcp.json.
+mcp-servers:
+  salesforce:
+    type: local
+    command: node
+    args: ["scripts/start_salesforce_mcp.mjs", "--mode", "review", "--org-from-config"]
+    tools: ["*"]
 ---
 
 # Config Investigator

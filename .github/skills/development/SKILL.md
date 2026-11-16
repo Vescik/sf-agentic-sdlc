@@ -143,7 +143,9 @@ artifacts, agent configuration, tooling) never triggers it.
    `force-app` merely because it is convenient.
 2. **Tests**: choose the Salesforce test level and named tests proportionally to the change.
    A dry run is useful but optional unless the work item requires it.
-3. **Confirm a real deploy**: immediately before `sf project deploy start` without
+3. **Confirm a real deploy**: when `printenv SF_AGENTIC_AUTONOMOUS_ORG` prints an org (a
+   delivery run started by `scripts/sdlc.py`), skip the question and deploy to exactly that
+   org with `--target-org <that org>` (SAFE-DEPLOY-AUTONOMY-001). Otherwise, immediately before `sf project deploy start` without
    `--dry-run`, `sf project deploy quick`, equivalent `sf deploy metadata`, or a legacy
    `sfdx` deploy, state: `This will be a real deployment of changes to Salesforce org
 <target>. Scope: <scope>. Should I run this deployment?` Wait for an unambiguous answer.

@@ -305,6 +305,13 @@ evidence gates, and real client data.
   `.cache/delivery/<work item>-implementation-review.md` and added to the PR body) and S7
   (`git-agent`, push and draft PR) itself. Every action still goes through the hooks;
   `--no-finish` turns it off.
+- **Windows run (GPT-5.6 Luna):** started with plain `copilot --agent sdlc-conductor` on a stale
+  dirty `feat/*` branch; `python3` and `sf` were missing in the agents' shell; the inherited design
+  gates stopped development. Fixes: SAFE-DELIVERY-RUN-001 and `node scripts/check-delivery.mjs`
+  (PR #18); the launcher now requires a clean tree, switches to `main` and pulls, puts `sf` on the
+  agents' PATH, and also starts the S3 design review in its finish step; `Set-Location` to the
+  repository root counts like `cd`; `git` and `sf` run directly, never through a Python
+  `subprocess`; requirement exclusions are binding in the design. No AI-credit cap (owner).
 - **Decided 2026-11-16 after phase 3:**
   - D-T1: the per-role terminal allowlist is removed. Every role may run any command except a
     Salesforce command the policy denies (the same policy for every role), a chained `sf`

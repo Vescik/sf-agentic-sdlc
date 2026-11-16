@@ -19,7 +19,9 @@ enforce the publication boundaries of [plan 05](../../../docs/plan05-w8-integrat
 - Only the `git-agent` opens a pull request, always with `--draft`, and only when
   `scripts/check_delivery.py` reported PASS for the current HEAD commit.
 
-Commit messages are not checked by a hook. Salesforce/ADO configuration does not gate Git.
+Run `git` and `gh` directly, one command at a time; do not wrap them in a Python `subprocess`
+call, a PowerShell script block or a here-string, which neither a reviewer nor the hooks can
+judge. Commit messages are not checked by a hook. Salesforce/ADO configuration does not gate Git.
 
 ## Scope and authorization
 

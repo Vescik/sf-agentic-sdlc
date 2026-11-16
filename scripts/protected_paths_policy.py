@@ -175,27 +175,38 @@ def patch_paths(tool_input: object) -> list[str]:
     return [first or second for text in texts for first, second in PATCH_FILE.findall(text)]
 
 
-LEADING_CD = re.compile(r"""^\s*cd\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*&&\s*(.+)$""", re.DOTALL)
+LEADING_CD = re.compile(
+    r"""^\s*(?:cd|chdir|set-location|push-location|sl|pushd)\s+(?:-(?:literalpath|path)\s+)?"""
+    r"""(?:"([^"]+)"|'([^']+)'|(\S+))\s*(?:&&|;)\s*(.+)$""",
+    re.DOTALL | re.IGNORECASE,
+)
+
+
+def _same_directory(target: str, root: "object") -> bool:
+    from pathlib import Path
+
+    try:
+        if Path(target).expanduser().resolve() == Path(str(root)).resolve():
+            return True
+    except (OSError, RuntimeError):
+        pass
+    # A Windows path compared as text (case-insensitive, either separator, no trailing slash).
+    def norm(value: str) -> str:
+        return value.replace("\\", "/").rstrip("/").casefold()
+    return norm(target) == norm(str(root))
 
 
 def strip_root_cd(command: str, root: "object") -> str:
-    """`cd <repository root> && <command>` -> `<command>` (agents prefix commands this way).
+    """`cd <root> && cmd`, `Set-Location '<root>'; cmd` -> `cmd` (agents prefix commands this way).
 
     Only an exact repository-root target is removed, so the remaining command is judged in the
-    working directory the hooks already assume. Any other `cd` keeps the command compound.
+    working directory the hooks already assume. Any other directory keeps the command compound.
     """
-    from pathlib import Path
-
     match = LEADING_CD.match(command or "")
     if not match:
         return command
     target = next(group for group in match.groups()[:3] if group)
-    try:
-        if Path(target).expanduser().resolve() == Path(str(root)).resolve():
-            return match.group(4).strip()
-    except (OSError, RuntimeError):
-        return command
-    return command
+    return match.group(4).strip() if _same_directory(target, root) else command
 
 
 

@@ -34,8 +34,9 @@ a new attempt budget. When an argument is missing or both are given, ask once an
    status (`DONE`, `RETURNED`, `BLOCKED`), output paths, and the next step. After the station,
    read its outputs and the log line from the work-item folder. The log is a record, not a gate.
 3. Ask every station to write and change files with its editor tools, not with shell commands
-   such as `python3 -c` or heredocs; a shell command that mentions `sf` inside its text is denied
-   as a chained Salesforce command. Run each `sf` command on its own.
+   such as `python3 -c`, heredocs or PowerShell here-strings, and to run `git` and `sf` directly,
+   one command at a time, never through a Python `subprocess` or a script. A shell command that
+   mentions `sf` inside its text is denied as a chained Salesforce command.
 4. Only `scripts/check_delivery.py` writes `delivery-check.json`; the hooks deny every agent
    edit of that file. Never ask a station to write or repair it by hand.
 5. A station that finds a problem fixes it inside the attempt budget, or records it for H3. It
@@ -59,7 +60,7 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 | Step | Agent | Request | Done when |
 | --- | --- | --- | --- |
 | S1 requirements | `designer` | Before S1, fix the run's identity and say it in every station request: the work-item folder `work-items/<id>-<slug>` and the branch `feat/<id>-<slug>`. For an ADO item, `<id>` is its ID; for a `requirementFile`, `<id>` is the next free number in `work-items/` and the requirement is a written, human-provided requirement with no ADO item. Pass the exact input (the file path, which the station reads itself, or the ADO item ID). ADO input: follow `fetch-ado-item itemId=<ID>`. Then, for every input, create the branch and write `requirements.md` (see below). | `requirements.md` is committed on `feat/<id>-<slug>` |
-| S2 design | `designer` | Follow `solution-design` with the written requirement in `work-items/<id>-<slug>/requirements.md` (or `itemId=<ID>` for ADO input). Say that no `ado-context.md` exists for a written requirement. The design lists the planned metadata components and traces each `AC-n` to the design. | `design.md` is committed |
+| S2 design | `designer` | Follow `solution-design` with the written requirement in `work-items/<id>-<slug>/requirements.md` (or `itemId=<ID>` for ADO input). Say that no `ado-context.md` exists for a written requirement. The design lists the planned metadata components and traces each `AC-n` to the design. Everything the requirement excludes (for example "no Flow", "no backfill") is listed under Explicit exclusions and never appears in the planned change surface. | `design.md` is committed |
 | S3 design review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=design`. | a review result exists; findings that block the design go back to S2 once, then to H3 as findings |
 | S4 build | `developer` | Follow `development` on branch `feat/<id>-<slug>`. The launcher granted deploy autonomy (`SF_AGENTIC_AUTONOMOUS_ORG`): deploy with `--target-org <agent org>` and do not ask for confirmation; the hooks enforce the limits. Plan tasks, write source and Apex tests; for a new field, add a permission set with field access and assign it in the agent org; commit the source, deploy to the agent org, then commit `acceptance-trace.md` and `deploy-job-id`. | the work is committed and deployed |
 | S5 check | `developer` | Run `node scripts/check-delivery.mjs --work-item <folder>` (the same command on macOS and Windows; never `python3`, which Windows lacks). On FAIL, fix the cause named in the failing details, commit, deploy, and run the check again. | `delivery-check.json` is PASS for HEAD, or the budget is spent |

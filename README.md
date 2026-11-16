@@ -49,7 +49,10 @@ The same agents, skills, hooks and MCP servers also load in GitHub Copilot CLI
 draft PR in the developer agent org, run `python scripts/sdlc.py` and give the `sdlc-conductor`
 agent `deliver-requirement itemId=<ID>` or `requirementFile=<path>`
 ([plan 05](docs/plan05-w8-integration.md)). In prompt mode the launcher starts the review and
-draft-PR stations itself when the conductor leaves them out after a PASS delivery check. The [SDK orchestrator](docs/orchestrator.md) is the
+draft-PR stations itself when the conductor leaves them out after a PASS delivery check.
+Always start delivery runs through the launcher (`python scripts\sdlc.py` on Windows): a plain
+`copilot --agent sdlc-conductor` has no deploy grant, no delivery-run signal, no start check
+and no finish step. The [SDK orchestrator](docs/orchestrator.md) is the
 headless alternative.
 Once the workspace is installed, use the [Ways of Working guide](docs/ways-of-working.md) to
 choose the right path for a feature, defect, managed-package dependency, or configuration-only

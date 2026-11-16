@@ -106,3 +106,19 @@ Append-only agent-reported operational history. This is not deployment consent, 
 - Verification: the query returned only an aggregate count and profile name; no user identities were retrieved.
 - Rollback / cleanup: no user assignment or data mutation was performed.
 - Unverified / next action: access for actual support users is not confirmed. An org owner must identify the intended profile or permission-set assignment if needed. No production assignment state was checked.
+
+
+## 2026-11-16T12:05:25Z — Metadata deployment
+
+- Delivery scope: Work Item 1 — Route Cases by Priority
+- Target: devmp (explicit)
+- Operation: real deploy
+- Source: commit 48eab26048c9100887ec09f3be048442e44f5b63; working tree clean; deployed metadata source was committed before execution
+- Command: Salesforce CLI metadata deploy start; source directory `force-app/main/default`; explicit target `devmp`; wait 30 seconds; JSON output
+- Scope: `force-app/main/default`; six logical components — `Case.Routing_Tier__c`, `CaseRoutingHandler`, `CaseRoutingHandlerTest`, `CaseRoutingTrigger`, the Support Case layout, and the Support profile
+- Result: SUCCEEDED
+- Job ID: 0AfgL00000e90HtSAI
+- Test policy / outcome: NoTestRun; 0 tests run and 0 failures
+- Verification: CLI reported 6/6 metadata components successful and no component or test errors. Org identity verified as devmp/dev at 2026-11-16T12:05:47Z. REST object contract confirmed `Case.Routing_Tier__c` exists as a picklist in devmp at 2026-11-16T12:05:50Z.
+- Rollback / cleanup: No rollback or cleanup performed; the committed metadata remains available for a scoped rollback if needed.
+- Unverified / next action: This deployment did not rerun Apex tests. Production deployment and production state remain unverified.

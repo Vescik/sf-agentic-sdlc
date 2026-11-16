@@ -7,9 +7,9 @@ Status: plan, 2026-11-16. Nothing in this plan is implemented yet. Owner decisio
 
 One requirement goes in (an ADO work item ID or a written requirement). Copilot CLI runs the
 station chain over the harness agents and ends with a draft PR that meets a short list of
-success criteria. The agent works on its own. A person is asked during the run only when a
-script classifies the change as high or ultra risk (H1). The final go/no-go on the draft PR (H3)
-always stays human.
+success criteria. The agent works on its own. The target is always a developer org, so a wrong
+delivery costs one more iteration, not damage. A person is asked during the run only when the
+requirement cannot be understood. The final go/no-go on the draft PR (H3) always stays human.
 
 ## Lesson from W8: few gates, all checked by code
 
@@ -28,9 +28,10 @@ _mid-chain gates_:
    that something is done counts for nothing.
 3. **Boundaries are hooks.** What an agent must never do (production, merge, force push) is
    denied by code, the same way every time. Boundaries never depend on the model's judgment.
-4. **Only three things stop a run early:** a contradiction or a missing input, an exhausted
-   attempt budget (6 loops), and H1, which is asked only for high or ultra risk. Everything else
-   the agent works around or fixes itself ([Self-repair](#self-repair-instead-of-stops)).
+4. **Only two things stop a run early:** a requirement the agent cannot understand (it asks one
+   question and waits), and an exhausted attempt budget (6 loops; the person can start the next
+   iteration with feedback). Everything else the agent works around or fixes itself
+   ([Self-repair](#self-repair-instead-of-stops)).
 
 W8 patterns are rewritten in this repository's words. No `W8_*` file is copied here, and all
 golden-case data is synthetic.
@@ -71,28 +72,27 @@ Reported, not blocking:
   positives. Make it a criterion once a few runs show the noise level.
 - **Assumptions:** the numbered assumptions are repeated in the report and the draft PR, so
   H3 sees every one.
-- **Risk level:** the result of `classify_risk.py` for the design and for the final diff.
 
 ## Decisions 2026-11-16
 
-| ID   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Replaces                                                           |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| D-A2 | Real deploys to the configured `salesforce.agentOrg` need no chat question in **any** CLI session started through the repository launcher, not only in the SDK orchestrator. Still never `prod`, never another org, never quick deploy or destructive delete without a question.                                                                                                                                                                                                                                                   | SAFE-DEPLOY-AUTONOMY-001 scope "orchestrated run only"             |
-| D-B1 | When `delivery-check.json` is PASS for HEAD, the `git-agent` may push the `feat/*` branch and open a **draft** PR. Merge, ready-for-review, approve and production stay human.                                                                                                                                                                                                                                                                                                                                                     | "agents never push or open PRs" in orchestrated runs               |
-| D-D2 | Human input during the run only for **high or ultra** risk (H1, see [Risk levels](#risk-levels)). For low and medium risk the agent goes from requirement to draft PR without asking. A rejection at H1 is not a stop: the agent revises the design with the person's reason and asks again; no code is written for that change until the person says yes. H3 on the draft PR always stays. H2 is removed.                                                                                                                         | three checkpoints H1–H3, H1 for every run                          |
-| D-D4 | An unclear requirement does not stop the run. The agent writes a numbered assumption and continues; the assumptions go to the draft PR for H3 (and to H1 when H1 is asked). The run is BLOCKED only for a **contradiction** (two requirements that cannot both hold) or a missing input.                                                                                                                                                                                                                                           | W8 "the run stops and returns to S1" for every ambiguity           |
-| D-SC | Success is the five criteria SC1–SC5, checked by `check_delivery.py` at the end. Mid-chain tickets are a log, not a gate.                                                                                                                                                                                                                                                                                                                                                                                                          | W8 L3 evidence checks at every hand-over (L09 § A7)                |
-| D-R1 | Removed as hard stops: commit subject format; the "run from the repository root" rule; the checker write ban; the question for an unknown MCP tool; ADO blocks for a missing config and for scope outside the configured project; org and project enumeration.                                                                                                                                                                                                                                                                     | safety hook and role guard rules of the same name                  |
-| D-R2 | Per-role path limits are removed. One shared list of protected control files stays, which no agent writes: `.github/hooks/`, `.github/agents/`, `.github/instructions/`, `.github/mcp.json`, `.vscode/`, `scripts/copilot_*.py`, `scripts/*_policy.py`, `scripts/start_*_mcp.mjs`, `config/`, `schemas/`. The Salesforce development MCP stays denied (it would deploy around the `sf` policy). An unresolved Dev Hub stays denied only for `package delete` and `package uninstall`, because a Dev Hub is often a production org. | per-role edit allowlists; full Dev Hub and enumeration denies      |
-| D-R3 | No file guard for `approvals/` or `delivery-check.json`. The launcher asks H1 at the terminal and writes `approvals/H1.md` with the person's answer. The draft-PR rule in the safety hook runs `check_delivery.py` itself for HEAD instead of reading a file. ADO writes stay limited to the two existing tools (wiki page, work-item artifact link).                                                                                                                                                                              | planned role-guard rule for `approvals/` and `delivery-check.json` |
-| D-AB | Attempt budget: the build-and-fix loop (S5 → check → fix) runs at most **6** times. Each loop must change the cause named in the failing log, not repeat the same attempt. After the sixth FAIL the run ends with the failing criteria and no PR.                                                                                                                                                                                                                                                                                  | proposed budget of 3                                               |
-| D-SR | Expired org auth, missing local config, an untrusted folder and the missing VS Code native tool are not stops. The agent or the launcher works around them ([Self-repair](#self-repair-instead-of-stops)).                                                                                                                                                                                                                                                                                                                         | stops 36–39 of the 2026-11-16 list                                 |
+| ID   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Replaces                                                                           |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| D-A2 | The `agentOrg` is always a **developer** org (environment class `dev`, a Developer Edition or a scratch org). The launcher refuses an `agentOrg` of any other class, and the autonomy grant in the safety hook applies only to `dev`. Real deploys to that org need no chat question in any CLI session started through the repository launcher. `uat`, `stage` and `prod` are never targets of a run.                                                                                                                             | SAFE-DEPLOY-AUTONOMY-001: grant for `dev`, `uat` or `stage`, orchestrated run only |
+| D-B1 | When `delivery-check.json` is PASS for HEAD, the `git-agent` may push the `feat/*` branch and open a **draft** PR. Merge, ready-for-review, approve and production stay human.                                                                                                                                                                                                                                                                                                                                                     | "agents never push or open PRs" in orchestrated runs                               |
+| D-D2 | No human checkpoint during the run (H1 and H2 removed). On a developer org a wrong delivery has no lasting cost: the person sends feedback and starts the next iteration. H3 on the draft PR always stays.                                                                                                                                                                                                                                                                                                                         | three checkpoints H1–H3                                                            |
+| D-D4 | An unclear requirement does not stop the run: the agent writes a numbered assumption and continues; the assumptions go to the draft PR for H3. Only a requirement the agent **cannot understand at all**, a contradiction (two requirements that cannot both hold) or a missing input makes it ask the person one exact question and wait. The answer is recorded in `requirements.md`.                                                                                                                                            | W8 "the run stops and returns to S1" for every ambiguity                           |
+| D-SC | Success is the five criteria SC1–SC5, checked by `check_delivery.py` at the end. Mid-chain tickets are a log, not a gate.                                                                                                                                                                                                                                                                                                                                                                                                          | W8 L3 evidence checks at every hand-over (L09 § A7)                                |
+| D-R1 | Removed as hard stops: commit subject format; the "run from the repository root" rule; the checker write ban; the question for an unknown MCP tool; ADO blocks for a missing config and for scope outside the configured project; org and project enumeration.                                                                                                                                                                                                                                                                     | safety hook and role guard rules of the same name                                  |
+| D-R2 | Per-role path limits are removed. One shared list of protected control files stays, which no agent writes: `.github/hooks/`, `.github/agents/`, `.github/instructions/`, `.github/mcp.json`, `.vscode/`, `scripts/copilot_*.py`, `scripts/*_policy.py`, `scripts/start_*_mcp.mjs`, `config/`, `schemas/`. The Salesforce development MCP stays denied (it would deploy around the `sf` policy). An unresolved Dev Hub stays denied only for `package delete` and `package uninstall`, because a Dev Hub is often a production org. | per-role edit allowlists; full Dev Hub and enumeration denies                      |
+| D-R3 | No file guard for `delivery-check.json`. The draft-PR rule in the safety hook runs `check_delivery.py` itself for HEAD instead of reading a file. ADO writes stay limited to the two existing tools (wiki page, work-item artifact link).                                                                                                                                                                                                                                                                                          | planned role-guard rule for `approvals/` and `delivery-check.json`                 |
+| D-AB | Attempt budget: the build-and-fix loop (S5 → check → fix) runs at most **6** times per iteration. Each loop must change the cause named in the failing log, not repeat the same attempt. After the sixth FAIL the iteration ends with the failing criteria and no PR. The person can start the next iteration on the same branch with a feedback file (`deliver-requirement itemId=… feedback=<file>`); the budget starts again.                                                                                                   | proposed budget of 3                                                               |
+| D-SR | Expired org auth, missing local config, an untrusted folder and the missing VS Code native tool are not stops. The agent or the launcher works around them ([Self-repair](#self-repair-instead-of-stops)).                                                                                                                                                                                                                                                                                                                         | stops 36–39 of the 2026-11-16 list                                                 |
 
 Proposed defaults, not yet confirmed by the owner (apply unless changed):
 
 | ID   | Proposal                                                                                                                                                        |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P-A3 | Quick deploy and `project delete source` stay "ask", except in a scratch org that is the `agentOrg`.                                                            |
+| P-A3 | Quick deploy and `project delete source` are allowed without a question against the developer `agentOrg` (D-A2); against any other org they stay "ask".         |
 | P-A5 | Add `sf code-analyzer run` (read-only) to the Salesforce command allowlist.                                                                                     |
 | P-A7 | Data-writing commands (`data delete/update/upsert bulk`, `apex run`) are allowed only against the `agentOrg`. Today they are allowed on any non-production org. |
 | P-B2 | Push becomes a hook rule, not a sentence: only `feat/*` branches, never `main`, never `--force`, only by `git-agent`.                                           |
@@ -100,31 +100,14 @@ Proposed defaults, not yet confirmed by the owner (apply unless changed):
 
 ## When a run stops
 
-| Stop                                              | What happens                                                                                                                              | Enforced by                                                                                 |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Contradiction in the requirement or missing input | BLOCKED before design, with the exact question for the requirement owner                                                                  | conductor instruction (D-D4)                                                                |
-| High or ultra risk without approval               | the agent asks at H1 and waits; on a rejection it revises the design with the reason and asks again; no code for that change before a yes | `classify_risk.py` decides the level; the launcher asks and writes `approvals/H1.md` (D-R3) |
-| Attempt budget exhausted (6 loops)                | run ends FAIL with `delivery-check.json` and the list of failing criteria; no push, no PR                                                 | conductor instruction, attempt count in log                                                 |
-| Boundary hit                                      | the tool call is denied; the agent reports it and continues within limits, or ends the run                                                | hooks (table below)                                                                         |
+| Stop                                                               | What happens                                                                                                                                       | Enforced by                                 |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Requirement not understandable, contradictory, or an input missing | the agent asks one exact question and waits; the answer goes to `requirements.md` and the run continues                                            | conductor instruction (D-D4)                |
+| Attempt budget exhausted (6 loops)                                 | the iteration ends FAIL with `delivery-check.json` and the failing criteria; no push, no PR; the person may start the next iteration with feedback | conductor instruction, attempt count in log |
+| Boundary hit                                                       | the tool call is denied; the agent reports it and continues within limits, or ends the run                                                         | hooks (table below)                         |
 
 Nothing else stops a run. A station that finds a problem fixes it within the budget or records
 it for H3.
-
-## Risk levels
-
-The level is set by `scripts/classify_risk.py` from a list of metadata types and paths, never by
-the model's judgment. It runs twice: on the component list in `design.md` before the build, and
-on the branch diff before the draft PR. If the diff is high or ultra while the design was not,
-H1 is asked at that point, before the PR.
-
-Proposed rule list (P-RISK, to confirm):
-
-| Level  | When                                                                                                                                                                                                                                                                                                        | H1    |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| ultra  | security and identity settings (`SecuritySettings`, `AuthProvider`, `SamlSsoConfig`, `NetworkAccess`, `CspTrustedSite`), any `*.settings-meta.xml`, Platform Encryption, login and session policy in profiles                                                                                               | asked |
-| high   | sharing model or sharing rules; profiles, permission sets and permission set groups that grant object or field access; Apex `without sharing`; callouts and their setup (Named Credentials, External Credentials, Remote Site Settings, Connected Apps); destructive changes (deleted components or fields) | asked |
-| medium | new or changed Apex triggers, record-triggered flows and validation rules on objects with existing automation                                                                                                                                                                                               | no    |
-| low    | everything else: new fields, layouts, LWC, Apex classes with sharing, tests                                                                                                                                                                                                                                 | no    |
 
 ## Self-repair instead of stops
 
@@ -144,7 +127,7 @@ terminal.
 | #   | Boundary                                                                                                                            | Kind                    | Where                                              |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | -------------------------------------------------- |
 | A1  | Production: CLI allows only metadata retrieve; confirmation cannot override                                                         | deny                    | `salesforce_operation_policy.py` (SAFE-PROD-001)   |
-| A2  | Real deploy outside `agentOrg` (or any deploy without the launcher grant)                                                           | ask                     | safety hook (SAFE-DEPLOY-CONFIRM-001)              |
+| A2  | Real deploy to any org other than the developer `agentOrg`, or without the launcher grant                                           | ask                     | safety hook (SAFE-DEPLOY-CONFIRM-001, D-A2)        |
 | A3  | Quick deploy, destructive source delete                                                                                             | ask (P-A3)              | safety hook                                        |
 | A4  | Missing `--target-org`, unclassified org, CLI defaults                                                                              | deny                    | Salesforce policy                                  |
 | A5  | `sf` command not on the allowlist; flag files; wrappers                                                                             | deny                    | Salesforce policy, safety hook                     |
@@ -164,17 +147,16 @@ separate agents with their own instructions; separation is now by role, not by p
 
 ## Station map (work order, not gates)
 
-| Station          | Agent                               | Skill                                                              | Output in `work-items/<id>-<slug>/`                                                  | Work            |
-| ---------------- | ----------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | --------------- |
-| S1 requirements  | `designer`                          | `fetch-ado-item`; new mode "requirement from text"                 | `requirements.md`: numbered requirements, `AC-n` acceptance criteria, assumptions    | add text intake |
-| S2 design        | `designer`                          | `solution-design`                                                  | `design.md` with requirement → design traceability                                   | exists          |
-| S3 design review | `reviewer` (checker)                | `check-against-principles scope=design`                            | review notes in the log; problems go back to S2 inside the budget                    | exists          |
-| H1               | person, only for high or ultra risk | —                                                                  | `approvals/H1.md`: design and assumptions approved, or rejected with a reason        | new record      |
-| S4 build         | `developer`                         | `development` (plan section first, open item O-1)                  | commits on `feat/*`; deploy and Apex tests in `agentOrg`; AC → test trace table      | extend          |
-| S5 check and fix | `developer`                         | new `check-delivery` skill                                         | `delivery-check.json` from the script; fix and re-run, at most 3 times (P-AB)        | new             |
-| S6 review        | `reviewer` (checker)                | `check-against-principles scope=implementation` plus security list | findings for H3; a finding that breaks a criterion goes back to S4 inside the budget | extend          |
-| S7 draft PR      | `git-agent`                         | new `delivery-packet` skill                                        | pushed `feat/*`, draft PR with the check result, assumptions, findings and rollback  | new             |
-| H3               | person                              | —                                                                  | the person reviews the draft PR and merges or closes it                              | —               |
+| Station          | Agent                | Skill                                                              | Output in `work-items/<id>-<slug>/`                                                  | Work            |
+| ---------------- | -------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | --------------- |
+| S1 requirements  | `designer`           | `fetch-ado-item`; new mode "requirement from text"                 | `requirements.md`: numbered requirements, `AC-n` acceptance criteria, assumptions    | add text intake |
+| S2 design        | `designer`           | `solution-design`                                                  | `design.md` with requirement → design traceability                                   | exists          |
+| S3 design review | `reviewer` (checker) | `check-against-principles scope=design`                            | review notes in the log; problems go back to S2 inside the budget                    | exists          |
+| S4 build         | `developer`          | `development` (plan section first, open item O-1)                  | commits on `feat/*`; deploy and Apex tests in `agentOrg`; AC → test trace table      | extend          |
+| S5 check and fix | `developer`          | new `check-delivery` skill                                         | `delivery-check.json` from the script; fix and re-run, at most 6 times (D-AB)        | new             |
+| S6 review        | `reviewer` (checker) | `check-against-principles scope=implementation` plus security list | findings for H3; a finding that breaks a criterion goes back to S4 inside the budget | extend          |
+| S7 draft PR      | `git-agent`          | new `delivery-packet` skill                                        | pushed `feat/*`, draft PR with the check result, assumptions, findings and rollback  | new             |
+| H3               | person               | —                                                                  | the person reviews the draft PR and merges or closes it                              | —               |
 
 The S6 security list covers CRUD/FLS enforcement, `with sharing` and `inherited sharing`,
 dynamic SOQL injection, hard-coded IDs, secrets and endpoints (Named Credentials), personal data
@@ -198,7 +180,8 @@ Instructions:
   (`AC-n` → `Class.method` or manual step).
 - New or extended skills: requirement from text (S1), plan section in `development` (S4),
   `check-delivery` (S5), security list (S6), `delivery-packet` (S7).
-- `.ai/templates/`: `requirements.md`, `approval.md`, `delivery-packet.md` (the draft PR body).
+- `.ai/templates/`: `requirements.md`, `feedback.md` (input for the next iteration),
+  `delivery-packet.md` (the draft PR body).
 - `evals/agent-scenarios.yaml`: golden cases with synthetic Salesforce requirements (Phase 5).
 
 Runtime:
@@ -207,8 +190,8 @@ Runtime:
   recorded `sf` JSON fixtures. The SDK orchestrator calls the same script.
 - Role guard: per-role path limits replaced by one shared protected-file list (D-R2).
 - Launcher: changes to the repository root, starts the CLI with `--trust-folder`, runs
-  `first_launch.py` when `agentOrg` is missing, and asks H1 at the terminal when the risk level
-  requires it; it writes `approvals/H1.md` (D-R3, D-SR).
+  `first_launch.py` when `agentOrg` is missing, and refuses an `agentOrg` that is not class `dev`
+  (D-A2, D-SR).
 - Safety hook: B1 and B2 Git rules, including "draft PR only when its own run of
   `check_delivery.py` passes for HEAD"; the launcher grant (D-A2); removal of the D-R1 rules.
 - `scripts/sdlc` launcher (a few lines): checks `agentOrg`, sets `SF_AGENTIC_AUTONOMOUS_ORG`, and
@@ -227,21 +210,22 @@ Runtime:
    If question 1 is "no", the conductor cannot exist as instructions. The SDK host then runs the
    stations, and Phases 1, 2, 4 and 5 still apply unchanged.
 
-1. **Success and risk checks:** `.ai/contracts/delivery-success.md`, `scripts/check_delivery.py`,
-   `scripts/classify_risk.py`, tests with recorded `sf` JSON and sample diffs. This comes first because every later phase is judged by it.
+1. **Success check:** `.ai/contracts/delivery-success.md`, `scripts/check_delivery.py`, tests
+   with recorded `sf` JSON. This comes first because every later phase is judged by it.
 2. **Boundaries:** remove the D-R1 rules and the per-role limits; add the shared protected-file
-   list (D-R2); B1/B2 Git rules; launcher grant (D-A2) and H1 prompt (D-R3); P-A5 and P-A7 if
+   list (D-R2); B1/B2 Git rules; launcher grant for `dev` only (D-A2); P-A5 and P-A7 if
    confirmed; update tests and safety evals for every removed or added rule.
 3. **Conductor:** `sdlc-conductor` agent and `deliver-requirement` skill; validator checks for the
    new files.
 4. **Missing stations:** S1 text intake, plan section in S4, `check-delivery` skill, S6 security
    list, `delivery-packet` and draft PR.
 5. **Golden cases and live runs:** N (normal: a field, a validation rule and an Apex handler with
-   tests), E (edge: contradictory requirements, which must end BLOCKED before design; and a
+   tests), E (edge: contradictory requirements, where the agent must ask before design; and a
    requirement that touches a managed-package field), T (trap: the requirement asks to merge and
    deploy to production, which the hooks must deny). One full live run of N and one of T,
    recorded in the work item. Success for this phase: N ends with a PASS check and a draft PR;
-   two runs of N end with the same criteria results.
+   two runs of N end with the same criteria results; a failed iteration of N followed by a
+   feedback iteration ends PASS.
 6. **SDK host decision:** if the conductor passes Phase 5, the SDK orchestrator stays as a thin
    headless runner over the same check, or is removed. No new work on it before then.
 
@@ -253,7 +237,6 @@ Runtime:
   `@azure-devops/mcp`), so CI runs the validator and the tests again.
 - O-3: dependabot PR #1 is still open.
 - O-4: confirm or change P-A3, P-A5, P-A7, P-B2 and P-C5.
-- O-5: confirm the risk rule list P-RISK.
 - O-6: SAFE-HOST-NATIVE-001 in `.github/instructions/managed-package.instructions.md` must be
   rewritten for the CLI fallback (D-SR) in Phase 2.
 

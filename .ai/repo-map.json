@@ -486,7 +486,7 @@
     }
   ],
   "sourceDigests": {
-    ".ai/contracts/delivery-success.md": "sha256:40ccddd2044c758f8bdf178fe72f19738d2dfdb0aed2133d9f93ce7b5ada8c7a",
+    ".ai/contracts/delivery-success.md": "sha256:65d4d80733db3f38e5fb644ebe4389f295b65b54f95aa830f689ea6216ca332a",
     ".ai/contracts/execution-contract.md": "sha256:b477e963e73bb2189896dacb2cc916c34971194f3490bfef82526f8754fbfb8d",
     ".ai/contracts/source-authority.md": "sha256:a44ef511a496cf3634ffa097a214fad075a97c5e0ac57c8e9e901e94a0627ed9",
     ".ai/contracts/tool-capabilities.md": "sha256:dcb7aca0f7868dd4bcf89314018d805c2694cd6ec0c4d904448e2298916da632",

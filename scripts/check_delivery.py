@@ -10,7 +10,7 @@ SC1  every acceptance criterion in requirements.md is traced to a passing Apex t
      (or to a written manual step) in acceptance-trace.md
 SC2  RunLocalTests in the agent org: 0 failed (plus `npm run test:unit` when it exists)
 SC3  coverage >= 75% for every non-test Apex class and trigger changed on the branch
-SC4  the deploy job in the agent org succeeded after the HEAD commit and contains every
+SC4  the deploy job in the agent org succeeded after the last source commit and contains every
      source file changed on the branch under the package directories
 SC5  clean working tree, `feat/*` branch, all work committed
 
@@ -336,7 +336,7 @@ def check_deploy(runner: Runner, root: Path, org: str, job_id: str | None, chang
     if completed is None:
         problems.append(f"deploy {job_id} has no completedDate")
     elif completed < head_time:
-        problems.append(f"deploy {job_id} completed {completed.isoformat()} before the HEAD commit {head_time.isoformat()}")
+        problems.append(f"deploy {job_id} completed {completed.isoformat()} before the last source commit {head_time.isoformat()}")
     files = result.get("files") or []
     if files:
         deployed = set()
@@ -394,7 +394,10 @@ def check(work_item: Path, *, root: Path = ROOT, base: str = "main", org: str | 
         deploy_job_id = (work_item / "deploy-job-id").read_text(encoding="utf-8").strip() or None
 
     sc5, branch, head = check_clean(runner, root, work_item)
-    head_time = datetime.fromtimestamp(int(git(runner, root, "show", "-s", "--format=%ct", "HEAD").strip()), timezone.utc)
+    # The deploy must follow the last commit that changed package source. Later commits (for
+    # example the one that records deploy-job-id) do not change what was deployed.
+    source_time = git(runner, root, "log", "-1", "--format=%ct", f"{base}..HEAD", "--", *dirs).strip()
+    head_time = datetime.fromtimestamp(int(source_time or git(runner, root, "show", "-s", "--format=%ct", "HEAD").strip()), timezone.utc)
     changed = changed_source_files(runner, root, base, dirs)
     classes = apex_methods(root, dirs)
     sc2, outcomes, coverage = run_tests(runner, root, alias)

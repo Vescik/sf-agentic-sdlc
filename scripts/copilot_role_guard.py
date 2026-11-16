@@ -316,6 +316,11 @@ def evaluate_event(event: dict[str, Any], role: str, *, inspect_git: bool = True
         # be checked), and obvious shell writes to protected control files.
         if sf_policy is None and re.search(r"\b(?:sf|sfdx)(?:\.exe|\.cmd)?\b", command):
             return response("deny", f"Salesforce policy unavailable: salesforce_operation_policy ({_POLICY_ERRORS.get('salesforce_operation_policy', 'load error')}).")
+        if protected_policy is not None:
+            piped_head = protected_policy.split_sf_pipeline(
+                command, re.compile(r"(?:^|[\s;&|(`])(?:\S*/)?(?:sf|sfdx)(?:\.exe|\.cmd)?(?:\s|$)"))
+            if piped_head and re.match(r"^\s*(?:\S*/)?(?:sf|sfdx)(?:\.exe|\.cmd)?\s", piped_head):
+                command = piped_head
         if re.search(r"[;&|`$<>\n\r]", command) and re.search(r"(?:^|[\s;&|(`])(?:\S*/)?(?:sf|sfdx)(?:\.exe|\.cmd)?\s", command):
             return response("deny", "Run each sf command on its own, without chaining, pipes, redirects or substitution, so its target org can be checked.")
         sf_decision = salesforce_command_decision(command, root, role)

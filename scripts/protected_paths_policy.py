@@ -76,38 +76,72 @@ def protected_path(relative_path: str) -> bool:
     )
 
 
-SHELL_WRITE = re.compile(
-    r"(?:>|\btee\b|\bsed\b[^|;&]*\s-i|\bperl\b[^|;&]*\s-i|\b(?:cp|mv|rm|rmdir|chmod|chown|truncate|ln|"
-    r"install|rsync|dd|touch|unlink|shred)\b|\bopen\(|write_text|write_bytes|\.write\(|"
-    r"\bgit\s+(?:checkout|restore|apply|am|stash\s+pop)\b|Set-Content|Out-File|Add-Content|Remove-Item|"
-    r"Move-Item|Copy-Item|New-Item)",
-    re.IGNORECASE,
-)
-PROTECTED_TEXT = re.compile(
-    r"(?:\.github/(?:hooks|agents|instructions)\b|\.githooks\b|\.vscode\b|(?<![\w/.-])config/|(?<![\w/.-])schemas/|"
-    r"extensions/salesforce-operations\b|\.github/mcp\.json|copilot_[a-z_]+\.py|[a-z_]+_policy\.py|"
-    r"start_[a-z_]+_mcp\.mjs|check_delivery\.py|scripts/sdlc\.py|sf-harness\.code-workspace|"
-    r"harness\.local\.json|delivery-check\.json)",
-    re.IGNORECASE,
-)
+
+
+REDIRECT_TARGET = re.compile(r"""(?<![0-9&])>>?\s*(?:"([^"]+)"|'([^']+)'|([^\s;&|<>()]+))""")
+CODE_TARGET = re.compile(r"""(?:Path|open|write_text|write_bytes)\(\s*(?:"([^"]+)"|'([^']+)')""")
+WRITE_COMMANDS = frozenset({
+    "tee", "cp", "mv", "rm", "rmdir", "chmod", "chown", "truncate", "ln", "install", "rsync",
+    "dd", "touch", "unlink", "shred", "set-content", "out-file", "add-content", "remove-item",
+    "move-item", "copy-item", "new-item",
+})
+IN_PLACE_COMMANDS = frozenset({"sed", "perl"})
+GIT_WRITE_SUBCOMMANDS = frozenset({"checkout", "restore", "apply", "am", "rm", "mv"})
+
+
+def _is_protected_target(raw: str) -> bool:
+    path = raw.strip().replace("\\", "/")
+    while path.startswith("./"):
+        path = path[2:]
+    if not path or path.startswith("-"):
+        return False
+    lowered = path.casefold()
+    candidates = {lowered, lowered.rstrip("/") + "/"}
+    for marker in ("/scripts/", "/.github/", "/config/", "/schemas/", "/.vscode/", "/.githooks/", "/extensions/", "/work-items/"):
+        if marker in lowered:  # an absolute or nested path into the repository
+            candidates.add(lowered[lowered.index(marker) + 1:])
+    return any(
+        candidate in NEVER_EDITED_EXACT
+        or any(fnmatch.fnmatchcase(candidate, pattern) for pattern in NEVER_EDITED_PATTERNS)
+        or protected_path(candidate)
+        for candidate in candidates
+    )
 
 
 def shell_write_to_protected(command: str) -> str | None:
-    """Best-effort: a terminal command that names a protected file and a write primitive.
+    """Best-effort: the write target of a terminal command is a protected file.
 
-    Read commands (cat, grep, git diff) on protected files stay allowed. This catches obvious
-    writes, not every possible program; the editor rule in edit_decision is the main boundary.
+    Only real write targets count: redirect targets, the path literal of Python file writes, and
+    the arguments of write commands (`cp`, `mv`, `rm`, `tee`, `sed -i`, `git checkout --` …). A
+    protected name inside written text (for example a document that mentions
+    `scripts/check_delivery.py`) is not a target. This catches obvious writes, not every program.
     """
+    import shlex
+
     normalized = command.replace("\\", "/")
-    for segment in re.split(r"[;&|\n\r]", normalized):
-        write = SHELL_WRITE.search(segment)
-        if not write:
+    targets: list[str] = []
+    targets += [next(g for g in match if g) for match in REDIRECT_TARGET.findall(normalized)]
+    if re.search(r"write_text|write_bytes|\.write\(|open\([^)]*['\"][wax+]", normalized):
+        targets += [next(g for g in match if g) for match in CODE_TARGET.findall(normalized)]
+    for segment in re.split(r"[;&|\n\r]+", normalized):
+        try:
+            words = shlex.split(segment)
+        except ValueError:
+            words = segment.split()
+        while words and (re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[0]) or words[0] in {"sudo", "command", "env", "exec"}):
+            words = words[1:]
+        if not words:
             continue
-        # The protected path must come after the write primitive: `python check_delivery.py
-        # > out.txt` writes out.txt, while `echo x > scripts/copilot_safety_hook.py` does not.
-        target = PROTECTED_TEXT.search(segment, write.start())
-        if target:
-            return target.group(0)
+        executable = words[0].rsplit("/", 1)[-1].casefold()
+        if executable in WRITE_COMMANDS:
+            targets += words[1:]
+        elif executable in IN_PLACE_COMMANDS and any(w == "-i" or w.startswith("-i") or w.startswith("-pi") for w in words[1:]):
+            targets += words[1:]
+        elif executable == "git" and len(words) > 1 and words[1] in GIT_WRITE_SUBCOMMANDS:
+            targets += words[2:]
+    for target in targets:
+        if _is_protected_target(target):
+            return target
     return None
 
 
@@ -162,3 +196,22 @@ def strip_root_cd(command: str, root: "object") -> str:
     except (OSError, RuntimeError):
         return command
     return command
+
+
+
+def split_sf_pipeline(command: str, sf_token: "re.Pattern[str]") -> str | None:
+    """Return the head of `sf … [2>&1] | <filter …>` when the head is a plain command and the
+    filter part names no sf command; otherwise None. Quote-aware for the first pipe only."""
+    quote = ""
+    for index, char in enumerate(command):
+        if char in "\"'" and (not quote or quote == char):
+            quote = "" if quote else char
+        elif char == "|" and not quote:
+            head, tail = command[:index], command[index + 1:]
+            if tail.startswith("|"):
+                return None  # `||` is chaining, not a pipe
+            head = re.sub(r"\s2>&1\s*$", "", head).strip()
+            if re.search(r"[;&|`$<>\n\r]", head) or sf_token.search(tail):
+                return None
+            return head
+    return None

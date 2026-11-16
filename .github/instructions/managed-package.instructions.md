@@ -28,7 +28,10 @@ change that conflicts with them is wrong even if it works.
 - **MP-MAP-001 — docs are the map, the org is the terrain.** Facts about the org come
   from the read-only Salesforce MCP tools, not from model memory and not from `docs/`
   alone. On conflict the org wins; report the mismatch as a correction to `docs/`.
-- **SAFE-DEPLOY-CONFIRM-001 — confirm every real deploy in chat.** Immediately before a real
+- **SAFE-DEPLOY-CONFIRM-001 — confirm every real deploy in chat, unless the host granted
+  autonomy.** When the environment variable `SF_AGENTIC_AUTONOMOUS_ORG` is set (check with
+  `printenv SF_AGENTIC_AUTONOMOUS_ORG`), SAFE-DEPLOY-AUTONOMY-001 applies instead: deploy to exactly
+  that org with `--target-org <that org>` and do not ask. Otherwise, immediately before a real
   deployment, the Developer states: `This will be a real deployment of changes to Salesforce
   org <target>. Scope: <scope>. Should I run this deployment?` The user must confirm that exact
   invocation. Native operations obtain this confirmation in their own modal; chat text and generic

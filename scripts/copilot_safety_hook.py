@@ -479,12 +479,26 @@ def target_orgs(parts: list[str]) -> list[str]:
     return targets
 
 
+def sf_pipeline_head(command: str) -> str:
+    """`sf … --json | python3 …` -> `sf … --json` (plan 05, live trial: agents filter sf output).
+
+    A pipe after the Salesforce command cannot change its target org, so only the first segment
+    is judged by the Salesforce policy. Substitution, chaining and redirects in the sf segment,
+    and any sf command after the pipe, keep the whole command compound (denied).
+    """
+    if protected_policy is None:
+        return command
+    head = protected_policy.split_sf_pipeline(command, SF_TOKEN)
+    return head if head and SF_TOKEN.search(head) and not SF_TOKEN.search(dequote(command[len(head):])) else command
+
+
 def direct_sf_command(command: str) -> list[str] | None:
     # The shell collapses quote/backslash splices (`s''f`, `s""f`, `s\f`) back to `sf` before
     # execution, so a prefilter over the raw string alone misses them. Test a de-spliced copy
     # too; the metacharacter gate below still runs against the original command.
     if not SF_TOKEN.search(command) and not SF_TOKEN.search(dequote(command)):
         return None
+    command = sf_pipeline_head(command)
     if re.search(r"[;&|`$<>\n\r]", command):
         raise ValueError("compound, redirected, or substituted Salesforce commands are forbidden")
     try:
@@ -823,6 +837,13 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
                     "allow",
                     f"SAFE-DEPLOY-AUTONOMY-001: host autonomy grant for agent org {granted_org} "
                     f"(Org ID {decision.organization_id}; environment {decision.environment}).",
+                )
+            granted = os.environ.get(AUTONOMY_ENV, "")
+            if granted and not target_orgs(sf_parts):
+                return hook_response(
+                    "deny",
+                    f"Add --target-org {granted}: the deploy grant covers only an explicit target "
+                    "(SAFE-DEPLOY-AUTONOMY-001). Run the same command again with it.",
                 )
             reason = real_deploy_confirmation_reason(sf_parts)
             reason += f" Resolved Org ID: {decision.organization_id}; environment: {decision.environment}."

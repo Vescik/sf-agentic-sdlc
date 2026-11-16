@@ -82,7 +82,10 @@ work against configured `dev`, `uat`, or `stage` targets. Production CLI permits
 verified metadata retrieve; production reads use the existing Salesforce MCP.
 Namespace or package ownership alone is never a harness-level deny.
 
-Before every command that starts a real deployment, stop and ask in chat using this meaning and
+When `printenv SF_AGENTIC_AUTONOMOUS_ORG` prints an org (a delivery run started by
+`scripts/sdlc.py`), deploy to exactly that org with `--target-org <that org>` without asking
+(SAFE-DEPLOY-AUTONOMY-001); the hooks enforce the limits. Otherwise, before every command that
+starts a real deployment, stop and ask in chat using this meaning and
 including the actual target and bounded scope: `This will be a real deployment of changes to
 Salesforce org <target>. Scope: <scope>. Should I run this deployment?` Run the exact command only
 after an unambiguous user confirmation. When using the native operation tool, its exact deployment

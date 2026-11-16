@@ -3,7 +3,7 @@
 
 Contract: .ai/contracts/delivery-success.md (plan: docs/plan05-w8-integration.md).
 
-    python scripts/check_delivery.py --work-item work-items/<id>-<slug> \
+    node scripts/check-delivery.mjs --work-item work-items/<id>-<slug> \   (any OS; or python3 / py -3 directly)
         [--base main] [--org <agentOrg alias>] [--deploy-job-id <0Af...>] [--output <path>]
 
 SC1  every acceptance criterion in requirements.md is traced to a passing Apex test method

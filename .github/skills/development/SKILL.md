@@ -92,6 +92,10 @@ mass-renumbering historical tasks, rewriting unrelated checklists, or requiring 
 
 ## Implementation discretion and unresolved choices
 
+In a delivery run (SAFE-DELIVERY-RUN-001), an unresolved choice or an unverifiable org fact does
+not stop the build: take the smallest, least-privileged reasonable option, record it in
+`decisions.md`, and continue. The rest of this section applies outside delivery runs.
+
 Choose private helpers and equivalent algorithms autonomously when they preserve the design's
 behavior. A material technical adaptation within that behavior can proceed under the existing
 instruction after its reason and impact are recorded as above. An entry does not authorize

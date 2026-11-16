@@ -152,7 +152,7 @@
     {
       "name": "delivery-success",
       "path": ".ai/contracts/delivery-success.md",
-      "summary": "A delivery run succeeds only when `scripts/check_delivery.py` reports PASS for the HEAD commit of the feature branch. An agent's own statement that work is done, tested, or deployed is never success. Plan and decisions: [plan 05](../../docs/plan05-w8-integration.md).",
+      "summary": "A delivery run succeeds only when `scripts/check_delivery.py` (run through `node scripts/check-delivery.mjs`, the same command on every OS) reports PASS for the HEAD commit of the feature branch. An agent's own statement that work is done, tested, or deployed is never success. Plan and decisions: [plan 05](../../docs/plan05-w8-integration.md).",
       "title": "Delivery Success Contract"
     },
     {
@@ -487,10 +487,10 @@
     }
   ],
   "sourceDigests": {
-    ".ai/contracts/delivery-success.md": "sha256:8acc08e6b57ee943b94e6d40ebea74acfb3ae3f17698975d585e64802498aaa7",
+    ".ai/contracts/delivery-success.md": "sha256:2fe1effba9c9994ff73337a4770295213099bc6953399e803a877b5de9dadbbc",
     ".ai/contracts/execution-contract.md": "sha256:721ac145e0aa139d3bdef756326c9f31956ff6c5f52421b2830f22823ad0e4c5",
     ".ai/contracts/source-authority.md": "sha256:a44ef511a496cf3634ffa097a214fad075a97c5e0ac57c8e9e901e94a0627ed9",
-    ".ai/contracts/tool-capabilities.md": "sha256:d1b9225275abc8385b17dbf003f05fe54125b5798bb5bf87b73129c7bdc4d72f",
+    ".ai/contracts/tool-capabilities.md": "sha256:0b1815e4a291d18ae1fd4643839e79ba3ebda8c84a0f716dfec214f532671610",
     ".ai/contracts/writing-standard.md": "sha256:edf666b8198130c907f4f9bf52abc6572182dc1565025503870a0a54fdfa2b50",
     ".github/agents/config-investigator.agent.md": "sha256:558e58cde469b1e3fc2771e624a6ccb0ff15de3f3c55f1dee4f114727b9ed178",
     ".github/agents/designer.agent.md": "sha256:4c826bd20c53c84e5fccf221f196831ccaf8f269ddc5331b2008b5602ec4004a",
@@ -502,7 +502,7 @@
     ".github/agents/workspace-maintainer.agent.md": "sha256:648182cad481fb8e9cb0d06d1523c4ebb86ea0b375dc5f821beb269574f92df8",
     ".github/instructions/apex.instructions.md": "sha256:d28260c9247d670c71353f0cdaa22195f2490d4bb1b5bf11d403861602cda5b3",
     ".github/instructions/flows.instructions.md": "sha256:63c560e27041a9bf6e89342f0df491310f6a6fb3dc3d70d1a56f6c61d5788adc",
-    ".github/instructions/managed-package.instructions.md": "sha256:1fe080abe0a9aa265e9be5adb850761a2c6b4f12a4d66ad0e60f469c569a0527",
+    ".github/instructions/managed-package.instructions.md": "sha256:3f77194699d0fd3650ee8b1d8aed164aef3884d6c16e358629dfc078a67bcacd",
     ".github/prompts/adhoc-fix.prompt.md": "sha256:a1d5cca35727b031629b277b9f523d8a0fc49043faa260f9fcbc3f1cf11bf6b8",
     ".github/prompts/check-against-principles.prompt.md": "sha256:5b50150518997cd9deed700566a4e9cd8e924fed8229a092f11735e1422b2a26",
     ".github/prompts/deliver-requirement.prompt.md": "sha256:e0797a229262fe2f5ab5b670cbd57abb11937a6de8a1a0e6c8ac6bc43f4fe64a",
@@ -520,8 +520,8 @@
     ".github/skills/adhoc-fix/SKILL.md": "sha256:0aebb2f3ae4e215d96399158db96a468e3e78bd54d8efeb7ed4a9c5904553ec9",
     ".github/skills/check-against-principles/SKILL.md": "sha256:9bca9e6125e0c5b29700ac4bb4b0404973eedbb7360dbbf04ee438fee9af64ee",
     ".github/skills/check-feature-coverage/SKILL.md": "sha256:f13b70a96c8924bd0609a748357bef63663c6118e39eef12bbcc6f95f901e99d",
-    ".github/skills/deliver-requirement/SKILL.md": "sha256:608366c9e430fc380abdc77e08a5d9096a2b1015508a78abd61333e15bea06c7",
-    ".github/skills/development/SKILL.md": "sha256:ff5e2a883cc1b9e22400b2fecadb31c3c926025236ec98a46195ee9ef5d421fb",
+    ".github/skills/deliver-requirement/SKILL.md": "sha256:d4e6d27efa1c1df7b08c79dc6e1d35f993dbcb2a5be13993e24b9be4d3b47af0",
+    ".github/skills/development/SKILL.md": "sha256:73e04b2e66e07d16ccd4e589831c15ddf5f78c960a57a03c0d9a0d30e465f248",
     ".github/skills/document-solution/SKILL.md": "sha256:6512d342653de417eb1fbdb2b1eab0ae5332ce2b424cc9b85d4ee011f14eb388",
     ".github/skills/fetch-ado-item/SKILL.md": "sha256:b2e7c7de90df45932b495a1dfeda256c2966ecf3e89d748e9ba694dbfee4b84c",
     ".github/skills/generate-technical-documentation/SKILL.md": "sha256:1a9ebcfd81ce9bf5b9e69902e26f87b3c2f164dcf6b5806de8898d7d27a4fec4",
@@ -534,7 +534,7 @@
     ".github/skills/prepare-qa-test-plan/SKILL.md": "sha256:ac2c37f9d87450d995c8b4735abbc7db3335aa1af8caa012deb7d99f52a92250",
     ".github/skills/publish-wiki/SKILL.md": "sha256:bbdcdb4e7661fcbbb6ae2eb5789ef0188aeed2be7a3d4f3eda1444dbde749d6f",
     ".github/skills/search-ado/SKILL.md": "sha256:c28a742cdba3a37f43dba155b68c26cee2481cef157c4fa0c08bce398186694b",
-    ".github/skills/solution-design/SKILL.md": "sha256:5f551d49af7be40b432fbe588db36fb9479ece9fb393788b0f78ab6e0bad7169",
+    ".github/skills/solution-design/SKILL.md": "sha256:c38f8228efa4dea4a74755488e7d0e27f0fada80538437fdda0f38457dd2aba4",
     "config/repo-map-seed.json": "sha256:668bf2439e5ba336d5405fce384498de6a475c9b7def906b0e581831628762a0"
   },
   "wordCount": 762

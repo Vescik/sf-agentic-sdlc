@@ -3,12 +3,12 @@
 Status: normative
 Schema version: 1
 
-A delivery run succeeds only when `scripts/check_delivery.py` reports PASS for the HEAD commit of
+A delivery run succeeds only when `scripts/check_delivery.py` (run through `node scripts/check-delivery.mjs`, the same command on every OS) reports PASS for the HEAD commit of
 the feature branch. An agent's own statement that work is done, tested, or deployed is never
 success. Plan and decisions: [plan 05](../../docs/plan05-w8-integration.md).
 
 ```bash
-python3 scripts/check_delivery.py --work-item work-items/<id>-<slug>
+node scripts/check-delivery.mjs --work-item work-items/<id>-<slug>
 ```
 
 The script runs the Apex tests itself and reads the deploy result from the org. It writes

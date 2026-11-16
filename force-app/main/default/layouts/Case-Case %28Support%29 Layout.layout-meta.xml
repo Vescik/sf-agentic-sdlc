@@ -91,6 +91,10 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Readonly</behavior>
+                <field>Routing_Tier__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
                 <field>ContactPhone</field>
             </layoutItems>
             <layoutItems>

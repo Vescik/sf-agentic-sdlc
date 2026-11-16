@@ -717,7 +717,8 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
     # Sub-agents (plan 05, live trial 2026-11-16): on Copilot CLI a conductor started the built-in
     # `task`/`general-purpose` agents, which have every tool, instead of the station agents. Only
     # the repository's station agents may be started as sub-agents.
-    if bare_tool == "task" and isinstance(tool_input, dict):
+    # The model calls it `task`; the CLI hook payload names it `Agent` (live run 7).
+    if bare_tool in ("task", "agent") and isinstance(tool_input, dict) and ("agent_type" in tool_input or "agentType" in tool_input or "prompt" in tool_input):
         agent_type = str(tool_input.get("agent_type") or tool_input.get("agentType") or "")
         if agent_type not in SUBAGENT_TYPES:
             return hook_response(

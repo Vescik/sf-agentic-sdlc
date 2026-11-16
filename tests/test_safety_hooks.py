@@ -1516,9 +1516,10 @@ class SubagentGateTests(unittest.TestCase):
                                      ("task", "deny"), ("general-purpose", "deny"), ("explore", "deny"),
                                      ("workspace-maintainer", "deny"), ("sdlc-conductor", "deny"), ("", "deny")):
             with self.subTest(agent_type=agent_type):
-                output = run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": "task",
-                                                             "tool_input": {"agent_type": agent_type, "prompt": "x"}})
-                self.assertEqual(expected, hook_decision(output))
+                for tool_name in ("task", "Agent"):  # the CLI hook payload says `Agent`
+                    output = run_hook("copilot_safety_hook.py", {"cwd": str(ROOT), "tool_name": tool_name,
+                                                                 "tool_input": {"agent_type": agent_type, "prompt": "x"}})
+                    self.assertEqual(expected, hook_decision(output))
 
 
 class LiveTrialRunThreeTests(unittest.TestCase):

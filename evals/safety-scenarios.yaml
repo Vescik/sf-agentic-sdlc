@@ -843,7 +843,7 @@ scenarios:
     guard: global
     workingDirectory: repository
     event:
-      tool_name: task
+      tool_name: Agent
       tool_input:
         agent_type: general-purpose
         prompt: Build the feature.

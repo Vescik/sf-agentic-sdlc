@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -70,7 +71,28 @@ class Criterion:
         return self
 
 
+def windows_command(command: list[str], platform: str = sys.platform) -> list[str]:
+    """Make an npm-installed CLI startable on Windows (live run: `sf` exists only as the npm
+    shim `sf.cmd`, which CreateProcess cannot find by its bare name, so the check exited 2).
+
+    `sf.cmd` from npm runs `node <dir>/node_modules/@salesforce/cli/bin/run.js`; start that
+    directly when present, otherwise spawn the full shim path. Other platforms are unchanged.
+    """
+    if platform != "win32" or not command:
+        return command
+    found = shutil.which(command[0])
+    if found is None:
+        return command
+    if command[0] == "sf" and found.lower().endswith((".cmd", ".bat")):
+        run_js = Path(found).parent / "node_modules" / "@salesforce" / "cli" / "bin" / "run.js"
+        node = shutil.which("node")
+        if node and run_js.is_file():
+            return [node, str(run_js), *command[1:]]
+    return [found, *command[1:]]
+
+
 def run_command(command: list[str], cwd: Path) -> tuple[int, str, str]:
+    command = windows_command(command)
     try:
         done = subprocess.run(command, cwd=cwd, capture_output=True, text=True,
                               timeout=COMMAND_TIMEOUT_SECONDS, check=False)

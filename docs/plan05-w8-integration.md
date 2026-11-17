@@ -321,6 +321,9 @@ evidence gates, and real client data.
   old org failures listed without reasons. The trace parser now ignores comments after a
   reference, S4 gives the row format, the report adds `blockerReasons`, and the reviewer writes
   no file (its shell write had asked for path access to `\`); the next station saves its review.
+  The following run stopped at S5 with exit 2: Python could not start `sf`, which on Windows is
+  only the npm shim `sf.cmd`. The checker now starts `node <npm>/@salesforce/cli/bin/run.js` (the
+  review facade's approach) or the full shim path; the launcher spawns full paths on Windows too.
 - **Decided 2026-11-16 after phase 3:**
   - D-T1: the per-role terminal allowlist is removed. Every role may run any command except a
     Salesforce command the policy denies (the same policy for every role), a chained `sf`

@@ -116,8 +116,16 @@ def strip_session_args(args: list[str]) -> list[str]:
     return rest
 
 
+def spawnable(command: list[str]) -> list[str]:
+    """On Windows, the full path of an npm shim such as `copilot.cmd`: CreateProcess does not
+    find a `.cmd` by its bare name (live run: the delivery check could not start `sf`)."""
+    if sys.platform != "win32" or not command:
+        return command
+    return [shutil.which(command[0]) or command[0], *command[1:]]
+
+
 def _run(runner: Runner, command: list[str], env: dict[str, str] | None = None) -> "subprocess.CompletedProcess[str]":
-    return runner(command, cwd=ROOT, env=env, capture_output=True, text=True, check=False)
+    return runner(spawnable(command), cwd=ROOT, env=env, capture_output=True, text=True, check=False)
 
 
 def agent_answer(stdout: str) -> str:
@@ -273,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"sdlc: {exc}", file=sys.stderr)
         return 2
     print(f"sdlc: agent org {agent_org} (dev); {' '.join(command)}", file=sys.stderr)
-    code = subprocess.run(command, cwd=ROOT, env=env, check=False).returncode
+    code = subprocess.run(spawnable(command), cwd=ROOT, env=env, check=False).returncode
     prompt_mode = any(arg in ("-p", "--prompt") or arg.startswith("--prompt=") for arg in args)
     agent = next((args[i + 1] for i, a in enumerate(args[:-1]) if a == "--agent"), None) or next(
         (a.split("=", 1)[1] for a in args if a.startswith("--agent=")), DEFAULT_AGENT)

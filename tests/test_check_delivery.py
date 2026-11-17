@@ -310,5 +310,29 @@ class TolerantTraceTest(unittest.TestCase):
         self.assertEqual(["checks the tier somehow"], trace["AC-3"])
 
 
+
+class WindowsCommandTest(unittest.TestCase):
+    """Live Windows run: `sf` exists only as the npm shim sf.cmd, so the check exited 2."""
+
+    def test_npm_shim_starts_through_node_and_run_js(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            shim = Path(tmp) / "sf.cmd"
+            shim.write_text("@echo off\n")
+            run_js = Path(tmp) / "node_modules/@salesforce/cli/bin/run.js"
+            run_js.parent.mkdir(parents=True)
+            run_js.write_text("")
+            found = {"sf": str(shim), "node": r"C:\node\node.exe"}
+            with mock.patch.object(cd.shutil, "which", side_effect=found.get):
+                self.assertEqual([r"C:\node\node.exe", str(run_js), "org", "list"],
+                                 cd.windows_command(["sf", "org", "list"], "win32"))
+            run_js.unlink()
+            with mock.patch.object(cd.shutil, "which", side_effect=found.get):
+                self.assertEqual([str(shim), "org", "list"], cd.windows_command(["sf", "org", "list"], "win32"))
+
+    def test_other_platforms_are_unchanged(self):
+        self.assertEqual(["sf", "org", "list"], cd.windows_command(["sf", "org", "list"], "darwin"))
+
+
 if __name__ == "__main__":
     unittest.main()

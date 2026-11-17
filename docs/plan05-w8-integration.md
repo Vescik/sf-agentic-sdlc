@@ -316,6 +316,11 @@ evidence gates, and real client data.
   4xx/5xx) and hid the reason; the tool result now carries Salesforce's error code and message
   after the envelope, and `org-discovery` names the Tooling API objects (Flow, layouts,
   ProfileLayout, ApexTrigger).
+  The next Windows run reached the check: SC1 failed because `acceptance-trace.md` had comments
+  after the test references (the format was only in the contract), and SC2 was BLOCKED by 11
+  old org failures listed without reasons. The trace parser now ignores comments after a
+  reference, S4 gives the row format, the report adds `blockerReasons`, and the reviewer writes
+  no file (its shell write had asked for path access to `\`); the next station saves its review.
 - **Decided 2026-11-16 after phase 3:**
   - D-T1: the per-role terminal allowlist is removed. Every role may run any command except a
     Salesforce command the policy denies (the same policy for every role), a chained `sf`

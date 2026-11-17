@@ -19,8 +19,8 @@ result: fix the cause and run the check again; never report it as PASS or FAIL.
 **FAIL or BLOCKED** (owner rule 2026-11-16). A failing test belongs to the delivery when its
 class is changed on the branch or named in `acceptance-trace.md`, or when its message or stack
 trace names a changed component (a regression the change caused). The agent fixes those (FAIL).
-Every other failing test is an old failure in the org: the report lists it under `blockers`, the
-status is BLOCKED, and the run stops. The agent does not fix tests outside the delivery; a
+Every other failing test is an old failure in the org: the report lists it under `blockers` and
+its first message line under `blockerReasons`, the status is BLOCKED, and the run stops. The agent does not fix tests outside the delivery; a
 person fixes the org and starts the next iteration.
 
 ## Criteria
@@ -41,7 +41,8 @@ All five must pass for the same commit.
   `AC-2`, … The IDs never change after the first commit; a dropped criterion is marked dropped,
   not renumbered.
 - `acceptance-trace.md`: one table row per acceptance criterion. Separate several entries with
-  commas.
+  commas. Text after a test reference (`Class.method - checks High`) is ignored; keep longer
+  explanations in a third column.
 
   ```markdown
   | AC   | Covered by                                      |

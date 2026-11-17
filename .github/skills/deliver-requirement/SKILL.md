@@ -33,6 +33,11 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 2. Ask the station to append one line to `run-log.md` when it ends: station, agent, UTC time,
    status (`DONE`, `RETURNED`, `BLOCKED`), output paths, and the next step. After the station,
    read its outputs and the log line from the work-item folder. The log is a record, not a gate.
+   The `reviewer` (S3, S6) writes no file and no log line: it has no editor, and a shell write
+   asks for path access (live Windows run). Tell it to answer with the review only. Pass that
+   answer verbatim to the next station with an editor (`developer` or `designer` after S3,
+   `developer` or `git-agent` after S6), which saves it to `reviews/S3-design.md` or
+   `reviews/S6-implementation.md` in the work item and appends the reviewer's log line too.
 3. Ask every station to write and change files with its editor tools, not with shell commands
    such as `python3 -c`, heredocs or PowerShell here-strings, and to run `git` and `sf` directly,
    one command at a time, never through a Python `subprocess` or a script. A shell command that
@@ -50,7 +55,7 @@ a new attempt budget. When an argument is missing or both are given, ask once an
    - the attempt budget is spent (6 delivery checks in one iteration): end the run with the
      last `delivery-check.json` and the failing criteria, without push or PR;
    - `delivery-check.json` is BLOCKED: tests outside the delivery fail in the org. Do not fix
-     them. End the run, list the `blockers`, and ask the person to fix the org and start the
+     them. End the run, list the `blockers` with their `blockerReasons`, and ask the person to fix the org and start the
      next iteration;
    - a hook denies an action that the run needs and no permitted way exists: report the
      denial and its reason, and end the run.
@@ -61,10 +66,10 @@ a new attempt budget. When an argument is missing or both are given, ask once an
 | --- | --- | --- | --- |
 | S1 requirements | `designer` | Before S1, fix the run's identity and say it in every station request: the work-item folder `work-items/<id>-<slug>` and the branch `feat/<id>-<slug>`. For an ADO item, `<id>` is its ID; for a `requirementFile`, `<id>` is the next free number in `work-items/` and the requirement is a written, human-provided requirement with no ADO item. Pass the exact input (the file path, which the station reads itself, or the ADO item ID). ADO input: follow `fetch-ado-item itemId=<ID>`. Then, for every input, create the branch and write `requirements.md` (see below). | `requirements.md` is committed on `feat/<id>-<slug>` |
 | S2 design | `designer` | Follow `solution-design` with the written requirement in `work-items/<id>-<slug>/requirements.md` (or `itemId=<ID>` for ADO input). Say that no `ado-context.md` exists for a written requirement. The design lists the planned metadata components and traces each `AC-n` to the design. Everything the requirement excludes (for example "no Flow", "no backfill") is listed under Explicit exclusions and never appears in the planned change surface. | `design.md` is committed |
-| S3 design review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=design`. | a review result exists; findings that block the design go back to S2 once, then to H3 as findings |
-| S4 build | `developer` | Follow `development` on branch `feat/<id>-<slug>`. The launcher granted deploy autonomy (`SF_AGENTIC_AUTONOMOUS_ORG`): deploy with `--target-org <agent org>` and do not ask for confirmation; the hooks enforce the limits. Plan tasks, write source and Apex tests; for a new field, add a permission set with field access and assign it in the agent org; commit the source, deploy to the agent org, then commit `acceptance-trace.md` and `deploy-job-id`. | the work is committed and deployed |
+| S3 design review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=design`. Answer with the review; write no file. | a review result exists; findings that block the design go back to S2 once, then to H3 as findings |
+| S4 build | `developer` | Follow `development` on branch `feat/<id>-<slug>`. The launcher granted deploy autonomy (`SF_AGENTIC_AUTONOMOUS_ORG`): deploy with `--target-org <agent org>` and do not ask for confirmation; the hooks enforce the limits. Plan tasks, write source and Apex tests; for a new field, add a permission set with field access and assign it in the agent org; commit the source, deploy to the agent org, then commit `acceptance-trace.md` and `deploy-job-id`. `acceptance-trace.md` is a table with one row per criterion: `\| AC-1 \| CaseTierTest.highMapsToTier1, manual: open a High Case and see Tier 1 \|`. The second cell holds only `Class.method` references and `manual:` steps, comma-separated; put explanations in a third column. | the work is committed and deployed |
 | S5 check | `developer` | Run `node scripts/check-delivery.mjs --work-item <folder>` (the same command on macOS and Windows; never `python3`, which Windows lacks). On FAIL, fix the cause named in the failing details, commit, deploy, and run the check again. | `delivery-check.json` is PASS for HEAD, or the budget is spent |
-| S6 implementation review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=implementation` with the security list below. | review findings are written; a finding that breaks SC1–SC5 goes back to S4 inside the budget, every other finding goes to H3 |
+| S6 implementation review | `reviewer` | Follow `check-against-principles itemId=<ID> scope=implementation` with the security list below. Answer with the review; write no file. | review findings are written; a finding that breaks SC1–SC5 goes back to S4 inside the budget, every other finding goes to H3 |
 | S7 draft PR | `git-agent` | Push `feat/<id>-<slug>` and open a draft PR with the delivery packet as its body. | the draft PR URL is known |
 | H3 | person | Reviews the draft PR; merges or closes it. | — |
 

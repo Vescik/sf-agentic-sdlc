@@ -182,6 +182,7 @@ class CheckDeliveryTest(unittest.TestCase):
         report = self.run_check()
         self.assertEqual("BLOCKED", report["status"])
         self.assertEqual(["LegacyTest.oldBreak"], report["blockers"])
+        self.assertEqual({"LegacyTest.oldBreak": "Method does not exist"}, report["blockerReasons"])
         self.assertIn("BLOCKER", " ".join(self.status(report, "SC2")["details"]))
 
         self.sf = FakeSalesforce()
@@ -193,7 +194,7 @@ class CheckDeliveryTest(unittest.TestCase):
         report = self.run_check()
         self.assertEqual(("FAIL", []), (report["status"], report["blockers"]))
         details = " ".join(self.status(report, "SC2")["details"])
-        self.assertIn("fix them in this delivery: AccountTest.regression, CaseRouterTest.routesHighToTier2", details)
+        self.assertIn("fix them in this delivery: AccountTest.regression (System.DmlException); CaseRouterTest.routesHighToTier2 (no message)", details)
         self.assertNotIn("BLOCKER", details)
 
     def test_sc3_low_or_missing_coverage_fails_and_test_classes_are_exempt(self):
@@ -292,6 +293,21 @@ class CrossPlatformWrapperTest(unittest.TestCase):
                               capture_output=True, text=True, timeout=60)
         self.assertEqual(0, done.returncode, done.stderr)
         self.assertIn("--work-item", done.stdout)
+
+
+
+class TolerantTraceTest(unittest.TestCase):
+    """Live Windows run: comments after a test reference failed SC1 fragment by fragment."""
+
+    def test_comment_after_reference_is_ignored(self):
+        trace = cd.parse_trace(
+            "| AC | Evidence |\n|---|---|\n"
+            "| AC-1 | `TierTest.highMapsToOne` - checks High to Tier 1, Medium to Tier 2 |\n"
+            "| **AC-2** | TierTest.nullPriority (no tier), manual: open a Case, check the tier |\n"
+            "| AC-3 | checks the tier somehow |\n")
+        self.assertEqual(["TierTest.highMapsToOne"], trace["AC-1"])
+        self.assertEqual(["TierTest.nullPriority", "manual: open a Case, check the tier"], trace["AC-2"])
+        self.assertEqual(["checks the tier somehow"], trace["AC-3"])
 
 
 if __name__ == "__main__":

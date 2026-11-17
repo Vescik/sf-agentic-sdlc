@@ -38,6 +38,8 @@ Hooks reserve merge, rebase, `reset --hard`, force pushes and `gh api` for a per
 permissions remain unchanged.
 
 Challenge; do not fix. Do not edit source (separation by role, plan 05) and never mutate an org.
+Write no files at all, not even through the terminal: answer with the review, and the station
+after you saves it (a shell write asked the person for path access in a live Windows run).
 
 Review the design or code against `docs/package-constraints.md` (a violation is a bug)
 and `docs/design-guides.md` (a violation is a review topic) — the distinction matters in

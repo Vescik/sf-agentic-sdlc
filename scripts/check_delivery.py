@@ -136,15 +136,36 @@ def acceptance_ids(text: str) -> list[str]:
     return sorted({f"AC-{n}" for n in AC_ID.findall(text)}, key=lambda ac: int(ac[3:]))
 
 
+LEADING_REF = re.compile(r"^`?([A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*)`?(?=$|[\s(:;\u2013\u2014-])")
+
+
 def parse_trace(text: str) -> dict[str, list[str]]:
-    """`| AC-n | Class.method, manual: step |` rows -> {AC-n: [entries]}."""
+    """`| AC-n | Class.method, manual: step |` rows -> {AC-n: [entries]}.
+
+    Tolerates a comment after a test reference (`Class.method - checks High`) and comma
+    fragments of such a comment (live Windows run: every fragment failed SC1). A fragment with
+    neither a leading reference nor `manual:` is dropped when its cell has a valid entry, and
+    kept (so SC1 names it) when the cell has none.
+    """
     trace: dict[str, list[str]] = {}
     for line in text.splitlines():
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if len(cells) < 2 or not re.fullmatch(r"AC-\d+", cells[0]):
+        if len(cells) < 2 or not re.fullmatch(r"\*{0,2}AC-\d+\*{0,2}", cells[0]):
             continue
-        entries = [entry.strip().strip("`") for entry in cells[1].split(",") if entry.strip()]
-        trace.setdefault(cells[0], []).extend(entries)
+        valid: list[str] = []
+        loose: list[str] = []
+        for raw in (entry.strip().strip("`").strip() for entry in cells[1].split(",")):
+            if not raw:
+                continue
+            if raw.lower().startswith("manual:"):
+                valid.append(raw)
+            elif valid and valid[-1].lower().startswith("manual:") and not LEADING_REF.match(raw):
+                valid[-1] += ", " + raw  # a comma inside the manual step's own text
+            elif (ref := LEADING_REF.match(raw)):
+                valid.append(ref.group(1))
+            else:
+                loose.append(raw)
+        trace.setdefault(cells[0].strip("*"), []).extend(valid or loose)
     return trace
 
 
@@ -260,9 +281,9 @@ def is_delivery_failure(test: dict[str, Any], names: set[str]) -> bool:
 
 
 def run_tests(runner: Runner, root: Path, org: str, names: set[str] | None = None
-              ) -> tuple[Criterion, dict[str, str], dict[str, float], list[str]]:
-    """Returns the criterion, outcomes, coverage and the blockers: failing tests outside the
-    delivery, which the agent does not fix (a person fixes the org first)."""
+              ) -> tuple[Criterion, dict[str, str], dict[str, float], dict[str, str]]:
+    """Returns the criterion, outcomes, coverage and the blockers ({test: first message line}):
+    failing tests outside the delivery, which the agent does not fix (a person fixes the org)."""
     criterion = Criterion("SC2", "All Salesforce tests are green")
     names = names or set()
     result = sf_json(runner, root, ["sf", "apex", "run", "test", "--test-level", "RunLocalTests",
@@ -280,21 +301,24 @@ def run_tests(runner: Runner, root: Path, org: str, names: set[str] | None = Non
             continue
     delivery_failed: list[str] = []
     blockers: list[str] = []
+    reasons: dict[str, str] = {}
     for test in result.get("tests") or []:
         if str(test.get("Outcome")) in ("Pass", "Skip"):
             continue
         name = str(test.get("FullName") or f"{(test.get('ApexClass') or {}).get('Name')}.{test.get('MethodName')}")
+        message = str(test.get("Message") or "").strip().splitlines()
+        reasons[name] = message[0][:200] if message else "no message"
         (delivery_failed if is_delivery_failure(test, names) else blockers).append(name)
     problems = []
     if str(summary.get("outcome", "")).lower() not in ("passed", "pass"):
         problems.append(f"Apex test outcome {summary.get('outcome')!r}")
     if delivery_failed:
         problems.append(f"{len(delivery_failed)} delivery test(s) not passing; fix them in this delivery: "
-                        + ", ".join(sorted(delivery_failed)[:15]))
+                        + "; ".join(f"{n} ({reasons[n]})" for n in sorted(delivery_failed)[:15]))
     if blockers:
         problems.append(f"BLOCKER: {len(blockers)} test(s) outside this delivery fail and do not name a "
                         "changed component; the agent does not fix them, a person fixes the org first: "
-                        + ", ".join(sorted(blockers)[:15]))
+                        + "; ".join(f"{n} ({reasons[n]})" for n in sorted(blockers)[:15]))
     if not outcomes:
         problems.append("the Apex test run returned no test results")
     package = json.loads((root / "package.json").read_text(encoding="utf-8")) if (root / "package.json").is_file() else {}
@@ -308,7 +332,7 @@ def run_tests(runner: Runner, root: Path, org: str, names: set[str] | None = Non
         criterion.failed(*problems)
     else:
         criterion.passed(f"{summary.get('testsRan', len(outcomes))} Apex tests passed in {org}", lwc_note)
-    return criterion, outcomes, coverage, sorted(blockers)
+    return criterion, outcomes, coverage, {n: reasons[n] for n in sorted(blockers)}
 
 
 def check_coverage(changed: list[str], classes: dict[str, str], coverage: dict[str, float]) -> Criterion:
@@ -462,7 +486,8 @@ def check(work_item: Path, *, root: Path = ROOT, base: str = "main", org: str | 
         # BLOCKED: failures outside the delivery; the run stops for a person (owner rule
         # 2026-11-16). FAIL: the agent repairs within its attempt budget.
         "status": "BLOCKED" if blockers else "PASS" if all(c.status == "PASS" for c in criteria) else "FAIL",
-        "blockers": blockers,
+        "blockers": sorted(blockers),
+        "blockerReasons": blockers,
         "criteria": [{"id": c.id, "title": c.title, "status": c.status, "details": c.details} for c in criteria],
         "manualSteps": manual,
     }

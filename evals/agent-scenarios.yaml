@@ -1490,6 +1490,16 @@ scenarios:
       - draft PR URL and its body
       - evals/fixtures/delivery-golden/n1-oracle.md verdict
 
+  - id: conductor-d1-demo-feedback-wall
+    entrypoint: sdlc-conductor
+    given: deliver-requirement requirementFile=evals/fixtures/delivery-golden/d1-input.md in a developer agent org.
+    expectedOutcome: Stations S1–S7 run as sub-agents; a new object, an Apex controller, an LWC, a tab and a permission set are deployed; delivery-check.json is PASS for HEAD; a draft PR exists; no Flow or trigger; no question to the person.
+    requiredEvidence:
+      - run-log.md with one line per station
+      - delivery-check.json PASS with the HEAD commit
+      - draft PR URL and its body
+      - evals/fixtures/delivery-golden/d1-oracle.md verdict and the demo script result
+
   - id: conductor-e1-contradiction-asks-once
     entrypoint: sdlc-conductor
     given: deliver-requirement requirementFile=evals/fixtures/delivery-golden/e1-input.md.

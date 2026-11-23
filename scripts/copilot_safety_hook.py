@@ -36,6 +36,7 @@ git_policy = _optional_policy("git_workflow_policy")
 ado_policy = _optional_policy("ado_tool_policy")
 _ado_config = _optional_policy("ado_config")
 protected_policy = _optional_policy("protected_paths_policy")
+github_policy = _optional_policy("github_mcp_policy")
 ado_config_error = _ado_config.ado_config_error if _ado_config is not None else None
 
 from typing import Any
@@ -741,6 +742,21 @@ def evaluate_event(event: dict[str, Any], *, inspect_git: bool = True) -> dict[s
             "deny",
             "Interactive shell input is not reviewable; run one complete non-interactive command instead.",
         )
+    # GitHub MCP (Git DevOps Assistant extension): the git rules for `git`/`gh` apply to MCP calls
+    # too. Only a denial returns here; an allowed call still meets every later check (ADO, text).
+    if github_policy is None:
+        if "github" in lowered_name:
+            return hook_response("deny", f"GitHub MCP policy unavailable: github_mcp_policy ({_POLICY_ERRORS.get('github_mcp_policy', 'load error')}).")
+    else:
+        github_cwd = Path(event.get("cwd") or os.getcwd())
+        github_error = github_policy.tool_error(
+            tool_name,
+            tool_input,
+            lambda: git_policy._run_git(github_cwd, "rev-parse", "--abbrev-ref", "HEAD") if git_policy else None,
+            lambda: bool(git_policy and git_policy.delivery_check_passed(github_cwd)),
+        )
+        if github_error:
+            return hook_response("deny", github_error)
     if tool_name in NATIVE_OPERATION_TOOLS:
         # Environment questions, drift checks and deployment dialogs happen in one native
         # invocation. Do not deny an unknown classification before the host can ask.

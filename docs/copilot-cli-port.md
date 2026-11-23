@@ -93,12 +93,86 @@ Copilot SDK docs. "Docs" means documented, not yet probed here.
   the active sub-agent per session from those events and apply role rules in the global hook.
   This is not built yet.
 - **Tool names seen live on the CLI:** `Bash` (also PowerShell on Windows), `Edit`, `create`,
-  `apply_patch`, `Agent` (the model calls it `task`), `write_bash` and `write_powershell`. Match them case-insensitively. Tool names and input schemas differ between
-  harnesses, so record the names on each new host (probe 2 below).
+  `apply_patch`, `Agent` (the model calls it `task`), `write_bash` and `write_powershell`.
+  Match them case-insensitively. Tool names and input schemas differ between harnesses, so
+  record the names on each new host (probe 2 below).
 - **SDK.** The orchestrator can call the policy modules (`protected_paths_policy`,
   `git_workflow_policy`, `salesforce_operation_policy` and the safety hook's
   `evaluate_event`) in process from `onPreToolUse`. This is enforcement in code, not through a
   file hook. Keep repository hooks on (`hooks.enableRepositoryHooks`) as a second layer.
+
+## Azure DevOps and GitHub through the Git DevOps Assistant extension
+
+Target: Azure DevOps and GitHub access in VS Code comes from the Microsoft extension
+**Git DevOps Assistant (MCP Powered)** (`MS-DAW-TCA.ado-productivity-copilot`, 1.9.3, needs
+VS Code 1.143 or later). It replaces our own launcher there. Facts below come from the
+extension's manifest and bundled code (read 2026-11-23). The extension is "not a supported
+product offering from the Azure DevOps or GitHub product teams".
+
+### What it provides
+
+| Part | How it works |
+|---|---|
+| Azure DevOps MCP server (always on) | VS Code API `registerMcpServerDefinitionProvider("adoProvider")`. Local mode (default, `adoProductivity.mcpTransport: local`) runs `npx -y @azure-devops/mcp <org> --authentication envvar` with an Entra token in `ADO_MCP_AUTH_TOKEN` from the VS Code Microsoft sign-in. Remote mode calls `https://mcp.dev.azure.com/<org>` with a bearer token. Server name: "Azure DevOps MCP Server". |
+| GitHub MCP server (optional, on by default) | `registerMcpServerDefinitionProvider("githubProvider")`: HTTP to `https://api.githubcopilot.com/mcp/` (or a GHE host) with the VS Code GitHub sign-in (OAuth scopes `repo`, `read:org`) or a token. Server name: "Git DevOps Assistant: GitHub". |
+| Language model tools | `adoContext`, `adoMyWorkItems`, `githubContext` (read-only context). |
+| Agents | 12 `.agent.md` files (DevOps assistant, sprint planner, work item author, PR author, code reviewer, pipeline doctor and others). No `tools` limit, and they use `handoffs`, which the Copilot harness does not accept. |
+| Skills | 32 skills, most with `disable-model-invocation: true` (slash commands such as `/ado-createpr`, `/ado-update`, `/ado-build`). |
+| Settings | `adoProductivity.tenantId`, `mcpTransport`, `mcpNpmRegistry`, `github.enabled`, `github.host`, `github.authMode`, `github.enterpriseUri`, `github.mcpServerUrl`, `github.defaultRepo`. Organization and project come from a first-run prompt. |
+
+### What it means for the port
+
+- **VS Code only.** The servers come from the VS Code extension API, so they exist only while
+  VS Code runs the extension (editor sessions; check the Agents window). Copilot CLI and the
+  Copilot SDK do not see them. On those hosts we keep a configured server (our pinned
+  read-only ADO launcher) or the host's own GitHub access.
+- **No read-only limit.** The ADO server starts unpinned (`npx -y`, latest version) with every
+  tool domain. The GitHub server has no read-only header, so it exposes write tools as
+  well (pull requests, merges, files, branches). The extension's agents "preview and confirm"
+  by instruction only. Our hooks are the only enforced limit.
+- **Hook gap: GitHub MCP tools are allowed today.** The safety hook allows an MCP tool it does
+  not recognize (plan 05, D-R1). The git rules (no merge, push only `feat/*`, draft PR only
+  after a PASS check) apply to `git` and `gh` commands, not to GitHub MCP calls. A GitHub MCP
+  merge or non-draft pull request would therefore pass. **Before you enable the GitHub
+  server**, add a GitHub MCP policy to the global hook:
+  - allow read tools;
+  - allow `create_pull_request` only with `draft: true`, head `feat/*` and a PASS
+    `delivery-check.json`;
+  - deny merge, review approval, ready-for-review, file pushes, branch deletion, and changes
+    to repository settings and workflows.
+
+  Until then, set `adoProductivity.github.enabled: false`.
+- **The ADO result depends on the tool name format.** `ado_tool_policy` recognizes
+  `ado-readonly/<tool>`, a bare `<tool>`, or any `<server>/<tool>` whose tool starts with an
+  ADO prefix (`wit_`, `repo_` and others):
+  - `Azure DevOps MCP Server/wit_get_work_item` is recognized but gets an empty bare name, so
+    every call is denied, reads included.
+  - A dash form such as `azure-devops-mcp-server-wit_create_work_item` (the CLI joins server
+    and tool with `-`) is not recognized as ADO at all. It falls through as an unknown MCP
+    tool and is allowed, writes included.
+
+  Record the extension's tool names with probe 2, then teach the policy that prefix in both
+  forms. Keep the read list and the two narrow writes; the policy denies other mutations by
+  name.
+- **Version drift.** `npx -y` follows the latest `@azure-devops/mcp`, while our read list was
+  written for 2.8.1. Pin a registry or version through `adoProductivity.mcpNpmRegistry`, or
+  re-check the read list after each vendor release.
+- **Agent and command overlap.** The extension's agents and slash commands run without our
+  role rules (no agent name in the hook payload). Delivery work uses our agents. Treat the
+  extension's agents as personal productivity helpers outside a delivery run.
+- **Sign-in.** ADO uses the VS Code Microsoft (Entra) account. Set
+  `adoProductivity.tenantId` for a guest tenant. No PAT goes into `config/harness.local.json`.
+
+### Port steps
+
+1. Install the extension in VS Code, sign in, choose the organization and project. Set
+   `adoProductivity.github.enabled: false` until step 4.
+2. Probe 2 with the extension's ADO server: record the hook's `tool_name` for one read call.
+3. Teach `ado_tool_policy` the extension's prefix and add tests with the recorded names.
+4. Add the GitHub MCP policy (above) with tests for merge, non-draft PR, push and branch
+   deletion, then enable the GitHub server.
+5. Remove our ADO server from the VS Code MCP files only after steps 2–3 pass. Keep it for
+   Copilot CLI and the SDK.
 
 ## Setup
 
@@ -252,6 +326,8 @@ for this repository and record it.
   [Custom agent file reference](https://code.visualstudio.com/docs/agents/reference/custom-agent-file-reference),
   [Agent hooks](https://code.visualstudio.com/docs/agent-customization/hooks),
   [Hooks reference](https://code.visualstudio.com/docs/agents/reference/hooks-reference)
+- Extension: [Git DevOps Assistant (MCP Powered)](https://marketplace.visualstudio.com/items?itemName=MS-DAW-TCA.ado-productivity-copilot)
+  (manifest and bundle of 1.9.3)
 - GitHub: [Copilot in VS Code, Universe releases (2026-10-28)](https://github.blog/changelog/2026-10-28-github-copilot-in-vs-code-universe-releases/),
   [SDK pre-tool-use hook](https://docs.github.com/en/copilot/how-tos/copilot-sdk/use-hooks/pre-tool-use)
 - Copilot SDK: [repository](https://github.com/microsoft/copilot-sdk),

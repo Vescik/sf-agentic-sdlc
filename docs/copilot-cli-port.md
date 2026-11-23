@@ -46,7 +46,7 @@ hooks, below), the live result wins until a probe on the newer host passes.
 | Protection that must hold for every agent | agent frontmatter hooks (role guard) | the global safety hook, with the shared list in `scripts/protected_paths_policy.py` | Agent-scoped hooks did not run on CLI 1.0.112, and the hook payload has no agent name. |
 | `write_bash`, `write_powershell` | not recognized | denied for every role | They send keystrokes to a running shell, which is not a reviewable command. |
 | CLI `create` tool, `apply_patch` | not recognized as editors | treated as edits; `apply_patch` paths come from its `*** Add/Update/Delete File:` lines | Path limits apply to new files and patches too. |
-| MCP config | `.vscode/mcp.json` | also `.github/mcp.json` (CLI) and per-agent `mcp-servers`. Add `.mcp.json` at the root for the Copilot harness, see [MCP](#mcp-on-every-host) | Each host reads different files. |
+| MCP config | `.vscode/mcp.json` | also `.github/mcp.json` (CLI), root `.mcp.json` (Copilot harness) and per-agent `mcp-servers`, see [MCP](#mcp-on-every-host) | Each host reads different files. |
 | Salesforce MCP alias | `${input:sf_review_org}` prompt | `--org-from-config` reads `salesforce.agentOrg` | Copilot hosts do not support `${input:...}`. The facade still proves host, Org ID and IsSandbox before tools. |
 | Prompt files | 13 prompts with routing, arguments, stops, next actions | thin VS Code aliases; logic in each skill's `## Invocation contract` | The CLI does not read `.github/prompts`. VS Code's migration guide says to turn prompts into skills. |
 | Validator `.git` check | `.git` must be a directory | `.git` may be a file | Linked git worktrees. |
@@ -119,9 +119,10 @@ Copilot SDK docs. "Docs" means documented, not yet probed here.
   environment only. They do not support `${input:...}`, `envFile`, `SecretStorage` or a bare
   `$NAME`. `${COPILOT_SESSION_CWD}` (used in `.github/mcp.json`) is not in the VS Code
   reference; check it per host.
-- **Port action.** Add a root `.mcp.json` with the same two read-only launchers, so the VS Code
-  Copilot harness finds them without `.vscode/mcp.json`. Keep the per-agent `mcp-servers`
-  blocks for the CLI.
+- **Root `.mcp.json`.** It has the same two read-only launchers, so the VS Code Copilot harness
+  finds them without `.vscode/mcp.json`. Its paths are relative to the repository, like the
+  per-agent `mcp-servers` blocks that worked live on the CLI. The validator keeps all MCP
+  files in step. Keep the per-agent blocks for the CLI.
 - **Startup.** The facade answers `initialize` at once and runs its CLI reads in parallel.
   "Unknown tool name in the tool allowlist: salesforce-review_…" at agent start means the
   tools were not listed yet. If the tools work later in the session, it is a startup race.

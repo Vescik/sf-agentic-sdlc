@@ -156,6 +156,12 @@ class CliConfigFiles(unittest.TestCase):
         servers = json.loads((ROOT / ".github/mcp.json").read_text(encoding="utf-8"))["mcpServers"]
         self.assertEqual(validate_harness.CLI_MCP_SERVERS, {name: server["args"] for name, server in servers.items()})
 
+    def test_root_mcp_json_has_the_same_launchers_with_relative_paths(self) -> None:
+        servers = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]
+        expected = {name: [arg.replace("${COPILOT_SESSION_CWD}/", "") for arg in args]
+                    for name, args in validate_harness.CLI_MCP_SERVERS.items()}
+        self.assertEqual(expected, {name: server["args"] for name, server in servers.items()})
+
     def test_salesforce_launcher_rejects_ambiguous_org_source(self) -> None:
         launcher = str(ROOT / "scripts/start_salesforce_mcp.mjs")
         for args, message in (

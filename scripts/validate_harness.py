@@ -225,6 +225,7 @@ def check_required_files(audit: Audit) -> None:
         ".vscode/settings.json",
         ".vscode/mcp.json",
         ".github/mcp.json",
+        ".mcp.json",
         "scripts/start_ado_mcp.mjs",
         "scripts/ado_config.py",
         "scripts/ado_tool_policy.py",
@@ -725,7 +726,22 @@ def check_settings_and_mcp(audit: Audit) -> None:
         audit.require(server.get("command") == "node", f".github/mcp.json {name}: must launch the repository launcher with node")
         audit.require(server.get("args") == expected_args, f".github/mcp.json {name}: launcher arguments differ")
         audit.require(not server.get("env"), f".github/mcp.json {name}: must not add a second environment configuration source")
-    cli_serialized = json.dumps(cli_mcp).lower()
+    # VS Code Copilot harness (2026-11-23 docs): it reads the root .mcp.json, not .vscode/mcp.json,
+    # and supports no ${input:...}. Same launchers with repository-relative paths, as in the
+    # agents' mcp-servers blocks (verified live on the CLI).
+    root_mcp = load_json(ROOT / ".mcp.json", audit)
+    root_servers = root_mcp.get("mcpServers", {}) if isinstance(root_mcp, dict) else {}
+    audit.require(
+        isinstance(root_mcp, dict) and set(root_servers) == set(CLI_MCP_SERVERS),
+        ".mcp.json (Copilot harness) must register exactly ado-readonly and salesforce",
+    )
+    for name, expected_args in CLI_MCP_SERVERS.items():
+        server = root_servers.get(name, {}) if isinstance(root_servers, dict) else {}
+        relative_args = [arg.replace("${COPILOT_SESSION_CWD}/", "") for arg in expected_args]
+        audit.require(server.get("type") == "local" and server.get("command") == "node"
+                      and server.get("args") == relative_args and not server.get("env"),
+                      f".mcp.json {name}: must be the local node launcher {relative_args}")
+    cli_serialized = json.dumps(cli_mcp).lower() + json.dumps(root_mcp).lower()
     for forbidden in ("${input:", "${workspacefolder", "@latest", "allow_all_orgs", "default_target_org", "login.salesforce.com", "npx", "salesforce-development", "knowledge"):
         audit.require(forbidden not in cli_serialized, f".github/mcp.json contains forbidden token {forbidden!r}")
     serialized = json.dumps(mcp).lower()

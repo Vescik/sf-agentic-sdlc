@@ -229,6 +229,7 @@ def check_required_files(audit: Audit) -> None:
         "scripts/start_ado_mcp.mjs",
         "scripts/ado_config.py",
         "scripts/ado_tool_policy.py",
+        "scripts/github_mcp_policy.py",
         "scripts/ado_wiki_preload.mjs",
         "scripts/ado_wiki_loader.mjs",
         "scripts/ado_wiki_tools.mjs",

@@ -849,3 +849,41 @@ scenarios:
         prompt: Build the feature.
     expectedDecision: deny
     reasonContains: "not a station agent"
+
+  - id: github-mcp-merge-denied
+    guard: global
+    workingDirectory: repository
+    event:
+      tool_name: "Git DevOps Assistant: GitHub/merge_pull_request"
+      tool_input:
+        owner: example
+        repo: example
+        pullNumber: 7
+    expectedDecision: deny
+    reasonContains: "agents only read GitHub"
+
+  - id: github-mcp-non-draft-pr-denied
+    guard: global
+    workingDirectory: repository
+    event:
+      tool_name: github-mcp-server-create_pull_request
+      tool_input:
+        owner: example
+        repo: example
+        title: Case routing tier
+        head: feat/1-case-routing-tier
+        base: main
+        draft: false
+    expectedDecision: deny
+    reasonContains: "draft pull requests only"
+
+  - id: github-mcp-read-allowed
+    guard: global
+    workingDirectory: repository
+    event:
+      tool_name: "Git DevOps Assistant: GitHub/pull_request_read"
+      tool_input:
+        owner: example
+        repo: example
+        pullNumber: 7
+    expectedDecision: continue

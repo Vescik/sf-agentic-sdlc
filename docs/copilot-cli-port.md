@@ -130,18 +130,16 @@ product offering from the Azure DevOps or GitHub product teams".
   tool domain. The GitHub server has no read-only header, so it exposes write tools as
   well (pull requests, merges, files, branches). The extension's agents "preview and confirm"
   by instruction only. Our hooks are the only enforced limit.
-- **Hook gap: GitHub MCP tools are allowed today.** The safety hook allows an MCP tool it does
-  not recognize (plan 05, D-R1). The git rules (no merge, push only `feat/*`, draft PR only
-  after a PASS check) apply to `git` and `gh` commands, not to GitHub MCP calls. A GitHub MCP
-  merge or non-draft pull request would therefore pass. **Before you enable the GitHub
-  server**, add a GitHub MCP policy to the global hook:
-  - allow read tools;
-  - allow `create_pull_request` only with `draft: true`, head `feat/*` and a PASS
-    `delivery-check.json`;
-  - deny merge, review approval, ready-for-review, file pushes, branch deletion, and changes
-    to repository settings and workflows.
+- **GitHub MCP policy** (`scripts/github_mcp_policy.py`, in the global hook). The git rules for
+  `git` and `gh` also apply to GitHub MCP calls:
+  - read tools (`get_*`, `list_*`, `search_*`, `*_read`) are allowed;
+  - `create_pull_request` is allowed only with `draft: true`, from a `feat/*` head that is the
+    current local branch, with a PASS `delivery-check.json` for HEAD;
+  - every other GitHub MCP tool is denied: merge, review, update, push, delete, branches,
+    issues, workflows, settings, and any unknown GitHub action.
 
-  Until then, set `adoProductivity.github.enabled: false`.
+  It recognizes `<server>/<tool>`, `<server>-<tool>`, `mcp_<server>_<tool>` and bare names.
+  A known GitHub write is treated as GitHub under any server name.
 - **The ADO result depends on the tool name format.** `ado_tool_policy` recognizes
   `ado-readonly/<tool>`, a bare `<tool>`, or any `<server>/<tool>` whose tool starts with an
   ADO prefix (`wit_`, `repo_` and others):
@@ -169,8 +167,8 @@ product offering from the Azure DevOps or GitHub product teams".
    `adoProductivity.github.enabled: false` until step 4.
 2. Probe 2 with the extension's ADO server: record the hook's `tool_name` for one read call.
 3. Teach `ado_tool_policy` the extension's prefix and add tests with the recorded names.
-4. Add the GitHub MCP policy (above) with tests for merge, non-draft PR, push and branch
-   deletion, then enable the GitHub server.
+4. Check with probe 2 that the GitHub tool names match one of the recognized forms, then
+   enable the GitHub server. The GitHub MCP policy is in place.
 5. Remove our ADO server from the VS Code MCP files only after steps 2–3 pass. Keep it for
    Copilot CLI and the SDK.
 
